@@ -261,7 +261,7 @@ class _MartStoreScreenState extends State<MartStoreScreen> {
       if (existingIndex >= 0) {
         _cartItems[existingIndex]['quantity'] = (_cartItems[existingIndex]['quantity'] ?? 1) + 1;
       } else {
-        _cartItems.add({...product, 'quantity': 1});
+        _cartItems.add(<String, dynamic>{...product, 'quantity': 1});
       }
     });
   }
