@@ -61,3 +61,34 @@ Route::controller(\Modules\AuthManagement\Http\Controllers\Api\AuthController::c
     });
 
 });
+
+/*
+|--------------------------------------------------------------------------
+| Vito PIN-based Authentication Routes
+|--------------------------------------------------------------------------
+*/
+Route::controller(\Modules\AuthManagement\Http\Controllers\Api\VitoAuthController::class)->group(function () {
+    Route::group(['prefix' => 'customer/auth'], function () {
+        Route::post('pin-login', 'pinLogin');
+        Route::post('pin-register', 'pinRegister');
+    });
+
+    Route::group(['prefix' => 'driver/auth'], function () {
+        Route::post('pin-login', 'pinLogin');
+        Route::post('pin-register', 'pinRegister');
+    });
+});
+
+/*
+|--------------------------------------------------------------------------
+| Vito QR Token Routes
+|--------------------------------------------------------------------------
+*/
+Route::controller(\Modules\AuthManagement\Http\Controllers\Api\QrTokenController::class)->group(function () {
+    Route::post('qr-token/validate', 'validateToken');
+
+    Route::group(['middleware' => ['auth:api', 'maintenance_mode']], function () {
+        Route::post('qr-token/generate', 'generateToken');
+        Route::post('qr-token/revoke', 'revokeToken');
+    });
+});

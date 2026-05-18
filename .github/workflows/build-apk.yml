@@ -1,0 +1,99 @@
+name: Build APKs
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build-driver-apk:
+    name: Build Driver APK
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: drivemond-driver-app-3.1/HexaRide-Driver-app-release-3.1
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.4'
+          channel: stable
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze --no-fatal-infos
+
+      - name: Build release APK
+        run: flutter build apk --release
+
+      - name: Upload Driver APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: vito-driver-apk
+          path: drivemond-driver-app-3.1/HexaRide-Driver-app-release-3.1/build/app/outputs/flutter-apk/app-release.apk
+
+  build-user-apk:
+    name: Build User APK
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: drivemond-user-app-3.1/HexaRide-User-app-release-3.1
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.4'
+          channel: stable
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze --no-fatal-infos
+
+      - name: Build release APK
+        run: flutter build apk --release
+
+      - name: Upload User APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: vito-user-apk
+          path: drivemond-user-app-3.1/HexaRide-User-app-release-3.1/build/app/outputs/flutter-apk/app-release.apk
+
+  laravel-checks:
+    name: Laravel Backend Checks
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: drivemond-admin-new-install-3.1
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, xml, ctype, json, bcmath, pdo_mysql
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: PHP syntax check
+        run: find . -name "*.php" -not -path "./vendor/*" -exec php -l {} \; | grep -v "No syntax errors" || true

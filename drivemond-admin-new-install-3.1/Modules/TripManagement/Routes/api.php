@@ -106,3 +106,17 @@ Route::group(['prefix' => 'driver', 'middleware' => ['auth:api', 'maintenance_mo
 });
 
 Route::post('ride/store-screenshot', [NewDriverTripController::class, 'storeScreenshot'])->middleware('auth:api');
+
+/*
+|--------------------------------------------------------------------------
+| Vito Atomic Trip Acceptance
+|--------------------------------------------------------------------------
+*/
+Route::group(['prefix' => 'driver', 'middleware' => ['auth:api', 'maintenance_mode']], function () {
+    Route::group(['prefix' => 'ride'], function () {
+        Route::post('atomic-accept', [\Modules\TripManagement\Http\Controllers\Api\Driver\VitoTripController::class, 'atomicAccept']);
+    });
+    Route::group(['prefix' => 'parcel'], function () {
+        Route::post('atomic-accept', [\Modules\TripManagement\Http\Controllers\Api\Driver\VitoParcelController::class, 'atomicAcceptParcel']);
+    });
+});

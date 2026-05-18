@@ -4,7 +4,7 @@ import 'package:ride_sharing_user_app/localization/language_model.dart';
 import 'package:ride_sharing_user_app/util/images.dart';
 
 class AppConstants {
-  static const String appName = 'DriveMond';
+  static const String appName = 'Vito';
   static const String baseUrl = 'YOUR_BASE_URL_HERE';
   static const double appVersion = 3.1; /// Flutter SDK 3.41.4
   static const String fontFamily = 'SFProText';
@@ -102,6 +102,16 @@ class AppConstants {
   static const String rideTrackingUrl = '/api/track/';
   static const String registrationFromOtp = '/api/customer/auth/registration-from-otp';
   static const String otpLoginAfterUpdateData = '/api/customer/auth/update-data';
+  static const String pinLogin = '/api/customer/auth/pin-login';
+  static const String pinRegister = '/api/customer/auth/pin-register';
+  static const String qrTokenValidate = '/api/qr-token/validate';
+  static const String martProducts = '/api/customer/mart/products';
+  static const String martProductDetails = '/api/customer/mart/products/';
+  static const String martCreateOrder = '/api/customer/mart/order';
+  static const String martOrders = '/api/customer/mart/orders';
+  static const String martOrderDetails = '/api/customer/mart/orders/';
+  static const String martCancelOrder = '/api/customer/mart/orders/';
+  static const String stripePaymentIntent = '/api/customer/stripe/payment-intent';
 
 
 

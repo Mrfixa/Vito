@@ -3,7 +3,7 @@ import 'package:ride_sharing_user_app/localization/language_model.dart';
 import 'package:ride_sharing_user_app/util/images.dart';
 
 class AppConstants {
-  static const String appName = 'DriveMond Driver';
+  static const String appName = 'Vito Driver';
   static const String baseUrl = 'YOUR_BASE_URL_HERE';
   static const String polylineMapKey = 'YOUR_MAP_KEY_HERE';
   static const double appVersion = 3.1;   /// Flutter SDK 3.41.4
@@ -110,6 +110,18 @@ class AppConstants {
   static const String rideTrackingUrl = '/api/track/';
   static const String registrationFromOtp = '/api/driver/auth/registration-from-otp';
   static const String otpLoginAfterUpdateData = '/api/driver/auth/update-data';
+  static const String pinLogin = '/api/driver/auth/pin-login';
+  static const String pinRegister = '/api/driver/auth/pin-register';
+  static const String qrTokenGenerate = '/api/qr-token/generate';
+  static const String qrTokenValidate = '/api/qr-token/validate';
+  static const String qrTokenRevoke = '/api/qr-token/revoke';
+  static const String atomicAcceptRide = '/api/driver/ride/atomic-accept';
+  static const String atomicAcceptParcel = '/api/driver/parcel/atomic-accept';
+  static const String martPendingOrders = '/api/driver/mart/pending-orders';
+  static const String martAcceptOrder = '/api/driver/mart/accept-order';
+  static const String martUpdateStatus = '/api/driver/mart/update-status';
+  static const String martUploadProof = '/api/driver/mart/upload-proof';
+  static const String martMyOrders = '/api/driver/mart/my-orders';
 
   //Ride Status
 

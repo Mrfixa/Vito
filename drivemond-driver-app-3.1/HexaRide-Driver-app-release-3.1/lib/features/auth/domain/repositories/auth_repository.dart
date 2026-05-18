@@ -15,8 +15,8 @@ class AuthRepository implements AuthRepositoryInterface {
 
   @override
   Future<Response?> login({required String phone, required String password}) async {
-    return await apiClient.postData(AppConstants.loginUri,
-        {"phone_or_email": phone, "password": password});
+    return await apiClient.postData(AppConstants.pinLogin,
+        {"username": phone, "pin": password});
   }
 
   @override

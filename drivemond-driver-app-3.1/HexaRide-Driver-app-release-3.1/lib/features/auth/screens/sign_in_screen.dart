@@ -1,9 +1,7 @@
-import 'package:country_code_picker/country_code_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:get/get.dart';
-import 'package:ride_sharing_user_app/features/auth/domain/enums/verification_from_enum.dart';
-import 'package:ride_sharing_user_app/features/auth/screens/otp_log_in_screen.dart';
 import 'package:ride_sharing_user_app/features/auth/screens/sign_up_screen.dart';
 import 'package:ride_sharing_user_app/features/html/domain/html_enum_types.dart';
 import 'package:ride_sharing_user_app/helper/display_helper.dart';
@@ -12,7 +10,6 @@ import 'package:ride_sharing_user_app/util/images.dart';
 import 'package:ride_sharing_user_app/util/styles.dart';
 import 'package:ride_sharing_user_app/features/auth/controllers/auth_controller.dart';
 import 'package:ride_sharing_user_app/features/dashboard/controllers/bottom_menu_controller.dart';
-import 'package:ride_sharing_user_app/features/auth/screens/forgot_password_screen.dart';
 import 'package:ride_sharing_user_app/features/html/screens/policy_viewer_screen.dart';
 import 'package:ride_sharing_user_app/features/location/controllers/location_controller.dart';
 import 'package:ride_sharing_user_app/features/profile/controllers/profile_controller.dart';
@@ -29,24 +26,19 @@ class SignInScreen extends StatefulWidget {
 
 class _SignInScreenState extends State<SignInScreen> {
 
-  TextEditingController passwordController = TextEditingController();
-  TextEditingController phoneController = TextEditingController();
-  FocusNode phoneNode = FocusNode();
-  FocusNode passwordNode = FocusNode();
+  TextEditingController usernameController = TextEditingController();
+  TextEditingController pinController = TextEditingController();
+  FocusNode usernameNode = FocusNode();
+  FocusNode pinNode = FocusNode();
 
   @override
   void initState() {
     if(Get.find<AuthController>().getUserNumber().isNotEmpty){
-      phoneController.text =  Get.find<AuthController>().getUserNumber();
+      usernameController.text = Get.find<AuthController>().getUserNumber();
     }
-    passwordController.text = Get.find<AuthController>().getUserPassword();
-    if(passwordController.text != ''){
+    pinController.text = Get.find<AuthController>().getUserPassword();
+    if(pinController.text != ''){
       Get.find<AuthController>().setRememberMe();
-    }
-    if(Get.find<AuthController>().getLoginCountryCode().isNotEmpty){
-      Get.find<AuthController>().countryDialCode = Get.find<AuthController>().getLoginCountryCode();
-    }else if(Get.find<SplashController>().config!.countryCode != null){
-      Get.find<AuthController>().countryDialCode = CountryCode.fromCountryCode(Get.find<SplashController>().config!.countryCode!).dialCode!;
     }
     super.initState();
   }
@@ -83,35 +75,35 @@ class _SignInScreenState extends State<SignInScreen> {
                         const SizedBox(height: Dimensions.paddingSizeExtraSmall),
 
                         Text(
-                          'log_in_message'.tr,
+                          'enter_username_and_pin'.tr,
                           style: textMedium.copyWith(color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),fontSize: Dimensions.fontSizeSmall),
                           maxLines: 2,
                         ),
                         const SizedBox(height: Dimensions.paddingSizeSignUp),
 
                         TextFieldWidget(
-                          hintText: 'enter_your_phone'.tr,
-                          inputType: TextInputType.number,
-                          countryDialCode: authController.countryDialCode,
-                          controller: phoneController,
-                          focusNode: phoneNode,
-                          autoFocus: phoneController.text.isEmpty,
-                          onCountryChanged: (CountryCode countryCode){
-                            authController.countryDialCode = countryCode.dialCode!;
-                            authController.setCountryCode(countryCode.dialCode!);
-                            FocusScope.of(context).requestFocus(phoneNode);
-                          },
+                          hintText: 'username'.tr,
+                          inputType: TextInputType.text,
+                          prefixIcon: Images.person,
+                          controller: usernameController,
+                          focusNode: usernameNode,
+                          autoFocus: usernameController.text.isEmpty,
+                          inputAction: TextInputAction.next,
                         ),
                         const SizedBox(height: Dimensions.paddingSizeDefault),
 
                         TextFieldWidget(
-                          hintText: 'enter_your_password'.tr,
-                          inputType: TextInputType.text,
+                          hintText: 'enter_6_digit_pin'.tr,
+                          inputType: TextInputType.number,
                           prefixIcon: Images.lock,
                           inputAction: TextInputAction.done,
-                          focusNode: passwordNode,
+                          focusNode: pinNode,
                           isPassword: true,
-                          controller: passwordController,
+                          controller: pinController,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                            LengthLimitingTextInputFormatter(6),
+                          ],
                         ),
 
                         Row(children: [
@@ -135,21 +127,9 @@ class _SignInScreenState extends State<SignInScreen> {
                           ),
 
                           const Spacer(),
-
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: TextButton(
-                              onPressed: () => Get.to(()=>const ForgotPasswordScreen(from: VerificationForm.resetPassword)),
-                              child: Text(
-                                'forgot_password'.tr,
-                                style: textMedium.copyWith(
-                                  fontSize: Dimensions.fontSizeSmall,
-                                  color: Theme.of(context).primaryColor,
-                                ),
-                              ),
-                            ),
-                          ),
                         ]),
+
+                        const SizedBox(height: Dimensions.paddingSizeDefault),
 
                         (authController.isLoading || authController.updateFcm ||
                             profileController.isLoading || rideController.isLoading ||
@@ -158,42 +138,27 @@ class _SignInScreenState extends State<SignInScreen> {
                         ButtonWidget(
                           buttonText: 'login'.tr,
                           onPressed: (){
-                            String phone = phoneController.text;
-                            String password = passwordController.text;
-                            if(phone.isEmpty){
-                              showCustomSnackBar('phone_is_required'.tr);
-                              FocusScope.of(context).requestFocus(phoneNode);
-                            }else if(!GetUtils.isPhoneNumber(authController.countryDialCode + phone)){
-                              showCustomSnackBar('phone_number_is_not_valid'.tr);
-                              FocusScope.of(context).requestFocus(phoneNode);
-                            }else if(password.isEmpty){
-                              showCustomSnackBar('password_is_required'.tr);
-                              FocusScope.of(context).requestFocus(passwordNode);
-                            }else if(password.length<8){
-                              showCustomSnackBar('minimum_password_length_is_8'.tr);
-                              FocusScope.of(context).requestFocus(passwordNode);
+                            HapticFeedback.mediumImpact();
+                            String username = usernameController.text.trim();
+                            String pin = pinController.text.trim();
+                            if(username.isEmpty){
+                              showCustomSnackBar('username_is_required'.tr);
+                              FocusScope.of(context).requestFocus(usernameNode);
+                            }else if(username.length < 3){
+                              showCustomSnackBar('username_min_3_characters'.tr);
+                              FocusScope.of(context).requestFocus(usernameNode);
+                            }else if(pin.isEmpty){
+                              showCustomSnackBar('pin_is_required'.tr);
+                              FocusScope.of(context).requestFocus(pinNode);
+                            }else if(pin.length != 6){
+                              showCustomSnackBar('pin_must_be_6_digits'.tr);
+                              FocusScope.of(context).requestFocus(pinNode);
                             }else{
-                              authController.login(authController.countryDialCode,phone, password);
+                              authController.login('', username, pin);
                             }
                           }, radius: 50,
                         ),
 
-                          if(Get.find<SplashController>().config?.driverLoginOptions?.otpLogin ?? false)...[
-                            Center(child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: Dimensions.paddingSizeSmall, vertical: 8),
-                              child: Text('or'.tr , style: textRegular.copyWith(color: Theme.of(context).hintColor),
-                              ),
-                            )),
-
-                            ButtonWidget(
-                              showBorder: true,
-                              borderWidth: 1,
-                              transparent: true,
-                              buttonText: 'login_with_otp'.tr,
-                              onPressed: () => Get.to(() => const OtpLoginScreen(fromSignIn: true)),
-                              radius: 50,
-                            )
-                          ],
                         const SizedBox(height: Dimensions.paddingSizeDefault),
 
                         (Get.find<SplashController>().config!.selfRegistration != null &&

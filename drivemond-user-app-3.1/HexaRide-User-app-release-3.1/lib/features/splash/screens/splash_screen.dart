@@ -82,31 +82,12 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(color: Theme.of(context).cardColor),
-        alignment: Alignment.bottomCenter,
-        child: Column(mainAxisSize: MainAxisSize.min, mainAxisAlignment: MainAxisAlignment.end, children: [
-
-          Stack(alignment: AlignmentDirectional.bottomCenter, children: [
-
-            Container(
-              transform: Matrix4.translationValues(0, 320 - (320 * double.tryParse(_animation.value.toString())!), 0),
-              child: Column(children: [
-                Opacity(
-                  opacity: _animation.value,
-                  child: Padding(
-                    padding: EdgeInsets.only(left: 120 - ((120 * double.tryParse(_animation.value.toString())!))),
-                    child: SvgPicture.asset(Images.splashSvgLogo),
-                  ),
-                ),
-                SizedBox(height: Get.height * 0.25),
-                
-                SvgPicture.asset(Images.splashSvgBackground)
-              ]),
-            ),
-
-          ]),
-
-        ]),
+        decoration: const BoxDecoration(color: Color(0xFFF5B800)),
+        alignment: Alignment.center,
+        child: Opacity(
+          opacity: _animation.value,
+          child: Image.asset(Images.splashLogo, width: 220),
+        ),
       ),
     );
   }

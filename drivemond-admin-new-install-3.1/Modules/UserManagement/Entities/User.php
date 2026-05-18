@@ -53,14 +53,19 @@ class User extends Authenticatable
         'deleted_at',
         'created_at',
         'updated_at',
-        'logged_in_via'
+        'logged_in_via',
+        'username',
+        'pin_hash',
+        'pin_attempts',
+        'pin_blocked_at'
     ];
 
     protected $casts = [
         'identification_image' => 'array',
         'old_identification_image' => 'array',
         'other_documents' => 'array',
-        'loyalty_points' => 'double'
+        'loyalty_points' => 'double',
+        'pin_blocked_at' => 'datetime'
     ];
 
     protected static function newFactory()

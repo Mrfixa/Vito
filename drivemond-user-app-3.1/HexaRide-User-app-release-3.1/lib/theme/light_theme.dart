@@ -4,10 +4,10 @@ import 'package:ride_sharing_user_app/util/app_constants.dart';
 
 ThemeData lightTheme = ThemeData(
   fontFamily: AppConstants.fontFamily,
-  primaryColor: const Color(0xFF14B19E),
-  primaryColorDark: const Color(0xFF007B6C),
+  primaryColor: const Color(0xFFF5B800),
+  primaryColorDark: const Color(0xFFD4A000),
   disabledColor: const Color(0xFFBABFC4),
-  scaffoldBackgroundColor: const Color(0xFF008C7B),
+  scaffoldBackgroundColor: const Color(0xFFF5B800),
   shadowColor: Colors.black.withValues(alpha:0.03),
   textTheme:  const TextTheme(
     bodyMedium: TextStyle(color: Color(0xff1D2D2B)),
@@ -32,8 +32,8 @@ ThemeData lightTheme = ThemeData(
   hintColor: const Color(0xFF9F9F9F),
   cardColor: Colors.white,
   colorScheme: const ColorScheme.light(
-    primary: Color(0xFF008C7B),
-    secondary: Color(0xFF008C7B),
+    primary: Color(0xFFF5B800),
+    secondary: Color(0xFF1B2838),
     error: Color(0xFFFF6767),
     surface: Color(0xFFF3F3F3),
     tertiary: Color(0xFF7CCD8B),
@@ -47,14 +47,14 @@ ThemeData lightTheme = ThemeData(
     onPrimaryContainer: Color(0xFFDEFFFB),
     primaryContainer: Color(0xFFFFA800),
     onErrorContainer: Color(0xFFFFE6AD),
-    onPrimary: Color(0xFF14B19E),
+    onPrimary: Color(0xFFF5B800),
     surfaceTint: Color(0xFF0B9722),
     errorContainer: Color(0xFFF6F6F6),
     inverseSurface: Color(0xFF0148AF),
     surfaceContainer: Color(0xFF0094FF),
     secondaryFixedDim: Color(0xff808080),
   ),
-  textButtonTheme: TextButtonThemeData(style: TextButton.styleFrom(foregroundColor: const Color(0xFF14B19E))),
+  textButtonTheme: TextButtonThemeData(style: TextButton.styleFrom(foregroundColor: const Color(0xFFF5B800))),
 
   extensions: <ThemeExtension<CustomThemeColors>>[
     CustomThemeColors.light(),

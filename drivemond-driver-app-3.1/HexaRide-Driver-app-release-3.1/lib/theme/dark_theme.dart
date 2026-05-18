@@ -4,12 +4,12 @@ import 'custom_theme_colors.dart';
 
 ThemeData darkTheme = ThemeData(
   fontFamily: 'SFProText',
-  primaryColor: const Color(0xFF00735f),
+  primaryColor: const Color(0xFFD4A000),
   brightness: Brightness.dark,
   cardColor: const Color(0xFF242424),
   hintColor: const Color(0xFF9F9F9F),
-  scaffoldBackgroundColor: const Color(0xFF1C1F1F),
-  primaryColorDark: const Color(0xff01463e),
+  scaffoldBackgroundColor: const Color(0xFF1B2838),
+  primaryColorDark: const Color(0xFFB38600),
 
     extensions: <ThemeExtension<CustomThemeColors>>[
       CustomThemeColors.dark()
@@ -17,9 +17,9 @@ ThemeData darkTheme = ThemeData(
 
 
   colorScheme: const ColorScheme.dark(
-      primary: Color(0xFF02B8A2),
+      primary: Color(0xFFF5B800),
       error: Color(0xFFFF6767),
-      secondary: Color(0xFF008C7B),
+      secondary: Color(0xFF1B2838),
       tertiary: Color(0xFF7CCD8B),
       tertiaryContainer: Color(0xFFC98B3E),
       secondaryContainer: Color(0xFFEE6464),
@@ -31,12 +31,12 @@ ThemeData darkTheme = ThemeData(
       onPrimaryContainer: Color(0xFF929494),
       primaryContainer: Color(0xFFFFA800),
       onSurface: Color(0xFFFFE6AD),
-      onPrimary: Color(0xFF064A42),
+      onPrimary: Color(0xFFF5B800),
       surfaceContainer: Color(0xFF016ACD),
       secondaryFixedDim: Color(0xFF808080)
 
   ),
-  textButtonTheme: TextButtonThemeData(style: TextButton.styleFrom(foregroundColor: const Color(0xFF00735f))),
+  textButtonTheme: TextButtonThemeData(style: TextButton.styleFrom(foregroundColor: const Color(0xFFD4A000))),
     textTheme: const TextTheme(
       displayLarge: TextStyle(fontWeight: FontWeight.w300, color: Color(0xFF202020)),
       displayMedium: TextStyle(fontWeight: FontWeight.w300, color: Color(0xFF393939)),

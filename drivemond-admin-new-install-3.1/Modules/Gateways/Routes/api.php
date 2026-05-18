@@ -22,3 +22,14 @@ Route::middleware('auth:api')->get('/Gateways', function (Request $request) {
 Route::group(['prefix' => 'v1', 'as'=>'v1.'], function () {
     Route::get('payment-config', [PaymentConfigController::class, 'payment_config_get']);
 });
+
+/*
+|--------------------------------------------------------------------------
+| Vito Stripe Routes
+|--------------------------------------------------------------------------
+*/
+Route::group(['prefix' => 'customer/stripe', 'middleware' => ['auth:api', 'maintenance_mode']], function () {
+    Route::post('payment-intent', [\Modules\Gateways\Http\Controllers\Api\VitoStripeController::class, 'createPaymentIntent']);
+});
+
+Route::post('stripe/webhook', [\Modules\Gateways\Http\Controllers\Api\VitoStripeController::class, 'webhook']);
