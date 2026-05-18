@@ -47,4 +47,16 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => 'admin'], f
         });
     });
 
+    Route::group(['prefix' => 'mart/products', 'as' => 'mart.products.'], function () {
+        Route::controller(\Modules\TripManagement\Http\Controllers\Web\VitoMartAdminController::class)->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::get('create', 'create')->name('create');
+            Route::post('store', 'store')->name('store');
+            Route::get('{id}/edit', 'edit')->name('edit');
+            Route::put('{id}', 'update')->name('update');
+            Route::delete('{id}', 'destroy')->name('destroy');
+            Route::post('{id}/toggle-status', 'toggleStatus')->name('toggle-status');
+        });
+    });
+
 });

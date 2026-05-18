@@ -25,6 +25,7 @@ class VitoParcelController extends Controller
             $trip = TripRequest::where('id', $request->trip_request_id)
                 ->where('current_status', 'pending')
                 ->where('type', 'parcel')
+                ->whereNull('driver_id')
                 ->lockForUpdate()
                 ->first();
 

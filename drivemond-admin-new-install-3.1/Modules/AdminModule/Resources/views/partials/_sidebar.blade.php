@@ -211,6 +211,18 @@
 
                         </a>
                     </li>
+                    <li class="{{ Request::is('admin/mart/products*')?'active open':'' }}">
+                        <a href="{{route('admin.mart.products.index')}}">
+                            <i class="bi bi-shop"></i>
+                            <span class="link-title text-capitalize">{{ translate('VitoMart Products') }}</span>
+                        </a>
+                    </li>
+                    <li class="{{ Request::is('admin/qr-tokens*')?'active open':'' }}">
+                        <a href="{{route('admin.qr-tokens.index')}}">
+                            <i class="bi bi-qr-code"></i>
+                            <span class="link-title text-capitalize">{{ translate('QR Tokens') }}</span>
+                        </a>
+                    </li>
                     <!----------------- End Trip Management ------------------------>
                 @endif
 

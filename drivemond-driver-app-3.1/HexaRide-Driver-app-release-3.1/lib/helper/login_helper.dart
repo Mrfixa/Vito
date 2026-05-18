@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:app_links/app_links.dart';
 import 'package:get/get.dart';
 import 'package:ride_sharing_user_app/features/auth/controllers/auth_controller.dart';
-import 'package:ride_sharing_user_app/features/auth/screens/otp_log_in_screen.dart';
 import 'package:ride_sharing_user_app/features/realtime_location_trac/screens/live_location_screen.dart';
 import 'package:ride_sharing_user_app/localization/language_selection_screen.dart';
 import 'package:ride_sharing_user_app/localization/localization_controller.dart';
@@ -100,11 +99,6 @@ class LoginHelper{
   }
 
   static void checkLoginMedium(){
-    final bool isManualLogin = Get.find<SplashController>().config?.driverLoginOptions?.manualLogin ?? false;
-    if(isManualLogin){
-      Get.offAll(()=> const SignInScreen());
-    }else{
-      Get.offAll(()=> const OtpLoginScreen(fromSignIn: true));
-    }
+    Get.offAll(()=> const SignInScreen());
   }
 }

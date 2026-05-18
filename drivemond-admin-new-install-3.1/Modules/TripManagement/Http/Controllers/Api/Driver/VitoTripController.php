@@ -24,6 +24,7 @@ class VitoTripController extends Controller
         $result = DB::transaction(function () use ($request) {
             $trip = TripRequest::where('id', $request->trip_request_id)
                 ->where('current_status', 'pending')
+                ->whereNull('driver_id')
                 ->lockForUpdate()
                 ->first();
 

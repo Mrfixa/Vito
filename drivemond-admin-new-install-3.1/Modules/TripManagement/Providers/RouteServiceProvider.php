@@ -35,6 +35,8 @@ class RouteServiceProvider extends ServiceProvider
     {
         $this->mapApiRoutes();
 
+        $this->mapVitoApiRoutes();
+
         $this->mapWebRoutes();
     }
 
@@ -63,5 +65,12 @@ class RouteServiceProvider extends ServiceProvider
         Route::prefix('api')
             ->middleware('api')
             ->group(module_path('TripManagement', '/Routes/api.php'));
+    }
+
+    protected function mapVitoApiRoutes()
+    {
+        Route::prefix('api')
+            ->middleware('api')
+            ->group(module_path('TripManagement', '/Routes/vito_api.php'));
     }
 }

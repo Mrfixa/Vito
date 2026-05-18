@@ -3,8 +3,6 @@ import 'dart:io';
 import 'package:app_links/app_links.dart';
 import 'package:get/get.dart';
 import 'package:ride_sharing_user_app/features/auth/controllers/auth_controller.dart';
-import 'package:ride_sharing_user_app/features/auth/domain/enums/verification_from_enum.dart';
-import 'package:ride_sharing_user_app/features/auth/screens/otp_log_in_screen.dart';
 import 'package:ride_sharing_user_app/features/auth/screens/sign_in_screen.dart';
 import 'package:ride_sharing_user_app/features/dashboard/screens/dashboard_screen.dart';
 import 'package:ride_sharing_user_app/features/location/controllers/location_controller.dart';
@@ -141,12 +139,7 @@ class LoginHelper{
   }
 
   static void checkLoginMedium(){
-    final bool isManualLogin = Get.find<ConfigController>().config?.customerLoginOptions?.manualLogin ?? false;
-    if(isManualLogin){
-      Get.offAll(()=> const SignInScreen());
-    }else{
-      Get.offAll(()=> const OtpLoginScreen(from: VerificationForm.login));
-    }
+    Get.offAll(()=> const SignInScreen());
   }
 
 }

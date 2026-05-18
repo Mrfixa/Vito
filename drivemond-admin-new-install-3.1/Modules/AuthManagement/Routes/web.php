@@ -24,5 +24,13 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.'], function () {
             Route::get('logout', 'logout')->name('logout');
         });
     });
+
+    Route::group(['prefix' => 'qr-tokens', 'as' => 'qr-tokens.', 'middleware' => 'admin'], function () {
+        Route::controller(\Modules\AuthManagement\Http\Controllers\Web\VitoQrAdminController::class)->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::post('generate', 'generate')->name('generate');
+            Route::post('revoke/{id}', 'revoke')->name('revoke');
+        });
+    });
 });
 

@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:ride_sharing_user_app/common_widgets/button_widget.dart';
+import 'package:ride_sharing_user_app/data/api_client.dart';
 import 'package:ride_sharing_user_app/features/auth/screens/sign_in_screen.dart';
+import 'package:ride_sharing_user_app/features/auth/screens/sign_up_screen.dart';
 import 'package:ride_sharing_user_app/helper/display_helper.dart';
+import 'package:ride_sharing_user_app/util/app_constants.dart';
 import 'package:ride_sharing_user_app/util/dimensions.dart';
 import 'package:ride_sharing_user_app/util/images.dart';
 import 'package:ride_sharing_user_app/util/styles.dart';
@@ -117,7 +120,7 @@ class _TokenGateScreenState extends State<TokenGateScreen> {
     );
   }
 
-  void _validateToken() {
+  Future<void> _validateToken() async {
     final token = _tokenController.text.trim();
     if (token.isEmpty) {
       showCustomSnackBar('token_is_required'.tr);
@@ -130,9 +133,21 @@ class _TokenGateScreenState extends State<TokenGateScreen> {
 
     setState(() => _isValidating = true);
 
-    Future.delayed(const Duration(seconds: 1), () {
-      setState(() => _isValidating = false);
-      Get.to(() => const SignInScreen());
-    });
+    try {
+      final response = await Get.find<ApiClient>().postData(
+        AppConstants.qrTokenValidate,
+        {'token': token},
+      );
+
+      if (response.statusCode == 200 && response.body['data']?['valid'] == true) {
+        Get.off(() => const SignUpScreen());
+      } else {
+        showCustomSnackBar('invalid_or_expired_token'.tr);
+      }
+    } catch (_) {
+      showCustomSnackBar('token_validation_failed'.tr);
+    } finally {
+      if (mounted) setState(() => _isValidating = false);
+    }
   }
 }

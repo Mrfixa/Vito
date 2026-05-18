@@ -26,7 +26,7 @@ class QrTokenController extends Controller
             'token' => Str::random(64),
             'role' => $request->role,
             'created_by' => $request->user()->id,
-            'expires_at' => now()->addHours(24),
+            'expires_at' => $request->role === 'customer' ? now()->addHour() : now()->addDays(7),
         ]);
 
         return response()->json(responseFormatter(DEFAULT_200, [
@@ -75,6 +75,26 @@ class QrTokenController extends Controller
             'valid' => true,
             'role' => $qrToken->role,
         ]));
+    }
+
+    public function validateTokenPublic(string $token): JsonResponse
+    {
+        $qrToken = QrToken::where('token', $token)->first();
+
+        if (!$qrToken || !$qrToken->isValid()) {
+            return response()->json(responseFormatter(constant: DEFAULT_404, errors: [['message' => 'Token is invalid or expired']]), 404);
+        }
+
+        $data = [
+            'valid' => true,
+            'role' => $qrToken->role,
+        ];
+
+        if ($qrToken->role === 'customer' && $qrToken->creator) {
+            $data['driver_name'] = $qrToken->creator->first_name . ' ' . $qrToken->creator->last_name;
+        }
+
+        return response()->json(responseFormatter(DEFAULT_200, $data));
     }
 
     public function revokeToken(Request $request): JsonResponse
