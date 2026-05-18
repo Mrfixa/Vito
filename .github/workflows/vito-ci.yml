@@ -7,7 +7,7 @@ on:
     branches: [master]
 
 env:
-  FLUTTER_VERSION: "3.24.5"
+  FLUTTER_VERSION: "3.32.0"
   PHP_VERSION: "8.2"
 
 jobs:
@@ -91,8 +91,8 @@ jobs:
       - name: Build debug APK
         run: |
           flutter build apk --debug \
-            --dart-define=MAPS_API_KEY=${{ secrets.MAPS_API_KEY || '' }} \
-            --dart-define=STRIPE_KEY=${{ secrets.STRIPE_PUBLISHABLE_KEY || '' }}
+            --dart-define=MAPS_API_KEY=${{ secrets.MAPS_API_KEY }} \
+            --dart-define=STRIPE_KEY=${{ secrets.STRIPE_PUBLISHABLE_KEY }}
         continue-on-error: true
 
       - name: Upload APK artifact
@@ -131,8 +131,8 @@ jobs:
       - name: Build debug APK
         run: |
           flutter build apk --debug \
-            --dart-define=MAPS_API_KEY=${{ secrets.MAPS_API_KEY || '' }} \
-            --dart-define=STRIPE_KEY=${{ secrets.STRIPE_PUBLISHABLE_KEY || '' }}
+            --dart-define=MAPS_API_KEY=${{ secrets.MAPS_API_KEY }} \
+            --dart-define=STRIPE_KEY=${{ secrets.STRIPE_PUBLISHABLE_KEY }}
         continue-on-error: true
 
       - name: Upload APK artifact
