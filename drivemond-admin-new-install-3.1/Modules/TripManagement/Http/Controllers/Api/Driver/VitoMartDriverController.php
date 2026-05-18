@@ -67,8 +67,14 @@ class VitoMartDriverController extends Controller
             return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
         }
 
+        $allowedTransitions = [
+            'picked_up' => ['accepted'],
+            'delivered' => ['picked_up'],
+        ];
+
         $order = MartOrder::where('id', $request->order_id)
             ->where('driver_id', $request->user()->id)
+            ->whereIn('status', $allowedTransitions[$request->status])
             ->first();
 
         if (!$order) {

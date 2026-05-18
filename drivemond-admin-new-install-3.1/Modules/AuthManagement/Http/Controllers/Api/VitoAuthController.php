@@ -62,10 +62,6 @@ class VitoAuthController extends Controller
             return response()->json(responseFormatter(constant: AUTH_LOGIN_404), 403);
         }
 
-        foreach ($user->tokens as $token) {
-            $token->revoke();
-        }
-
         $hitLimit = businessConfig('maximum_login_hit')?->value ?? 5;
         $blockTime = businessConfig('temporary_login_block_time')?->value ?? 60;
 
@@ -113,6 +109,10 @@ class VitoAuthController extends Controller
             'pin_blocked_at' => null,
         ];
         $user = $this->authService->update(id: $user->id, data: $userData);
+
+        foreach ($user->tokens as $token) {
+            $token->revoke();
+        }
 
         $accessType = $user->user_type == CUSTOMER ? CUSTOMER_PANEL_ACCESS : DRIVER_PANEL_ACCESS;
 

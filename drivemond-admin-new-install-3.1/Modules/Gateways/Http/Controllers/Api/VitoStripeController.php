@@ -31,7 +31,7 @@ class VitoStripeController extends Controller
             \Stripe\Stripe::setApiKey($stripeSecret);
 
             $paymentIntent = \Stripe\PaymentIntent::create([
-                'amount' => (int)($request->amount * 100),
+                'amount' => (int) round($request->amount * 100),
                 'currency' => $request->input('currency', 'usd'),
                 'metadata' => [
                     'user_id' => $request->user()->id,
@@ -69,7 +69,7 @@ class VitoStripeController extends Controller
             if ($stripeWebhookSecret) {
                 $event = \Stripe\Webhook::constructEvent($payload, $sigHeader, $stripeWebhookSecret);
             } else {
-                $event = json_decode($payload, false);
+                return response()->json(['error' => 'Webhook secret not configured'], 500);
             }
         } catch (\Exception $e) {
             return response()->json(['error' => 'Invalid signature'], 400);
@@ -84,17 +84,22 @@ class VitoStripeController extends Controller
                 ? $data->metadata->user_id
                 : ($data['metadata']['user_id'] ?? null);
 
-            DB::transaction(function () use ($paymentIntentId, $userId, $eventType, $data) {
-                $stripeEvent = StripeEvent::where('payment_intent_id', $paymentIntentId)->first();
-                if ($stripeEvent) {
-                    $stripeEvent->update(['status' => 'succeeded']);
+            DB::transaction(function () use ($paymentIntentId, $userId, $data) {
+                $stripeEvent = StripeEvent::where('payment_intent_id', $paymentIntentId)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$stripeEvent || $stripeEvent->status === 'succeeded') {
+                    return;
                 }
+
+                $stripeEvent->update(['status' => 'succeeded']);
 
                 if ($userId) {
                     $user = \Modules\UserManagement\Entities\User::find($userId);
-                    if ($user) {
+                    if ($user && $user->userAccount) {
                         $amount = is_object($data) ? $data->amount / 100 : (($data['amount'] ?? 0) / 100);
-                        $user->increment('wallet_balance', $amount);
+                        $user->userAccount()->increment('wallet_balance', $amount);
                     }
                 }
             });
