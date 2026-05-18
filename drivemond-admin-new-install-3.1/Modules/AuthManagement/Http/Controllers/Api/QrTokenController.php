@@ -50,6 +50,28 @@ class QrTokenController extends Controller
             return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
         }
 
+        $qrToken = QrToken::where('token', $request->token)->first();
+
+        if (!$qrToken || !$qrToken->isValid()) {
+            return response()->json(responseFormatter(constant: DEFAULT_404), 404);
+        }
+
+        return response()->json(responseFormatter(DEFAULT_200, [
+            'valid' => true,
+            'role' => $qrToken->role,
+        ]));
+    }
+
+    public function redeemToken(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'token' => 'required|string|size:64',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
+        }
+
         $qrToken = DB::transaction(function () use ($request) {
             $token = QrToken::where('token', $request->token)
                 ->lockForUpdate()
@@ -72,7 +94,7 @@ class QrTokenController extends Controller
         }
 
         return response()->json(responseFormatter(DEFAULT_200, [
-            'valid' => true,
+            'redeemed' => true,
             'role' => $qrToken->role,
         ]));
     }

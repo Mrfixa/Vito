@@ -43,17 +43,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
     return;
   }
 
-  const baseUrl = window.location.origin;
+  function escapeHtml(str){
+    var d=document.createElement('div');d.appendChild(document.createTextNode(str));return d.innerHTML;
+  }
+
+  var baseUrl = window.location.origin;
   fetch(baseUrl + '/api/qr/validate/' + encodeURIComponent(token))
     .then(function(r){ return r.json(); })
     .then(function(data){
       if(data.data && data.data.valid){
-        const role = data.data.role || '';
-        const driverName = data.data.driver_name || '';
-        let html = '<div class="icon">✅</div>';
+        var role = data.data.role || '';
+        var driverName = data.data.driver_name || '';
+        var html = '<div class="icon">✅</div>';
         if(role === 'customer' && driverName){
           html += '<div class="status">You\'re Invited!</div>';
-          html += '<div class="detail">Referred by <span class="driver-name">' + driverName + '</span></div>';
+          html += '<div class="detail">Referred by <span class="driver-name">' + escapeHtml(driverName) + '</span></div>';
         } else {
           html += '<div class="status">Welcome to Vito</div>';
           html += '<div class="detail">Your invitation is valid. Download the app to get started.</div>';
