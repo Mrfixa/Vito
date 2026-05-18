@@ -7,7 +7,7 @@ on:
     branches: [master]
 
 env:
-  FLUTTER_VERSION: "3.32.0"
+  FLUTTER_VERSION: "3.44.0"
   PHP_VERSION: "8.2"
 
 jobs:
