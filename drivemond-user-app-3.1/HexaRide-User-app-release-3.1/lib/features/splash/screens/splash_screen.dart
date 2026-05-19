@@ -80,12 +80,15 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   Widget build(BuildContext context) {
 
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(color: Color(0xFFF5B800)),
-        alignment: Alignment.center,
-        child: Opacity(
-          opacity: _animation.value,
-          child: Image.asset(Images.splashLogo, width: 220),
+      body: Opacity(
+        opacity: _animation.value,
+        child: Container(
+          decoration: const BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage(Images.splashBackground),
+              fit: BoxFit.cover,
+            ),
+          ),
         ),
       ),
     );

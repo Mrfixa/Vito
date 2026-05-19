@@ -92,12 +92,15 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
       body: GetBuilder<RideController>(builder: (rideController) {
         return GetBuilder<ProfileController>(builder: (profileController) {
           return GetBuilder<LocationController>(builder: (locationController) {
-            return Container(
-              decoration: const BoxDecoration(color: Color(0xFFF5B800)),
-              alignment: Alignment.center,
-              child: Opacity(
-                opacity: _animation.value,
-                child: Image.asset(Images.splashLogo, width: 220),
+            return Opacity(
+              opacity: _animation.value,
+              child: Container(
+                decoration: const BoxDecoration(
+                  image: DecorationImage(
+                    image: AssetImage(Images.splashBackground),
+                    fit: BoxFit.cover,
+                  ),
+                ),
               ),
             );
           });
