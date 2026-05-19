@@ -146,7 +146,6 @@ class AdditionalSignUpScreen1 extends StatelessWidget {
                   buttonText: 'next'.tr,
                   onPressed: (){
                     String fName = authController.fNameController.text;
-                    String lName = authController.lNameController.text;
                     String phone = authController.phoneController.text.trim();
                     String password = authController.passwordController.text;
                     String confirmPassword = authController.confirmPasswordController.text;

@@ -106,25 +106,26 @@ void main() {
     test('Only one driver can accept a pending ride', () {
       // Simulate the atomic acceptance: first driver succeeds, second fails
       String? rideDriverId;
-      const rideStatus = 'pending';
+      String rideStatus = 'pending';
 
-      // Driver 1 attempts acceptance
-      final driver1Accepted =
-          rideStatus == 'pending' && rideDriverId == null;
-      if (driver1Accepted) {
-        rideDriverId = 'driver-1';
+      bool tryAccept(String driverId) {
+        if (rideStatus == 'pending' && rideDriverId == null) {
+          rideDriverId = driverId;
+          rideStatus = 'accepted';
+          return true;
+        }
+        return false;
       }
-      expect(driver1Accepted, isTrue);
+
+      expect(tryAccept('driver-1'), isTrue);
       expect(rideDriverId, 'driver-1');
 
       // Driver 2 attempts acceptance (should fail)
-      final driver2Accepted =
-          rideStatus == 'pending' && rideDriverId == null;
-      expect(driver2Accepted, isFalse);
+      expect(tryAccept('driver-2'), isFalse);
     });
 
     test('Already accepted ride cannot be re-accepted', () {
-      final rideDriverId = 'driver-1';
+      String? rideDriverId = 'driver-1';
       final canAccept = rideDriverId == null;
       expect(canAccept, isFalse);
     });
