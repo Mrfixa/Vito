@@ -6,6 +6,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Modules\TripManagement\Entities\MartOrder;
 
@@ -54,6 +55,14 @@ class VitoMartDriverController extends Controller
             return response()->json(responseFormatter(TRIP_REQUEST_404), 403);
         }
 
+        // Notify customer their order was accepted
+        $this->notifyCustomer(
+            $order,
+            title: 'Order Accepted',
+            description: "Your mart order #{$order->ref_id} has been accepted by a driver.",
+            action: 'mart_order_accepted',
+        );
+
         return response()->json(responseFormatter(DEFAULT_200, $order));
     }
 
@@ -89,6 +98,19 @@ class VitoMartDriverController extends Controller
         }
 
         $order->update($updateData);
+        $order->refresh();
+
+        $messages = [
+            'picked_up' => ['title' => 'Order Picked Up', 'description' => "Your mart order #{$order->ref_id} has been picked up and is on the way.", 'action' => 'mart_order_picked_up'],
+            'delivered' => ['title' => 'Order Delivered', 'description' => "Your mart order #{$order->ref_id} has been delivered. Enjoy!", 'action' => 'mart_order_delivered'],
+        ];
+
+        $this->notifyCustomer(
+            $order,
+            title: $messages[$request->status]['title'],
+            description: $messages[$request->status]['description'],
+            action: $messages[$request->status]['action'],
+        );
 
         return response()->json(responseFormatter(DEFAULT_200, $order));
     }
@@ -97,8 +119,11 @@ class VitoMartDriverController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'order_id' => 'required|string',
-            'signature_image' => 'nullable|image|max:2048',
+            // Accept image file upload for delivery photo (field can be delivery_photo or proof_photo)
             'delivery_photo' => 'nullable|image|max:2048',
+            'proof_photo' => 'nullable|image|max:2048',
+            // Accept base64 string for canvas-drawn signature
+            'signature_base64' => 'nullable|string',
         ]);
 
         if ($validator->fails()) {
@@ -115,12 +140,25 @@ class VitoMartDriverController extends Controller
 
         $updateData = [];
 
-        if ($request->hasFile('signature_image')) {
-            $updateData['signature_image'] = $request->file('signature_image')->store('mart/signatures', 'public');
+        // Accept either field name for the delivery photo
+        $photoFile = $request->file('delivery_photo') ?? $request->file('proof_photo');
+        if ($photoFile) {
+            $updateData['delivery_photo'] = $photoFile->store('mart/photos', 'public');
         }
 
-        if ($request->hasFile('delivery_photo')) {
-            $updateData['delivery_photo'] = $request->file('delivery_photo')->store('mart/photos', 'public');
+        // Signature comes as base64 from the canvas painter
+        if ($request->filled('signature_base64')) {
+            $base64 = $request->input('signature_base64');
+            // Strip data-URI prefix if present (data:image/png;base64,...)
+            if (str_contains($base64, ',')) {
+                $base64 = substr($base64, strpos($base64, ',') + 1);
+            }
+            $decoded = base64_decode($base64, strict: true);
+            if ($decoded !== false && strlen($decoded) > 0) {
+                $filename = 'mart/signatures/' . $order->id . '_' . time() . '.png';
+                Storage::disk('public')->put($filename, $decoded);
+                $updateData['signature_image'] = $filename;
+            }
         }
 
         if (!empty($updateData)) {
@@ -138,5 +176,41 @@ class VitoMartDriverController extends Controller
             ->paginate($request->input('limit', 20));
 
         return response()->json(responseFormatter(DEFAULT_200, $orders));
+    }
+
+    public function orderDetails(Request $request, string $id): JsonResponse
+    {
+        $order = MartOrder::where('id', $id)
+            ->where('driver_id', $request->user()->id)
+            ->with(['items.product', 'customer'])
+            ->first();
+
+        if (!$order) {
+            return response()->json(responseFormatter(DEFAULT_404), 404);
+        }
+
+        return response()->json(responseFormatter(DEFAULT_200, $order));
+    }
+
+    private function notifyCustomer(MartOrder $order, string $title, string $description, string $action): void
+    {
+        try {
+            $customer = $order->customer;
+            if ($customer && $customer->fcm_token) {
+                sendDeviceNotification(
+                    fcm_token: $customer->fcm_token,
+                    title: $title,
+                    description: $description,
+                    status: $order->status,
+                    ride_request_id: $order->id,
+                    type: 'mart',
+                    notification_type: 'mart',
+                    action: $action,
+                    user_id: $customer->id,
+                );
+            }
+        } catch (\Throwable) {
+            // Non-critical: don't break the status update
+        }
     }
 }

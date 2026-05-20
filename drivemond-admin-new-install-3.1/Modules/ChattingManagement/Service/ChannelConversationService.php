@@ -5,6 +5,7 @@ namespace Modules\ChattingManagement\Service;
 use App\Service\BaseService;
 use Illuminate\Database\Eloquent\Model;
 use Modules\ChattingManagement\Repository\ChannelConversationRepositoryInterface;
+use Modules\TripManagement\Entities\MartOrder;
 use Modules\TripManagement\Repository\TripRequestRepositoryInterface;
 
 class ChannelConversationService extends BaseService implements Interfaces\ChannelConversationServiceInterface
@@ -20,7 +21,10 @@ class ChannelConversationService extends BaseService implements Interfaces\Chann
 
     public function create(array $data): ?Model
     {
-        if (array_key_exists('trip_id', $data) && $data['trip_id']) {
+        if (array_key_exists('order_id', $data) && $data['order_id']) {
+            $order = MartOrder::find($data['order_id']);
+            $conversation = $order?->conversations()->create($data);
+        } elseif (array_key_exists('trip_id', $data) && $data['trip_id']) {
             $trip = $this->tripRequestRepository->findOne($data['trip_id']);
             $conversation = $trip?->conversations()->create($data);
         } else{

@@ -13,6 +13,7 @@ import 'package:ride_sharing_user_app/features/chat/screens/message_screen.dart'
 import 'package:ride_sharing_user_app/features/chat/domain/models/channel_model.dart';
 import 'package:ride_sharing_user_app/features/chat/domain/models/message_model.dart';
 import 'package:ride_sharing_user_app/common_widgets/snackbar_widget.dart';
+import 'package:ride_sharing_user_app/features/mart/screens/mart_driver_message_screen.dart';
 import 'package:ride_sharing_user_app/features/splash/controllers/splash_controller.dart';
 import 'package:ride_sharing_user_app/helper/file_validation_helper.dart';
 import 'package:ride_sharing_user_app/helper/pusher_helper.dart';
@@ -153,6 +154,23 @@ class ChatController extends GetxController implements GetxService{
     update();
   }
 
+  Future<void> createMartChannel(String customerId, String orderId, String customerName) async {
+    isLoading = true;
+    update();
+    Response response = await chatServiceInterface.createMartChannel(customerId, orderId);
+    if (response.statusCode == 200) {
+      isLoading = false;
+      Map map = response.body;
+      String channelId = map['data']['channel']['id'];
+      String oId = map['data']['channel']['trip_id'] ?? orderId;
+      Get.to(() => MartDriverMessageScreen(channelId: channelId, orderId: oId, userName: customerName));
+    } else {
+      isLoading = false;
+      ApiChecker.checkApi(response);
+    }
+    update();
+  }
+
 
 
   MessageModel? messageModel;
@@ -258,6 +276,74 @@ class ChatController extends GetxController implements GetxService{
   }
 
 
+
+  late PrivateChannel martChannel;
+
+  void subscribeMartMessageChannel(String orderId) {
+    id = orderId;
+    if (Get.find<SplashController>().pusherConnectionStatus != null ||
+        Get.find<SplashController>().pusherConnectionStatus == 'Connected') {
+      martChannel = PusherHelper.pusherClient!.privateChannel(
+          "private-driver-mart-chat.$orderId",
+          authorizationDelegate: EndpointAuthorizableChannelTokenAuthorizationDelegate.forPrivateChannel(
+            authorizationEndpoint: Uri.parse(
+                'https://${Get.find<SplashController>().config!.webSocketUrl}/broadcasting/auth'),
+            headers: {
+              "Accept": "application/json",
+              "Authorization": "Bearer ${Get.find<AuthController>().getUserToken()}",
+              "Access-Control-Allow-Origin": "*",
+              'Access-Control-Allow-Methods': "PUT, GET, POST, DELETE, OPTIONS"
+            },
+          ));
+      if (martChannel.currentStatus == null) {
+        martChannel.subscribe();
+        martChannel.bind("driver-mart-chat.$orderId").listen((event) {
+          final data = jsonDecode(event.data!);
+          final eventOrderId = data['order_id'] ?? data['channel_conversation']?['channel']?['trip_id'];
+          if (eventOrderId == orderId) {
+            messageModel!.data!.insert(0, Message.fromJson(data['channel_conversation']));
+            update();
+          }
+        });
+      }
+    }
+  }
+
+  Future<void> sendMartMessage(String channelId, String orderId) async {
+    isSending = true;
+    update();
+    Response response = await chatServiceInterface.sendMartMessage(
+        conversationController.value.text, channelId, orderId, _selectedImageList, objFile);
+    if (response.statusCode == 200) {
+      isSending = false;
+      getConversation(channelId, 1);
+      conversationController.text = '';
+      _pickedImageFiles = [];
+      _selectedImageList = [];
+      _otherFile = null;
+      objFile = null;
+      _file = null;
+    } else if (response.statusCode == 400) {
+      isSending = false;
+      String message = response.body['errors'][0]['message'];
+      _pickedImageFiles = [];
+      _selectedImageList = [];
+      _otherFile = null;
+      objFile = null;
+      _file = null;
+      snackBarWidget(message.tr);
+    } else {
+      isSending = false;
+      _pickedImageFiles = [];
+      _selectedImageList = [];
+      _otherFile = null;
+      objFile = null;
+      _file = null;
+      ApiChecker.checkApi(response);
+    }
+    isLoading = false;
+    update();
+  }
 
   bool _channelRideStatus = true;
   bool get channelRideStatus => _channelRideStatus;

@@ -19,6 +19,16 @@ class ChatRepository implements ChatRepositoryInterface{
   }
 
   @override
+  Future<Response> createMartChannel(String customerId, String orderId) async {
+    return await apiClient.postData(AppConstants.createChannel,
+        {
+          "to": customerId,
+          "order_id": orderId,
+          "_method": "put"
+        });
+  }
+
+  @override
   Future<Response> getChannelList(int offset) async {
     return await apiClient.getData('${AppConstants.channelList}?limit=10&offset=$offset');
   }
@@ -43,7 +53,22 @@ class ChatRepository implements ChatRepositoryInterface{
           "trip_id" : tripId,
           "_method":"put"
         },
-        file ,
+        file,
+        otherFile: platformFile
+    );
+  }
+
+  @override
+  Future<Response> sendMartMessage(String message, String channelId, String orderId, List<MultipartBody> file, PlatformFile? platformFile) async {
+    return await apiClient.postMultipartDataConversation(
+        AppConstants.sendMessage,
+        {
+          "message": message,
+          "channel_id": channelId,
+          "order_id": orderId,
+          "_method": "put"
+        },
+        file,
         otherFile: platformFile
     );
   }

@@ -13,6 +13,11 @@ final ChatRepositoryInterface chatRepositoryInterface;
   }
 
   @override
+  Future createMartChannel(String customerId, String orderId) {
+    return chatRepositoryInterface.createMartChannel(customerId, orderId);
+  }
+
+  @override
   Future getChannelList(int offset) {
     return chatRepositoryInterface.getChannelList(offset);
   }
@@ -25,6 +30,11 @@ final ChatRepositoryInterface chatRepositoryInterface;
   @override
   Future sendMessage(String message, String channelID, String tripId, List<MultipartBody> file, PlatformFile? platformFile) {
     return chatRepositoryInterface.sendMessage(message, channelID, tripId, file, platformFile);
+  }
+
+  @override
+  Future sendMartMessage(String message, String channelId, String orderId, List<MultipartBody> file, PlatformFile? platformFile) {
+    return chatRepositoryInterface.sendMartMessage(message, channelId, orderId, file, platformFile);
   }
 
   @override

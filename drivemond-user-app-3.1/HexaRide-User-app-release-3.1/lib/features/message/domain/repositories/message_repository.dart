@@ -21,6 +21,16 @@ class MessageRepository implements MessageRepositoryInterface{
   }
 
   @override
+  Future<Response> createMartChannel(String driverId, String orderId) async {
+    return await apiClient.postData(AppConstants.createChannel,
+        {
+          "to": driverId,
+          "order_id": orderId,
+          "_method": "put"
+        });
+  }
+
+  @override
   Future<Response> getChannelList(int offset) async {
     return await apiClient.getData('${AppConstants.channelList}?limit=10&offset=$offset');
   }
@@ -33,7 +43,6 @@ class MessageRepository implements MessageRepositoryInterface{
 
   @override
   Future<Response> sendMessage(String message,String channelID, String tripId, List<MultipartBody> file, PlatformFile? platformFile) async {
-
     return await apiClient.postMultipartDataConversation(
         AppConstants.sendMessage,
         {
@@ -42,7 +51,22 @@ class MessageRepository implements MessageRepositoryInterface{
           "trip_id" : tripId,
           "_method":"put"
         },
-        file ,
+        file,
+        otherFile: platformFile
+    );
+  }
+
+  @override
+  Future<Response> sendMartMessage(String message, String channelId, String orderId, List<MultipartBody> file, PlatformFile? platformFile) async {
+    return await apiClient.postMultipartDataConversation(
+        AppConstants.sendMessage,
+        {
+          "message": message,
+          "channel_id": channelId,
+          "order_id": orderId,
+          "_method": "put"
+        },
+        file,
         otherFile: platformFile
     );
   }

@@ -2,7 +2,9 @@
 
 namespace Modules\ChattingManagement\Http\Controllers\Api;
 
+use App\Events\CustomerMartOrderChatEvent;
 use App\Events\CustomerRideChatEvent;
+use App\Events\DriverMartOrderChatEvent;
 use App\Events\DriverRideChatEvent;
 use Exception;
 use Illuminate\Http\JsonResponse;
@@ -17,6 +19,7 @@ use Modules\ChattingManagement\Service\Interfaces\ChannelListServiceInterface;
 use Modules\ChattingManagement\Service\Interfaces\ChannelUserServiceInterface;
 use Modules\ChattingManagement\Transformers\ChannelConversationResource;
 use Modules\ChattingManagement\Transformers\ChannelListResource;
+use Modules\TripManagement\Entities\MartOrder;
 use Modules\TripManagement\Entities\TripRequest;
 use Modules\TripManagement\Service\Interfaces\TripRequestServiceInterface;
 use Modules\UserManagement\Service\UserService;
@@ -49,6 +52,10 @@ class ChattingController extends Controller
     public function findChannel(Request $request)
     {
         $channel = $this->channelListService->findOne($request['channel_id']);
+        if ($channel->channelable_type === MartOrder::class) {
+            $order = MartOrder::find($channel->channelable_id);
+            return response()->json(responseFormatter(DEFAULT_200, $order?->status), 200);
+        }
         $trip = $this->tripRequestService->findOne($channel->channelable->id);
         return response()->json(responseFormatter(DEFAULT_200, $trip?->current_status), 200);
     }
@@ -56,7 +63,9 @@ class ChattingController extends Controller
 
     public function channelList(Request $request): JsonResponse
     {
-        $criteria = ['channelable_type' => TripRequest::class];
+        $type = $request->get('type', 'trip');
+        $channelableType = $type === 'mart' ? MartOrder::class : TripRequest::class;
+        $criteria = ['channelable_type' => $channelableType];
         $relation = [
             'channel_users.user', 'channel_conversations', 'last_channel_conversations.conversation_files',
         ];
@@ -72,6 +81,10 @@ class ChattingController extends Controller
 
     public function createChannel(Request $request): JsonResponse
     {
+        if ($request->has('order_id')) {
+            return $this->createMartChannel($request);
+        }
+
         $channelIds = $this->channelUserService->getBy(criteria: ['user_id' => $request->user()->id]);
         $channelIds = $channelIds->pluck('channel_id')->toArray();
 
@@ -95,9 +108,43 @@ class ChattingController extends Controller
         return response()->json(responseFormatter(DEFAULT_STORE_200, ['user' => $user, 'channel' => ChannelListResource::make($channel)]), 200);
     }
 
+    private function createMartChannel(Request $request): JsonResponse
+    {
+        $order = MartOrder::find($request['order_id']);
+        if (!$order) {
+            return response()->json(responseFormatter(DEFAULT_404), 404);
+        }
+
+        $currentUser = $request->user();
+        $toUserId = $currentUser->user_type === CUSTOMER ? $order->driver_id : $order->customer_id;
+        if (!$toUserId) {
+            return response()->json(responseFormatter(DEFAULT_404), 404);
+        }
+
+        $user = $this->userService->findOne(id: $toUserId);
+
+        if ($order->channel) {
+            return response()->json(responseFormatter(DEFAULT_200, ['user' => $user, 'channel' => ChannelListResource::make($order->channel)]), 200);
+        }
+
+        $channel = $order->channel()->create(['created_at' => now()]);
+        $channel->channel_users()->createMany([
+            ['user_id' => $order->customer_id],
+            ['user_id' => $order->driver_id],
+        ]);
+
+        return response()->json(responseFormatter(DEFAULT_STORE_200, ['user' => $user, 'channel' => ChannelListResource::make($channel)]), 200);
+    }
+
 
     public function sendMessage(StoreSendMessageRequest $request): JsonResponse
     {
+        $channel = $this->channelListService->findOne($request['channel_id']);
+
+        if ($channel && $channel->channelable_type === MartOrder::class) {
+            return $this->sendMartOrderMessage($request);
+        }
+
         $column = 'customer_id';
         if ($request->user()->user_type == 'driver') {
             $column = 'driver_id';
@@ -161,6 +208,81 @@ class ChattingController extends Controller
             user_id: $user_id,
             user_name: $user?->first_name . " " . $user?->last_name
         );
+        return response()->json(responseFormatter(DEFAULT_STORE_200), 200);
+    }
+
+    private function sendMartOrderMessage(StoreSendMessageRequest $request): JsonResponse
+    {
+        $user = auth()->user();
+        $column = $user->user_type === DRIVER ? 'driver_id' : 'customer_id';
+
+        $channel = $this->channelListService->findOne($request['channel_id']);
+        $orderId = $channel?->channelable_id;
+
+        $order = MartOrder::where($column, $user->id)
+            ->whereIn('status', ['accepted', 'picked_up'])
+            ->with(['customer', 'driver'])
+            ->find($orderId);
+
+        if (!$order) {
+            return response()->json(responseFormatter(constant: TRIP_REQUEST_404), 403);
+        }
+
+        DB::beginTransaction();
+
+        $this->channelListService->update(id: $request['channel_id'], data: ['updated_at' => now()]);
+        $this->channelUserService->updatedBy(
+            criteria: ['channel_id' => $request['channel_id'], 'user_id' => $user->id],
+            data: ['is_read' => false]
+        );
+
+        $attributes = [
+            'channel_id' => $request['channel_id'],
+            'message' => $request['message'],
+            'user_id' => $user->id,
+            'order_id' => $order->id,
+            'is_read' => 0,
+        ];
+        if ($request->has('files')) {
+            $attributes['files'] = $request->file('files');
+        }
+        $channelConversation = $this->channelConversationService->create($attributes);
+        $channelConversationWithFiles = $this->channelConversationService->findOne(id: $channelConversation?->id, relations: ['user', 'conversation_files', 'channel']);
+
+        $to_user = $user->user_type == DRIVER ? $order->customer : $order->driver;
+        $user_id = $to_user->id;
+
+        if (checkReverbConnection()) {
+            try {
+                $user->user_type == DRIVER
+                    ? CustomerMartOrderChatEvent::broadcast($order, $channelConversationWithFiles)
+                    : DriverMartOrderChatEvent::broadcast($order, $channelConversationWithFiles);
+            } catch (Exception $exception) {
+                \Illuminate\Support\Facades\Log::warning('Mart chat broadcast failed: ' . $exception->getMessage());
+            }
+        }
+
+        $this->channelConversationService->updatedBy(
+            criteria: ['user_id' => $user_id, 'channel_id' => $request['channel_id']],
+            data: ['is_read' => 1]
+        );
+        $sentTime = pushSentTime($channelConversation->created_at);
+        DB::commit();
+
+        $push = getNotification('new_message');
+        sendDeviceNotification(
+            fcm_token: $to_user->fcm_token,
+            title: translate(key: $push['title'], locale: $user?->current_language_key),
+            description: textVariableDataFormat(value: $push['description'], tripId: $order->ref_id, userName: $user?->full_name ?? $user?->first_name, sentTime: $sentTime, locale: $user?->current_language_key),
+            status: $push['status'],
+            ride_request_id: $order->id,
+            type: $request->channel_id,
+            notification_type: 'chatting',
+            action: $push['action'],
+            user_id: $user_id,
+            user_name: $user?->first_name . ' ' . $user?->last_name
+        );
+
         return response()->json(responseFormatter(DEFAULT_STORE_200), 200);
     }
 

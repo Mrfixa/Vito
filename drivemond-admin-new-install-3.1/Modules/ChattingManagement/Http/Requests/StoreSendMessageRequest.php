@@ -23,6 +23,7 @@ class StoreSendMessageRequest extends FormRequest
                 return !$api;
             })],
             'trip_id' => 'sometimes',
+            'order_id' => 'sometimes|uuid',
             'message' => $api ? 'required_without:files' : [Rule::requiredIf(function () {
                 return !$this->has('file') && !$this->has('image');
             })],

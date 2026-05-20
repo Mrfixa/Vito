@@ -107,6 +107,7 @@ class AppConstants {
   static const String qrTokenValidate = '/api/qr-token/validate';
   static const String martProducts = '/api/customer/mart/products';
   static const String martProductDetails = '/api/customer/mart/products/';
+  static const String martApplyPromo = '/api/customer/mart/apply-promo';
   static const String martCreateOrder = '/api/customer/mart/order';
   static const String martOrders = '/api/customer/mart/orders';
   static const String martOrderDetails = '/api/customer/mart/orders/';

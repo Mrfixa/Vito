@@ -5,7 +5,7 @@ use Modules\ChattingManagement\Http\Controllers\Api\ChattingController;
 
 
 Route::group(['prefix' => 'customer'], function () {
-    Route::group(['prefix' => 'chat', 'middleware' => ['auth:api', 'maintenance_mode']], function () {
+    Route::group(['prefix' => 'chat', 'middleware' => ['auth:api', 'maintenance_mode', 'throttle:60,1']], function () {
         Route::controller(ChattingController::class)->group(function () {
             Route::get('find-channel', 'findChannel');
             Route::put('create-channel', 'createChannel');
@@ -17,7 +17,7 @@ Route::group(['prefix' => 'customer'], function () {
 });
 
 Route::group(['prefix' => 'driver'], function () {
-    Route::group(['prefix' => 'chat', 'middleware' => ['auth:api', 'maintenance_mode']], function () {
+    Route::group(['prefix' => 'chat', 'middleware' => ['auth:api', 'maintenance_mode', 'throttle:60,1']], function () {
         Route::controller(ChattingController::class)->group(function () {
             Route::get('find-channel', 'findChannel');
             Route::put('create-channel', 'createChannel');

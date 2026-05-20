@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:ride_sharing_user_app/data/api_client.dart';
+import 'package:ride_sharing_user_app/features/message/controllers/message_controller.dart';
 import 'package:ride_sharing_user_app/util/app_constants.dart';
 import 'package:ride_sharing_user_app/util/dimensions.dart';
 import 'package:ride_sharing_user_app/util/styles.dart';
@@ -26,6 +27,8 @@ class _MartOrderTrackingScreenState extends State<MartOrderTrackingScreen> {
 
   Map<String, dynamic> _driverInfo = {};
   String _estimatedArrival = '';
+  String _driverId = '';
+  String _driverName = '';
 
   final List<Map<String, dynamic>> _statusSteps = [
     {'status': 'pending', 'label': 'order_placed', 'icon': Icons.receipt_long},
@@ -62,6 +65,8 @@ class _MartOrderTrackingScreenState extends State<MartOrderTrackingScreen> {
           _currentStatus = data['status'] ?? 'pending';
           if (data['driver'] != null) {
             _driverInfo = Map<String, dynamic>.from(data['driver']);
+            _driverId = data['driver_id'] ?? data['driver']?['id'] ?? '';
+            _driverName = '${data['driver']?['first_name'] ?? ''} ${data['driver']?['last_name'] ?? ''}'.trim();
           }
           _estimatedArrival = data['estimated_arrival'] ?? '';
           _isLoading = false;
@@ -283,9 +288,13 @@ class _MartOrderTrackingScreenState extends State<MartOrderTrackingScreen> {
       );
     }
 
-    final driverName = _driverInfo['name'] ?? 'driver'.tr;
+    final String rawName = _driverName.isNotEmpty
+        ? _driverName
+        : (_driverInfo['full_name'] as String? ??
+            '${_driverInfo['first_name'] ?? ''} ${_driverInfo['last_name'] ?? ''}'.trim());
+    final driverName = rawName.isNotEmpty ? rawName : 'driver'.tr;
     final driverPhone = _driverInfo['phone'] ?? '';
-    final driverRating = _driverInfo['rating']?.toString() ?? '';
+    final driverRating = _driverInfo['avg_rating']?.toString() ?? _driverInfo['rating']?.toString() ?? '';
     final vehicleModel = _driverInfo['vehicle_model'] ?? '';
     final vehiclePlate = _driverInfo['vehicle_plate'] ?? '';
 
@@ -355,16 +364,29 @@ class _MartOrderTrackingScreenState extends State<MartOrderTrackingScreen> {
                         ),
                       ),
                     IconButton(
-                      onPressed: () {
-                        HapticFeedback.mediumImpact();
-                      },
+                      onPressed: _driverId.isEmpty
+                          ? null
+                          : () {
+                              HapticFeedback.mediumImpact();
+                              final name = _driverName.isEmpty ? 'driver'.tr : _driverName;
+                              Get.find<MessageController>()
+                                  .createMartChannel(_driverId, widget.orderId, name);
+                            },
                       icon: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                          color: _driverId.isEmpty
+                              ? Theme.of(context).hintColor.withValues(alpha: 0.1)
+                              : Theme.of(context).primaryColor.withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                         ),
-                        child: Icon(Icons.chat, color: Theme.of(context).primaryColor, size: 20),
+                        child: Icon(
+                          Icons.chat,
+                          color: _driverId.isEmpty
+                              ? Theme.of(context).hintColor
+                              : Theme.of(context).primaryColor,
+                          size: 20,
+                        ),
                       ),
                     ),
                   ],
@@ -411,7 +433,7 @@ class _MartOrderTrackingScreenState extends State<MartOrderTrackingScreen> {
             onPressed: () async {
               Get.back();
               try {
-                await Get.find<ApiClient>().postData(
+                await Get.find<ApiClient>().putData(
                   '${AppConstants.martCancelOrder}${widget.orderId}/cancel',
                   {},
                 );

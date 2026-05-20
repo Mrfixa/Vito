@@ -15,6 +15,11 @@ class MessageService implements MessageServiceInterface{
   }
 
   @override
+  Future createMartChannel(String driverId, String orderId) async{
+    return await messageRepositoryInterface.createMartChannel(driverId, orderId);
+  }
+
+  @override
   Future getChannelList(int offset) async{
     return await messageRepositoryInterface.getChannelList(offset);
   }
@@ -27,6 +32,11 @@ class MessageService implements MessageServiceInterface{
   @override
   Future<Response> sendMessage(String message, String channelID, String tripId, List<MultipartBody> file, PlatformFile? platformFile) async{
     return await messageRepositoryInterface.sendMessage(message, channelID, tripId, file, platformFile);
+  }
+
+  @override
+  Future<Response> sendMartMessage(String message, String channelId, String orderId, List<MultipartBody> file, PlatformFile? platformFile) async{
+    return await messageRepositoryInterface.sendMartMessage(message, channelId, orderId, file, platformFile);
   }
 
   @override

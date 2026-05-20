@@ -122,6 +122,7 @@ class AppConstants {
   static const String martUpdateStatus = '/api/driver/mart/update-status';
   static const String martUploadProof = '/api/driver/mart/upload-proof';
   static const String martMyOrders = '/api/driver/mart/my-orders';
+  static const String martOrderDetails = '/api/driver/mart/orders/';
 
   //Ride Status
 

@@ -89,7 +89,7 @@ Route::controller(\Modules\AuthManagement\Http\Controllers\Api\QrTokenController
     Route::post('qr-token/redeem', 'redeemToken');
     Route::get('qr/validate/{token}', 'validateTokenPublic');
 
-    Route::group(['middleware' => ['auth:api', 'maintenance_mode']], function () {
+    Route::group(['middleware' => ['auth:api', 'maintenance_mode', 'throttle:10,1']], function () {
         Route::post('qr-token/generate', 'generateToken');
         Route::post('qr-token/revoke', 'revokeToken');
     });

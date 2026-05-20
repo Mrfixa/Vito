@@ -1,12 +1,18 @@
+import 'dart:async';
+import 'dart:typed_data';
+import 'dart:ui' as ui;
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:ride_sharing_user_app/data/api_client.dart';
+import 'package:ride_sharing_user_app/features/chat/controllers/chat_controller.dart';
 import 'package:ride_sharing_user_app/util/app_constants.dart';
 import 'package:ride_sharing_user_app/util/dimensions.dart';
 import 'package:ride_sharing_user_app/util/styles.dart';
 import 'package:ride_sharing_user_app/common_widgets/app_bar_widget.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class MartDeliveryScreen extends StatefulWidget {
   final String orderId;
@@ -27,6 +33,7 @@ class _MartDeliveryScreenState extends State<MartDeliveryScreen> {
 
   Map<String, dynamic> _orderData = {};
   String? _deliveryPhotoPath;
+  Uint8List? _signatureBytes;
 
   @override
   void initState() {
@@ -37,11 +44,11 @@ class _MartDeliveryScreenState extends State<MartDeliveryScreen> {
   Future<void> _fetchOrderDetails() async {
     try {
       final response = await Get.find<ApiClient>().getData(
-        '${AppConstants.martMyOrders}/${widget.orderId}',
+        '${AppConstants.martOrderDetails}${widget.orderId}',
       );
       if (response.statusCode == 200 && response.body['data'] != null) {
         setState(() {
-          _orderData = response.body['data'];
+          _orderData = Map<String, dynamic>.from(response.body['data']);
           _orderStatus = _orderData['status'] ?? 'accepted';
           _isLoading = false;
         });
@@ -156,9 +163,9 @@ class _MartDeliveryScreenState extends State<MartDeliveryScreen> {
                 ],
               ),
             ),
-            if (_orderData['total'] != null)
+            if (_orderData['total_amount'] != null)
               Text(
-                '\$${_orderData['total']}',
+                '\$${_orderData['total_amount']}',
                 style: textBold.copyWith(
                   fontSize: Dimensions.fontSizeLarge,
                   color: Theme.of(context).primaryColor,
@@ -172,19 +179,48 @@ class _MartDeliveryScreenState extends State<MartDeliveryScreen> {
 
   Widget _buildCustomerInfo(BuildContext context) {
     final customer = _orderData['customer'] as Map<String, dynamic>?;
+    final phone = customer?['phone'] as String? ?? '';
+    final customerId = (_orderData['customer_id'] as String?) ??
+        (customer?['id'] as String?) ?? '';
+    final customerName = '${customer?['first_name'] ?? ''} ${customer?['last_name'] ?? ''}'.trim().isNotEmpty
+        ? '${customer?['first_name'] ?? ''} ${customer?['last_name'] ?? ''}'.trim()
+        : customer?['name'] ?? 'customer'.tr;
+
     return Card(
       child: ListTile(
         leading: CircleAvatar(
           backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.1),
           child: Icon(Icons.person, color: Theme.of(context).primaryColor),
         ),
-        title: Text(customer?['name'] ?? 'customer'.tr, style: textMedium),
-        subtitle: Text(customer?['phone'] ?? '', style: textRegular),
-        trailing: IconButton(
-          onPressed: () {
-            HapticFeedback.mediumImpact();
-          },
-          icon: Icon(Icons.phone, color: Theme.of(context).primaryColor),
+        title: Text(customerName, style: textMedium),
+        subtitle: phone.isNotEmpty ? Text(phone, style: textRegular) : null,
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (phone.isNotEmpty)
+              IconButton(
+                onPressed: () async {
+                  HapticFeedback.mediumImpact();
+                  final uri = Uri.parse('tel:$phone');
+                  if (await canLaunchUrl(uri)) {
+                    await launchUrl(uri);
+                  }
+                },
+                icon: Icon(Icons.phone, color: Theme.of(context).primaryColor),
+              ),
+            if (customerId.isNotEmpty)
+              IconButton(
+                onPressed: () {
+                  HapticFeedback.mediumImpact();
+                  Get.find<ChatController>().createMartChannel(
+                    customerId,
+                    widget.orderId,
+                    customerName,
+                  );
+                },
+                icon: Icon(Icons.chat, color: Theme.of(context).primaryColor),
+              ),
+          ],
         ),
       ),
     );
@@ -249,24 +285,30 @@ class _MartDeliveryScreenState extends State<MartDeliveryScreen> {
           children: [
             Text('order_items'.tr, style: textBold.copyWith(fontSize: Dimensions.fontSizeDefault)),
             const SizedBox(height: Dimensions.paddingSizeSmall),
-            ...items.map((item) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Text(
-                      '${item['quantity']}x ${item['name']}',
-                      style: textRegular.copyWith(fontSize: Dimensions.fontSizeDefault),
+            ...items.map((item) {
+              final product = item['product'] as Map<String, dynamic>? ?? item;
+              final name = product['name'] ?? item['name'] ?? '';
+              final price = item['unit_price'] ?? item['price'] ?? '0.00';
+              final qty = item['quantity'] ?? 1;
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '${qty}x $name',
+                        style: textRegular.copyWith(fontSize: Dimensions.fontSizeDefault),
+                      ),
                     ),
-                  ),
-                  Text(
-                    '\$${item['price']}',
-                    style: textMedium.copyWith(fontSize: Dimensions.fontSizeDefault),
-                  ),
-                ],
-              ),
-            )),
+                    Text(
+                      '\$$price',
+                      style: textMedium.copyWith(fontSize: Dimensions.fontSizeDefault),
+                    ),
+                  ],
+                ),
+              );
+            }),
           ],
         ),
       ),
@@ -472,7 +514,7 @@ class _MartDeliveryScreenState extends State<MartDeliveryScreen> {
     setState(() => _isUpdating = true);
 
     try {
-      final response = await Get.find<ApiClient>().postData(
+      final response = await Get.find<ApiClient>().putData(
         AppConstants.martUpdateStatus,
         {
           'order_id': widget.orderId,
@@ -500,17 +542,29 @@ class _MartDeliveryScreenState extends State<MartDeliveryScreen> {
     setState(() => _isUpdating = true);
 
     try {
+      // Upload delivery proof (photo as file, signature as base64)
+      final fields = {'order_id': widget.orderId};
+      final multipartFiles = <MultipartBody>[];
+
       if (_deliveryPhotoPath != null) {
-        await Get.find<ApiClient>().postMultipartData(
-          AppConstants.martUploadProof,
-          {'order_id': widget.orderId},
-          [MultipartBody('proof_photo', XFile(_deliveryPhotoPath!))],
-          null,
-          [],
-        );
+        multipartFiles.add(MultipartBody('delivery_photo', XFile(_deliveryPhotoPath!)));
       }
 
-      final response = await Get.find<ApiClient>().postData(
+      // Signature bytes are uploaded as a base64 field alongside the multipart
+      final extraFields = <String, String>{...fields};
+      if (_signatureBytes != null) {
+        extraFields['signature_base64'] = base64Encode(_signatureBytes!);
+      }
+
+      await Get.find<ApiClient>().postMultipartData(
+        AppConstants.martUploadProof,
+        extraFields,
+        multipartFiles,
+        null,
+        <MultipartDocument>[],
+      );
+
+      final response = await Get.find<ApiClient>().putData(
         AppConstants.martUpdateStatus,
         {
           'order_id': widget.orderId,
@@ -538,8 +592,11 @@ class _MartDeliveryScreenState extends State<MartDeliveryScreen> {
   void _showSignatureCanvas(BuildContext context) {
     Get.dialog(
       SignatureDialog(
-        onSave: () {
-          setState(() => _hasSignature = true);
+        onSave: (Uint8List bytes) {
+          setState(() {
+            _hasSignature = true;
+            _signatureBytes = bytes;
+          });
         },
       ),
     );
@@ -560,7 +617,7 @@ class _MartDeliveryScreenState extends State<MartDeliveryScreen> {
 }
 
 class SignatureDialog extends StatefulWidget {
-  final VoidCallback onSave;
+  final void Function(Uint8List bytes) onSave;
 
   const SignatureDialog({super.key, required this.onSave});
 
@@ -570,6 +627,37 @@ class SignatureDialog extends StatefulWidget {
 
 class _SignatureDialogState extends State<SignatureDialog> {
   final List<Offset?> _points = [];
+  static const double _canvasWidth = 320;
+  static const double _canvasHeight = 200;
+  final GlobalKey _canvasKey = GlobalKey();
+
+  Future<Uint8List> _renderToBytes() async {
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder, Rect.fromLTWH(0, 0, _canvasWidth, _canvasHeight));
+
+    // White background
+    canvas.drawRect(
+      Rect.fromLTWH(0, 0, _canvasWidth, _canvasHeight),
+      Paint()..color = Colors.white,
+    );
+
+    final paint = Paint()
+      ..color = Colors.black
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = 3.0
+      ..style = PaintingStyle.stroke;
+
+    for (int i = 0; i < _points.length - 1; i++) {
+      if (_points[i] != null && _points[i + 1] != null) {
+        canvas.drawLine(_points[i]!, _points[i + 1]!, paint);
+      }
+    }
+
+    final picture = recorder.endRecording();
+    final image = await picture.toImage(_canvasWidth.toInt(), _canvasHeight.toInt());
+    final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+    return byteData!.buffer.asUint8List();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -584,25 +672,29 @@ class _SignatureDialogState extends State<SignatureDialog> {
             )),
           ),
           Container(
-            height: 200,
+            key: _canvasKey,
+            width: _canvasWidth,
+            height: _canvasHeight,
             margin: const EdgeInsets.symmetric(horizontal: Dimensions.paddingSizeDefault),
             decoration: BoxDecoration(
-              border: Border.all(color: Theme.of(context).hintColor.withValues(alpha: 0.3)),
+              color: Colors.white,
+              border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
               borderRadius: BorderRadius.circular(Dimensions.radiusDefault),
             ),
             child: GestureDetector(
               onPanUpdate: (details) {
+                final renderBox = _canvasKey.currentContext?.findRenderObject() as RenderBox?;
+                if (renderBox == null) return;
                 setState(() {
-                  final renderBox = context.findRenderObject() as RenderBox;
                   _points.add(renderBox.globalToLocal(details.globalPosition));
                 });
               },
               onPanEnd: (_) {
-                _points.add(null);
+                setState(() => _points.add(null));
               },
               child: CustomPaint(
                 painter: _SignaturePainter(points: _points),
-                size: Size.infinite,
+                size: const Size(_canvasWidth, _canvasHeight),
               ),
             ),
           ),
@@ -612,9 +704,7 @@ class _SignatureDialogState extends State<SignatureDialog> {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 TextButton(
-                  onPressed: () {
-                    setState(() => _points.clear());
-                  },
+                  onPressed: () => setState(() => _points.clear()),
                   child: Text('clear'.tr),
                 ),
                 const SizedBox(width: Dimensions.paddingSizeSmall),
@@ -624,11 +714,14 @@ class _SignatureDialogState extends State<SignatureDialog> {
                 ),
                 const SizedBox(width: Dimensions.paddingSizeSmall),
                 ElevatedButton(
-                  onPressed: _points.isEmpty ? null : () {
-                    HapticFeedback.mediumImpact();
-                    widget.onSave();
-                    Get.back();
-                  },
+                  onPressed: _points.isEmpty
+                      ? null
+                      : () async {
+                          HapticFeedback.mediumImpact();
+                          final bytes = await _renderToBytes();
+                          widget.onSave(bytes);
+                          Get.back();
+                        },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Theme.of(context).primaryColor,
                   ),

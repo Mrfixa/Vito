@@ -7,8 +7,10 @@ import 'package:ride_sharing_user_app/interface/repository_interface.dart';
 abstract class ChatRepositoryInterface implements RepositoryInterface {
 
   Future<Response> createChannel(String userId,String tripId);
+  Future<Response> createMartChannel(String customerId, String orderId);
   Future<Response> getChannelList(int offset);
   Future<Response> getConversation(String channelId,int offset);
   Future<Response> findChannelRideStatus(String channelId);
   Future<Response> sendMessage(String message,String channelID, String tripId, List<MultipartBody> file, PlatformFile? platformFile);
+  Future<Response> sendMartMessage(String message, String channelId, String orderId, List<MultipartBody> file, PlatformFile? platformFile);
 }

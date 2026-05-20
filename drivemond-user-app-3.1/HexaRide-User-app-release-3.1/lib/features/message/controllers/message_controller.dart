@@ -8,6 +8,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:ride_sharing_user_app/data/api_checker.dart';
 import 'package:ride_sharing_user_app/data/api_client.dart';
 import 'package:ride_sharing_user_app/features/auth/controllers/auth_controller.dart';
+import 'package:ride_sharing_user_app/features/mart/screens/mart_message_screen.dart';
 import 'package:ride_sharing_user_app/features/message/domain/services/message_service_interface.dart';
 import 'package:ride_sharing_user_app/features/message/screens/message_screen.dart';
 import 'package:ride_sharing_user_app/features/message/domain/models/channel_model.dart';
@@ -169,6 +170,23 @@ class MessageController extends GetxController implements GetxService{
     update();
   }
 
+  Future<void> createMartChannel(String driverId, String orderId, String driverName) async {
+    isLoading = true;
+    update();
+    Response response = await messageServiceInterface.createMartChannel(driverId, orderId);
+    if (response.statusCode == 200) {
+      isLoading = false;
+      Map map = response.body;
+      String channelId = map['data']['channel']['id'];
+      String oId = map['data']['channel']['trip_id'] ?? orderId;
+      Get.to(() => MartMessageScreen(channelId: channelId, orderId: oId, userName: driverName));
+    } else {
+      isLoading = false;
+      ApiChecker.checkApi(response);
+    }
+    update();
+  }
+
 
 
   MessageModel? messageModel;
@@ -194,6 +212,75 @@ class MessageController extends GetxController implements GetxService{
   }
 
   bool isSending = false;
+
+  Future<void> sendMartMessage(String channelId, String orderId) async {
+    isSending = true;
+    update();
+    Response response = await messageServiceInterface.sendMartMessage(
+        conversationController.value.text, channelId, orderId, _selectedImageList, objFile);
+    if (response.statusCode == 200) {
+      isSending = false;
+      getConversation(channelId, 1);
+      conversationController.text = '';
+      _pickedImageFiles = [];
+      _selectedImageList = [];
+      _otherFile = null;
+      objFile = null;
+      _file = null;
+    } else if (response.statusCode == 400) {
+      isSending = false;
+      String message = response.body['errors'][0]['message'];
+      _pickedImageFiles = [];
+      _selectedImageList = [];
+      _otherFile = null;
+      objFile = null;
+      _file = null;
+      showCustomSnackBar(message.tr);
+    } else {
+      isSending = false;
+      _pickedImageFiles = [];
+      _selectedImageList = [];
+      _otherFile = null;
+      objFile = null;
+      _file = null;
+      ApiChecker.checkApi(response);
+    }
+    isLoading = false;
+    update();
+  }
+
+  late PrivateChannel martChannel;
+
+  void subscribeMartMessageChannel(String orderId) {
+    id = orderId;
+    if (Get.find<ConfigController>().pusherConnectionStatus != null ||
+        Get.find<ConfigController>().pusherConnectionStatus == 'Connected') {
+      martChannel = PusherHelper.pusherClient!.privateChannel(
+          "private-customer-mart-chat.$orderId",
+          authorizationDelegate: EndpointAuthorizableChannelTokenAuthorizationDelegate.forPrivateChannel(
+            authorizationEndpoint: Uri.parse(
+                'https://${Get.find<ConfigController>().config!.webSocketUrl}/broadcasting/auth'),
+            headers: {
+              "Accept": "application/json",
+              "Authorization": "Bearer ${Get.find<AuthController>().getUserToken()}",
+              "Access-Control-Allow-Origin": "*",
+              'Access-Control-Allow-Methods': "PUT, GET, POST, DELETE, OPTIONS"
+            },
+          ));
+      if (martChannel.currentStatus == null) {
+        martChannel.subscribe();
+        martChannel.bind("customer-mart-chat.$orderId").listen((event) {
+          final data = jsonDecode(event.data!);
+          final eventOrderId = data['order_id'] ?? data['channel_conversation']?['channel']?['trip_id'];
+          if (eventOrderId == orderId) {
+            messageModel!.data!.insert(0, Message.fromJson(data['channel_conversation']));
+            update();
+          }
+        });
+      }
+    }
+  }
+
   Future<void> sendMessage(String channelId , String tripId) async{
     isSending = true;
     update();
