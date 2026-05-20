@@ -17,6 +17,9 @@ class MartOrder extends Model
         'driver_id',
         'status',
         'total_amount',
+        'tip_amount',
+        'discount_amount',
+        'promo_code',
         'payment_status',
         'payment_method',
         'delivery_address',
@@ -29,6 +32,8 @@ class MartOrder extends Model
 
     protected $casts = [
         'total_amount' => 'decimal:2',
+        'tip_amount' => 'decimal:2',
+        'discount_amount' => 'decimal:2',
         'delivery_lat' => 'decimal:7',
         'delivery_lng' => 'decimal:7',
     ];

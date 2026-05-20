@@ -357,6 +357,7 @@ class _MartOrderTrackingScreenState extends State<MartOrderTrackingScreen> {
                     IconButton(
                       onPressed: () {
                         HapticFeedback.mediumImpact();
+                        Get.snackbar('coming_soon'.tr, 'chat_coming_soon'.tr);
                       },
                       icon: Container(
                         padding: const EdgeInsets.all(8),
@@ -411,7 +412,7 @@ class _MartOrderTrackingScreenState extends State<MartOrderTrackingScreen> {
             onPressed: () async {
               Get.back();
               try {
-                await Get.find<ApiClient>().postData(
+                await Get.find<ApiClient>().putData(
                   '${AppConstants.martCancelOrder}${widget.orderId}/cancel',
                   {},
                 );

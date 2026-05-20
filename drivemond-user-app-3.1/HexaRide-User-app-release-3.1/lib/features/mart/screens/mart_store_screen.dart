@@ -688,7 +688,7 @@ class _MartCartScreenState extends State<MartCartScreen> {
 
     try {
       final response = await Get.find<ApiClient>().postData(
-        '/api/customer/mart/apply-promo',
+        AppConstants.martApplyPromo,
         {'code': code, 'subtotal': _subtotal},
       );
 
@@ -721,27 +721,31 @@ class _MartCartScreenState extends State<MartCartScreen> {
         'quantity': item['quantity'] ?? 1,
       }).toList();
 
+      // Server computes the authoritative total; client sends tip and promo only
+      final body = <String, dynamic>{
+        'items': items,
+        'delivery_address': _addressController.text,
+        'notes': _notesController.text,
+        if (_tipAmount > 0) 'tip_amount': _tipAmount,
+        if (_appliedPromoCode != null) 'promo_code': _appliedPromoCode,
+      };
+
       final response = await Get.find<ApiClient>().postData(
         AppConstants.martCreateOrder,
-        {
-          'items': items,
-          'delivery_address': _addressController.text,
-          'notes': _notesController.text,
-          'promo_code': _appliedPromoCode,
-          'tip_amount': _tipAmount,
-          'total': _totalAmount,
-        },
+        body,
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        final orderId = response.body['data']?['order_id'] ?? '';
+        final data = response.body['data'];
+        final orderId = data?['id'] ?? data?['order_id'] ?? '';
         Get.back();
         Get.snackbar('success'.tr, 'order_placed_successfully'.tr);
         if (orderId.toString().isNotEmpty) {
           Get.to(() => MartOrderTrackingScreen(orderId: orderId.toString()));
         }
       } else {
-        Get.snackbar('error'.tr, 'order_failed'.tr);
+        final message = response.body['errors']?.first?['message'] ?? 'order_failed'.tr;
+        Get.snackbar('error'.tr, message.toString());
       }
     } catch (_) {
       Get.snackbar('error'.tr, 'network_error'.tr);

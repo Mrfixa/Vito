@@ -11,6 +11,7 @@ class Kernel extends ConsoleKernel
     {
         $schedule->command('trip-request:cancel')->everyMinute();
         $schedule->command('app:process-scheduled-trips')->everyMinute();
+        $schedule->command('vito:prune-qr-tokens')->daily();
     }
 
     protected function commands()

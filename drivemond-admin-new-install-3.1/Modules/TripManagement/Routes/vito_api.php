@@ -13,6 +13,7 @@ Route::group(['prefix' => 'customer/mart', 'middleware' => ['auth:api', 'mainten
     Route::controller(VitoMartController::class)->group(function () {
         Route::get('products', 'products');
         Route::get('products/{id}', 'productDetails');
+        Route::post('apply-promo', 'applyPromo');
         Route::post('order', 'createOrder');
         Route::get('orders', 'orderList');
         Route::get('orders/{id}', 'orderDetails');
@@ -32,5 +33,6 @@ Route::group(['prefix' => 'driver/mart', 'middleware' => ['auth:api', 'maintenan
         Route::put('update-status', 'updateStatus');
         Route::post('upload-proof', 'uploadDeliveryProof');
         Route::get('my-orders', 'myOrders');
+        Route::get('orders/{id}', 'orderDetails');
     });
 });

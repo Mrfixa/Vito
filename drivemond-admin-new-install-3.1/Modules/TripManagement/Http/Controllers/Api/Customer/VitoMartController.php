@@ -11,6 +11,8 @@ use Illuminate\Support\Str;
 use Modules\TripManagement\Entities\MartOrder;
 use Modules\TripManagement\Entities\MartOrderItem;
 use Modules\TripManagement\Entities\MartProduct;
+use Modules\TripManagement\Entities\MartPromoCode;
+use Modules\UserManagement\Entities\User;
 
 class VitoMartController extends Controller
 {
@@ -19,6 +21,9 @@ class VitoMartController extends Controller
         $products = MartProduct::where('is_active', true)
             ->when($request->category, fn($q, $cat) => $q->where('category', $cat))
             ->when($request->search, fn($q, $s) => $q->where('name', 'like', "%{$s}%"))
+            ->when($request->zone_id, fn($q, $zoneId) => $q->where(function ($q) use ($zoneId) {
+                $q->where('zone_id', $zoneId)->orWhereNull('zone_id');
+            }))
             ->paginate($request->input('limit', 20));
 
         return response()->json(responseFormatter(DEFAULT_200, $products));
@@ -35,6 +40,37 @@ class VitoMartController extends Controller
         return response()->json(responseFormatter(DEFAULT_200, $product));
     }
 
+    public function applyPromo(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'code' => 'required|string|max:50',
+            'subtotal' => 'required|numeric|min:0',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
+        }
+
+        $promo = MartPromoCode::where('code', strtoupper(trim($request->code)))->first();
+
+        if (!$promo || !$promo->isValid()) {
+            return response()->json(responseFormatter(constant: DEFAULT_404, errors: [['message' => 'Invalid or expired promo code']]), 404);
+        }
+
+        $discount = $promo->computeDiscount((float) $request->subtotal);
+
+        if ($discount <= 0) {
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: [['message' => 'Order does not meet the minimum amount for this promo']]), 400);
+        }
+
+        return response()->json(responseFormatter(DEFAULT_200, [
+            'code' => $promo->code,
+            'discount' => $discount,
+            'discount_type' => $promo->discount_type,
+            'discount_value' => $promo->discount_value,
+        ]));
+    }
+
     public function createOrder(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
@@ -42,9 +78,11 @@ class VitoMartController extends Controller
             'items.*.product_id' => 'required|string',
             'items.*.quantity' => 'required|integer|min:1',
             'delivery_address' => 'required|string',
-            'delivery_lat' => 'required|numeric',
-            'delivery_lng' => 'required|numeric',
+            'delivery_lat' => 'nullable|numeric',
+            'delivery_lng' => 'nullable|numeric',
             'notes' => 'nullable|string',
+            'tip_amount' => 'nullable|numeric|min:0',
+            'promo_code' => 'nullable|string|max:50',
         ]);
 
         if ($validator->fails()) {
@@ -53,7 +91,7 @@ class VitoMartController extends Controller
 
         try {
             $order = DB::transaction(function () use ($request) {
-                $totalAmount = 0;
+                $subtotal = 0;
                 $orderItems = [];
 
                 foreach ($request->items as $item) {
@@ -63,12 +101,12 @@ class VitoMartController extends Controller
                         ->first();
 
                     if (!$product || $product->stock < $item['quantity']) {
-                        throw new \RuntimeException('Product unavailable or insufficient stock');
+                        throw new \RuntimeException('Product unavailable or insufficient stock: ' . ($item['product_id'] ?? ''));
                     }
 
                     $product->decrement('stock', $item['quantity']);
                     $itemTotal = $product->price * $item['quantity'];
-                    $totalAmount += $itemTotal;
+                    $subtotal += $itemTotal;
 
                     $orderItems[] = [
                         'product_id' => $product->id,
@@ -78,11 +116,32 @@ class VitoMartController extends Controller
                     ];
                 }
 
+                $tipAmount = (float) ($request->tip_amount ?? 0);
+                $discountAmount = 0.0;
+                $appliedPromoCode = null;
+
+                if ($request->promo_code) {
+                    $promo = MartPromoCode::where('code', strtoupper(trim($request->promo_code)))
+                        ->lockForUpdate()
+                        ->first();
+
+                    if ($promo && $promo->isValid()) {
+                        $discountAmount = $promo->computeDiscount($subtotal);
+                        $appliedPromoCode = $promo->code;
+                        $promo->increment('used_count');
+                    }
+                }
+
+                $totalAmount = max(0, $subtotal - $discountAmount + $tipAmount);
+
                 $order = MartOrder::create([
                     'ref_id' => 'VM-' . strtoupper(Str::random(8)),
                     'customer_id' => $request->user()->id,
                     'status' => 'pending',
                     'total_amount' => $totalAmount,
+                    'tip_amount' => $tipAmount,
+                    'discount_amount' => $discountAmount,
+                    'promo_code' => $appliedPromoCode,
                     'delivery_address' => $request->delivery_address,
                     'delivery_lat' => $request->delivery_lat,
                     'delivery_lng' => $request->delivery_lng,
@@ -95,8 +154,12 @@ class VitoMartController extends Controller
 
                 return $order->load('items.product');
             });
+
+            // Notify available drivers of new mart order
+            $this->notifyDriversNewOrder($order);
+
         } catch (\RuntimeException $e) {
-            return response()->json(responseFormatter(constant: DEFAULT_404), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_404, errors: [['message' => $e->getMessage()]]), 403);
         }
 
         return response()->json(responseFormatter(DEFAULT_200, $order));
@@ -145,6 +208,13 @@ class VitoMartController extends Controller
                 }
             }
 
+            if ($order->promo_code) {
+                $promo = MartPromoCode::where('code', $order->promo_code)->first();
+                if ($promo && $promo->used_count > 0) {
+                    $promo->decrement('used_count');
+                }
+            }
+
             $order->update(['status' => 'cancelled']);
             return $order;
         });
@@ -154,5 +224,33 @@ class VitoMartController extends Controller
         }
 
         return response()->json(responseFormatter(DEFAULT_200));
+    }
+
+    private function notifyDriversNewOrder(MartOrder $order): void
+    {
+        try {
+            $drivers = User::whereHas('driverDetails')
+                ->where('is_active', true)
+                ->whereNotNull('fcm_token')
+                ->where('fcm_token', '!=', '')
+                ->limit(50)
+                ->pluck('fcm_token')
+                ->filter()
+                ->values();
+
+            foreach ($drivers as $token) {
+                sendDeviceNotification(
+                    fcm_token: $token,
+                    title: 'New Mart Order',
+                    description: 'A new mart delivery order is available near you.',
+                    status: 'pending',
+                    type: 'mart',
+                    notification_type: 'mart',
+                    action: 'new_mart_order',
+                );
+            }
+        } catch (\Throwable) {
+            // Non-critical: log silently, don't break order creation
+        }
     }
 }

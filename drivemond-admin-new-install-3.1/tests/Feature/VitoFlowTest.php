@@ -12,6 +12,7 @@ use Modules\AuthManagement\Entities\QrToken;
 use Modules\TripManagement\Entities\MartProduct;
 use Modules\TripManagement\Entities\MartOrder;
 use Modules\TripManagement\Entities\MartOrderItem;
+use Modules\TripManagement\Entities\MartPromoCode;
 use Modules\TripManagement\Entities\StripeEvent;
 use Modules\UserManagement\Entities\User;
 use Tests\TestCase;
@@ -34,6 +35,7 @@ class VitoFlowTest extends TestCase
         Schema::dropIfExists('stripe_events');
         Schema::dropIfExists('mart_order_items');
         Schema::dropIfExists('mart_orders');
+        Schema::dropIfExists('mart_promo_codes');
         Schema::dropIfExists('mart_products');
         Schema::dropIfExists('qr_tokens');
         Schema::dropIfExists('user_accounts');
@@ -223,6 +225,23 @@ class VitoFlowTest extends TestCase
             });
         }
 
+        if (!Schema::hasTable('mart_promo_codes')) {
+            Schema::create('mart_promo_codes', function (Blueprint $table) {
+                $table->uuid('id')->primary();
+                $table->string('code')->unique();
+                $table->string('discount_type')->default('fixed');
+                $table->decimal('discount_value', 10, 2);
+                $table->decimal('min_order_amount', 10, 2)->default(0);
+                $table->decimal('max_discount', 10, 2)->nullable();
+                $table->unsignedInteger('usage_limit')->nullable();
+                $table->unsignedInteger('used_count')->default(0);
+                $table->boolean('is_active')->default(true);
+                $table->timestamp('expires_at')->nullable();
+                $table->timestamps();
+                $table->softDeletes();
+            });
+        }
+
         if (!Schema::hasTable('mart_orders')) {
             Schema::create('mart_orders', function (Blueprint $table) {
                 $table->uuid('id')->primary();
@@ -231,6 +250,9 @@ class VitoFlowTest extends TestCase
                 $table->uuid('driver_id')->nullable();
                 $table->string('status')->default('pending');
                 $table->decimal('total_amount', 10, 2);
+                $table->decimal('tip_amount', 10, 2)->default(0);
+                $table->decimal('discount_amount', 10, 2)->default(0);
+                $table->string('promo_code')->nullable();
                 $table->string('payment_status')->default('unpaid');
                 $table->string('payment_method')->nullable();
                 $table->text('delivery_address')->nullable();
@@ -622,7 +644,207 @@ class VitoFlowTest extends TestCase
     }
 
     // ========================================================================
-    // 8. Webhook Idempotent
+    // 8. Mart Promo Code Apply
+    // ========================================================================
+
+    public function test_mart_apply_promo_code(): void
+    {
+        $customer = $this->createUser('customer');
+        $this->actingAs($customer, 'api');
+
+        // Fixed discount promo
+        MartPromoCode::create([
+            'code' => 'SAVE5',
+            'discount_type' => 'fixed',
+            'discount_value' => 5.00,
+            'min_order_amount' => 20.00,
+            'is_active' => true,
+        ]);
+
+        // Valid promo application
+        $response = $this->postJson('/api/customer/mart/apply-promo', [
+            'code' => 'SAVE5',
+            'subtotal' => 30.00,
+        ]);
+        $response->assertOk();
+        $this->assertEquals(5.00, $response->json('data.discount'));
+
+        // Below minimum order amount
+        $response2 = $this->postJson('/api/customer/mart/apply-promo', [
+            'code' => 'SAVE5',
+            'subtotal' => 10.00,
+        ]);
+        $response2->assertStatus(400);
+
+        // Invalid code
+        $response3 = $this->postJson('/api/customer/mart/apply-promo', [
+            'code' => 'NOTREAL',
+            'subtotal' => 50.00,
+        ]);
+        $response3->assertStatus(404);
+    }
+
+    // ========================================================================
+    // 9. Mart Order With Tip and Promo (server-side total)
+    // ========================================================================
+
+    public function test_mart_order_server_side_total(): void
+    {
+        $customer = $this->createUser('customer');
+        $this->actingAs($customer, 'api');
+
+        $product = MartProduct::create([
+            'name' => 'Burger',
+            'price' => 10.00,
+            'stock' => 50,
+            'category' => 'food',
+            'is_active' => true,
+        ]);
+
+        MartPromoCode::create([
+            'code' => 'PROMO2',
+            'discount_type' => 'fixed',
+            'discount_value' => 3.00,
+            'min_order_amount' => 0,
+            'is_active' => true,
+        ]);
+
+        $response = $this->postJson('/api/customer/mart/order', [
+            'items' => [['product_id' => $product->id, 'quantity' => 2]],
+            'delivery_address' => '123 Test St',
+            'tip_amount' => 2.00,
+            'promo_code' => 'PROMO2',
+        ]);
+
+        $response->assertOk();
+
+        $order = MartOrder::where('customer_id', $customer->id)->first();
+        $this->assertNotNull($order);
+        // subtotal=20, discount=3, tip=2 → total=19
+        $this->assertEquals('19.00', $order->total_amount);
+        $this->assertEquals('3.00', $order->discount_amount);
+        $this->assertEquals('2.00', $order->tip_amount);
+        $this->assertEquals('PROMO2', $order->promo_code);
+
+        // Promo used_count should increment
+        $promo = MartPromoCode::where('code', 'PROMO2')->first();
+        $this->assertEquals(1, $promo->used_count);
+
+        // Cancel restores stock and decrements used_count
+        $response2 = $this->putJson("/api/customer/mart/orders/{$order->id}/cancel");
+        $response2->assertOk();
+
+        $product->refresh();
+        $this->assertEquals(50, $product->stock);
+
+        $promo->refresh();
+        $this->assertEquals(0, $promo->used_count);
+    }
+
+    // ========================================================================
+    // 10. Driver Order Details Endpoint
+    // ========================================================================
+
+    public function test_driver_mart_order_details(): void
+    {
+        $customer = $this->createUser('customer');
+        $driver = $this->createUser('driver');
+
+        $product = MartProduct::create([
+            'name' => 'Water Bottle',
+            'price' => 2.00,
+            'stock' => 20,
+            'category' => 'drinks',
+            'is_active' => true,
+        ]);
+
+        $order = MartOrder::create([
+            'ref_id' => 'VM-TESTDRV1',
+            'customer_id' => $customer->id,
+            'driver_id' => $driver->id,
+            'status' => 'accepted',
+            'total_amount' => 4.00,
+            'delivery_address' => '456 Driver Rd',
+        ]);
+
+        MartOrderItem::create([
+            'order_id' => $order->id,
+            'product_id' => $product->id,
+            'quantity' => 2,
+            'unit_price' => 2.00,
+            'total_price' => 4.00,
+        ]);
+
+        $this->actingAs($driver, 'api');
+        $response = $this->getJson("/api/driver/mart/orders/{$order->id}");
+        $response->assertOk();
+        $this->assertEquals($order->id, $response->json('data.id'));
+        $this->assertCount(1, $response->json('data.items'));
+
+        // Another driver cannot see this order
+        $otherDriver = $this->createUser('driver');
+        $this->actingAs($otherDriver, 'api');
+        $response2 = $this->getJson("/api/driver/mart/orders/{$order->id}");
+        $response2->assertStatus(404);
+    }
+
+    // ========================================================================
+    // 11. Zone Filtering on Products
+    // ========================================================================
+
+    public function test_mart_products_zone_filter(): void
+    {
+        $customer = $this->createUser('customer');
+        $this->actingAs($customer, 'api');
+
+        $zoneA = Str::uuid()->toString();
+        $zoneB = Str::uuid()->toString();
+
+        MartProduct::create(['name' => 'Zone A Product', 'price' => 5.00, 'stock' => 10, 'is_active' => true, 'zone_id' => $zoneA]);
+        MartProduct::create(['name' => 'Zone B Product', 'price' => 5.00, 'stock' => 10, 'is_active' => true, 'zone_id' => $zoneB]);
+        MartProduct::create(['name' => 'Global Product', 'price' => 5.00, 'stock' => 10, 'is_active' => true, 'zone_id' => null]);
+
+        // Filter by zone A: should see Zone A + Global
+        $response = $this->getJson("/api/customer/mart/products?zone_id={$zoneA}");
+        $response->assertOk();
+        $names = collect($response->json('data.data'))->pluck('name')->all();
+        $this->assertContains('Zone A Product', $names);
+        $this->assertContains('Global Product', $names);
+        $this->assertNotContains('Zone B Product', $names);
+    }
+
+    // ========================================================================
+    // 12. QR Token Expiry Pruning
+    // ========================================================================
+
+    public function test_qr_token_pruning_command(): void
+    {
+        // Token expired 31 days ago (should be pruned)
+        QrToken::create([
+            'token' => str_repeat('a', 64),
+            'role' => 'customer',
+            'created_by' => null,
+            'expires_at' => now()->subDays(31),
+            'is_revoked' => false,
+        ]);
+
+        // Token expired 10 days ago (within 30-day grace, not pruned)
+        QrToken::create([
+            'token' => str_repeat('b', 64),
+            'role' => 'customer',
+            'created_by' => null,
+            'expires_at' => now()->subDays(10),
+            'is_revoked' => false,
+        ]);
+
+        $this->artisan('vito:prune-qr-tokens')->assertSuccessful();
+
+        $this->assertDatabaseMissing('qr_tokens', ['token' => str_repeat('a', 64)]);
+        $this->assertDatabaseHas('qr_tokens', ['token' => str_repeat('b', 64)]);
+    }
+
+    // ========================================================================
+    // 13. Webhook Idempotent
     // ========================================================================
 
     public function test_webhook_idempotent(): void
