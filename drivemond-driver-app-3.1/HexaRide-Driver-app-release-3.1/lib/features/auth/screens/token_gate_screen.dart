@@ -256,8 +256,8 @@ class _TokenGateScreenState extends State<TokenGateScreen> {
       showCustomSnackBar('token_is_required'.tr);
       return;
     }
-    if (token.length < 10) {
-      showCustomSnackBar('invalid_token_format'.tr);
+    if (token.length != 64) {
+      showCustomSnackBar('invalid_token_length'.tr);
       return;
     }
 

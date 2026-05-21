@@ -52,11 +52,23 @@ class ChattingController extends Controller
     public function findChannel(Request $request)
     {
         $channel = $this->channelListService->findOne($request['channel_id']);
+        if (!$channel) {
+            return response()->json(responseFormatter(constant: DEFAULT_404), 404);
+        }
+
+        $isMember = $this->channelUserService->findOneBy(criteria: [
+            'channel_id' => $channel->id,
+            'user_id' => $request->user()->id,
+        ]);
+        if (!$isMember) {
+            return response()->json(responseFormatter(constant: DEFAULT_404), 403);
+        }
+
         if ($channel->channelable_type === MartOrder::class) {
             $order = MartOrder::find($channel->channelable_id);
             return response()->json(responseFormatter(DEFAULT_200, $order?->status), 200);
         }
-        $trip = $this->tripRequestService->findOne($channel->channelable->id);
+        $trip = $this->tripRequestService->findOne($channel->channelable?->id);
         return response()->json(responseFormatter(DEFAULT_200, $trip?->current_status), 200);
     }
 
@@ -116,6 +128,10 @@ class ChattingController extends Controller
         }
 
         $currentUser = $request->user();
+        if ($currentUser->id !== $order->customer_id && $currentUser->id !== $order->driver_id) {
+            return response()->json(responseFormatter(DEFAULT_404), 403);
+        }
+
         $toUserId = $currentUser->user_type === CUSTOMER ? $order->driver_id : $order->customer_id;
         if (!$toUserId) {
             return response()->json(responseFormatter(DEFAULT_404), 404);

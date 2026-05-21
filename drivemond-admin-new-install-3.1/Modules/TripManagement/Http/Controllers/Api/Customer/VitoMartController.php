@@ -212,7 +212,9 @@ class VitoMartController extends Controller
             }
 
             if ($order->promo_code) {
-                $promo = MartPromoCode::where('code', $order->promo_code)->first();
+                $promo = MartPromoCode::where('code', $order->promo_code)
+                    ->lockForUpdate()
+                    ->first();
                 if ($promo && $promo->used_count > 0) {
                     $promo->decrement('used_count');
                 }

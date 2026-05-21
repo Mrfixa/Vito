@@ -82,23 +82,31 @@ class VitoMartDriverController extends Controller
             'delivered' => ['picked_up'],
         ];
 
-        $order = MartOrder::where('id', $request->order_id)
-            ->where('driver_id', $request->user()->id)
-            ->whereIn('status', $allowedTransitions[$request->status])
-            ->first();
+        $order = DB::transaction(function () use ($request, $allowedTransitions) {
+            $order = MartOrder::where('id', $request->order_id)
+                ->where('driver_id', $request->user()->id)
+                ->whereIn('status', $allowedTransitions[$request->status])
+                ->lockForUpdate()
+                ->first();
+
+            if (!$order) {
+                return null;
+            }
+
+            $updateData = ['status' => $request->status];
+
+            if ($request->status === 'delivered') {
+                $updateData['payment_status'] = 'paid';
+            }
+
+            $order->update($updateData);
+
+            return $order->fresh();
+        });
 
         if (!$order) {
             return response()->json(responseFormatter(DEFAULT_404), 404);
         }
-
-        $updateData = ['status' => $request->status];
-
-        if ($request->status === 'delivered') {
-            $updateData['payment_status'] = 'paid';
-        }
-
-        $order->update($updateData);
-        $order->refresh();
 
         $messages = [
             'picked_up' => ['title' => 'Order Picked Up', 'description' => "Your mart order #{$order->ref_id} has been picked up and is on the way.", 'action' => 'mart_order_picked_up'],

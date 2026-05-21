@@ -38,7 +38,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
   const token = params.get('token') || window.location.pathname.split('/').filter(Boolean).pop();
   const card = document.getElementById('card');
 
-  if(!token || token.length < 10){
+  if(!token || token.length !== 64 || !/^[A-Za-z0-9_-]+$/.test(token)){
     card.innerHTML = '<div class="icon">⚠️</div><div class="status error">Invalid Link</div><div class="detail">This invitation link is not valid.</div>';
     return;
   }

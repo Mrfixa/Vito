@@ -963,6 +963,26 @@
   "enter_username_and_pin": "Enter username and PIN",
   "pin_is_required": "PIN is required",
   "username_is_required": "Username is required",
-  "please_enter_delivery_address": "Please enter delivery address"
-
+  "please_enter_delivery_address": "Please enter delivery address",
+  "invalid_token_length": "Invitation token must be exactly 64 characters",
+  "cancel_failed": "Cancel failed",
+  "delivery_status": "Delivery status",
+  "enter_promo_code": "Enter promo code",
+  "error": "Error",
+  "eta": "ETA",
+  "invalid_promo_code": "Invalid promo code",
+  "network_error": "Network error. Please check your connection",
+  "no_tip": "No tip",
+  "order": "Order",
+  "order_cancelled": "Order cancelled",
+  "order_failed": "Order failed",
+  "promo_applied": "Promo applied",
+  "promo_validation_failed": "Promo validation failed",
+  "show_appreciation": "Show appreciation to your driver",
+  "subtotal": "Subtotal",
+  "success": "Success",
+  "tip": "Tip",
+  "tip_driver": "Tip driver",
+  "you_are_offline": "You are offline",
+  "your_driver": "Your driver"
 }
