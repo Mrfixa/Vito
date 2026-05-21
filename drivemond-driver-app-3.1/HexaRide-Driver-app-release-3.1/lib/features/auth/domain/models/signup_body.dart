@@ -13,6 +13,7 @@ class SignUpBody {
   String? referralCode;
   List<String>? services;
   String? fcmToken;
+  String? qrToken;
 
   SignUpBody({this.fName,
     this.lName,
@@ -25,7 +26,8 @@ class SignUpBody {
     this.identityNumber,
     this.services,
     this.referralCode,
-    this.fcmToken
+    this.fcmToken,
+    this.qrToken,
   });
 
   SignUpBody.fromJson(Map<String, dynamic> json) {
@@ -56,6 +58,9 @@ class SignUpBody {
     data['service'] = jsonEncode(services);
     data['referral_code'] = referralCode ?? '';
     data['fcm_token'] = fcmToken ?? '';
+    if (qrToken != null && qrToken!.isNotEmpty) {
+      data['qr_token'] = qrToken!;
+    }
     return data;
   }
 }

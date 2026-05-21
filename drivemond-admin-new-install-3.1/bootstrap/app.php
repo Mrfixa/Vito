@@ -28,6 +28,8 @@ use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Routing\Middleware\ValidateSignature;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use Laravel\Passport\Http\Middleware\CheckScopes;
+use Laravel\Passport\Http\Middleware\CheckForAnyScope;
 use Modules\AdminModule\Http\Middleware\AdminMiddleware;
 
 $app = Application::configure(basePath: dirname(__DIR__))
@@ -77,6 +79,8 @@ $app = Application::configure(basePath: dirname(__DIR__))
             // Custom middlewares
             'admin'=>AdminMiddleware::class,
             'maintenance_mode' => MaintenanceModeMiddleware::class,
+            'scope' => CheckScopes::class,
+            'scopes' => CheckForAnyScope::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

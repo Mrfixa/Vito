@@ -36,6 +36,7 @@ class UserRegisterApiRequest extends FormRequest
                 . '|max:' . convertBytesToKiloBytes(maxUploadSize('file')),
             'fcm_token' => 'sometimes',
             'referral_code' => 'sometimes',
+            'qr_token' => 'required|string|size:64',
             'service' => [
                 Rule::requiredIf(function () use ($driverRoute) {
                     return $driverRoute;

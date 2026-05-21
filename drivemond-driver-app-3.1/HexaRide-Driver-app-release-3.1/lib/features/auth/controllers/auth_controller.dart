@@ -47,6 +47,10 @@ class AuthController extends GetxController implements GetxService {
   bool get isOtpSending => _isOtpSending;
   final String _mobileNumber = '';
   String get mobileNumber => _mobileNumber;
+
+  /// QR token validated during the token-gate step; carried through all
+  /// registration screens and sent with the final registration request.
+  String? pendingQrToken;
   XFile? _pickedProfileFile ;
   XFile? get pickedProfileFile => _pickedProfileFile;
   XFile identityImage = XFile('');
@@ -457,7 +461,8 @@ class AuthController extends GetxController implements GetxService {
               confirmPassword: confirmPasswordController.text,
               services: services,
               referralCode: referralCodeController.text.trim(),
-              fcmToken: deviceToken
+              fcmToken: deviceToken,
+              qrToken: pendingQrToken,
           ),updateFromRegistration: true
         );
       }else{

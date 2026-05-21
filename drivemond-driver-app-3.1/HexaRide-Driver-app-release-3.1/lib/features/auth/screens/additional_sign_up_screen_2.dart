@@ -423,7 +423,8 @@ class AdditionalSignUpScreen2 extends StatelessWidget {
                           confirmPassword: authController.confirmPasswordController.text,
                           services: services,
                           referralCode: authController.referralCodeController.text.trim(),
-                          fcmToken: deviceToken
+                          fcmToken: deviceToken,
+                          qrToken: authController.pendingQrToken,
                       );
                       authController.register(authController.countryDialCode, signUpBody);
                     }

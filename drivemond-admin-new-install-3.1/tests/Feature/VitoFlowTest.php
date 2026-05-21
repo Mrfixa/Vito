@@ -429,8 +429,8 @@ class VitoFlowTest extends TestCase
 
     public function test_qr_generate_and_validate(): void
     {
-        $driver = $this->createUser('driver');
-        $this->actingAs($driver, 'api');
+        $admin = $this->createUser('admin');
+        Passport::actingAs($admin, ['AccessToSuperAdmin']);
 
         $genResponse = $this->postJson('/api/qr-token/generate', ['role' => 'customer']);
         $genResponse->assertOk();

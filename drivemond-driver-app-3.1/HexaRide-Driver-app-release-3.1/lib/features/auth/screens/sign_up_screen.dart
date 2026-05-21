@@ -12,7 +12,8 @@ import 'package:ride_sharing_user_app/util/images.dart';
 import 'package:ride_sharing_user_app/util/styles.dart';
 
 class SignUpScreen extends StatelessWidget {
-  const SignUpScreen({super.key});
+  final String? qrToken;
+  const SignUpScreen({super.key, this.qrToken});
 
 
 
@@ -22,6 +23,12 @@ class SignUpScreen extends StatelessWidget {
       child: Scaffold(
           backgroundColor: Theme.of(context).cardColor,
           body: GetBuilder<AuthController>(builder:(authController){
+            // Store the validated QR token in the controller so it is
+            // available when the final registration request is built in
+            // AdditionalSignUpScreen2.
+            if (qrToken != null && authController.pendingQrToken != qrToken) {
+              authController.pendingQrToken = qrToken;
+            }
             return Column(children: [
               const SignUpAppbarWidget(enableBackButton: true, title: 'signup_as_a_driver', progressText: '1_of_3'),
               const SizedBox(height: Dimensions.paddingSizeSignUp),

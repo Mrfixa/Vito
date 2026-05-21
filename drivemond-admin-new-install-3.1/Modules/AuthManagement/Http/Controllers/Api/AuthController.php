@@ -31,6 +31,7 @@ use Modules\UserManagement\Service\Interfaces\DriverServiceInterface;
 use Modules\UserManagement\Service\Interfaces\OtpVerificationServiceInterface;
 use Modules\UserManagement\Service\Interfaces\ReferralCustomerServiceInterface;
 use Modules\UserManagement\Service\Interfaces\ReferralDriverServiceInterface;
+use Modules\AuthManagement\Entities\QrToken;
 use Modules\AuthManagement\Mail\DriverRegistrationSuccessfulMail;
 use Modules\UserManagement\Service\Interfaces\UserServiceInterface;
 use Modules\VehicleManagement\Mail\VehicleRequestDeniedMail;
@@ -115,7 +116,31 @@ class AuthController extends Controller
             return response()->json(responseFormatter(LEVEL_403), 403);
         }
 
+        // Validate and atomically redeem the QR token
+        $expectedRole = $route ? 'customer' : 'driver';
+        $redeemedQrToken = DB::transaction(function () use ($request, $expectedRole) {
+            $token = QrToken::where('token', $request->qr_token)
+                ->where('role', $expectedRole)
+                ->whereNull('redeemed_at')
+                ->where('is_revoked', false)
+                ->where('expires_at', '>', now())
+                ->lockForUpdate()
+                ->first();
+
+            if (!$token) {
+                return false;
+            }
+
+            $token->update(['redeemed_at' => now()]);
+            return $token;
+        });
+
+        if (!$redeemedQrToken) {
+            return response()->json(responseFormatter(constant: DEFAULT_400, content: 'Invalid or expired invitation token'), 400);
+        }
+
         $user = $route ? $this->customerService->create($request->all()) : $this->driverService->create($request->all());
+        $redeemedQrToken->update(['redeemed_by' => $user->id]);
         $isMailEnabled = businessConfig(key: EMAIL_CONFIG, settingsType: EMAIL_CONFIG);
         if ($user->email && $isMailEnabled && $user->type == DRIVER) {
             try {

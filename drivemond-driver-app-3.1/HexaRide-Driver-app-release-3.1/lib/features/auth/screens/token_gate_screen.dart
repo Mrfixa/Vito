@@ -271,7 +271,7 @@ class _TokenGateScreenState extends State<TokenGateScreen> {
 
       if (response.statusCode == 200 && response.body['data']?['valid'] == true) {
         await _saveTokenToHistory(token, true);
-        Get.off(() => const SignUpScreen());
+        Get.off(() => SignUpScreen(qrToken: token));
       } else {
         await _saveTokenToHistory(token, false);
         showCustomSnackBar('invalid_or_expired_token'.tr);

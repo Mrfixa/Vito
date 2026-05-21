@@ -166,7 +166,10 @@ class VitoAuthController extends Controller
 
         try {
             DB::transaction(function () use ($request, $data, $isCustomerRoute) {
+                $expectedRole = $isCustomerRoute ? 'customer' : 'driver';
+
                 $qrToken = QrToken::where('token', $request->qr_token)
+                    ->where('role', $expectedRole)
                     ->where('expires_at', '>', now())
                     ->whereNull('redeemed_at')
                     ->where('is_revoked', false)

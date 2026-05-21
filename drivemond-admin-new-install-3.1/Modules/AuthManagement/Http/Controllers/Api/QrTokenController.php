@@ -120,10 +120,6 @@ class QrTokenController extends Controller
             'role' => $qrToken->role,
         ];
 
-        if ($qrToken->role === 'customer' && $qrToken->creator) {
-            $data['driver_name'] = $qrToken->creator->first_name . ' ' . $qrToken->creator->last_name;
-        }
-
         return response()->json(responseFormatter(DEFAULT_200, $data));
     }
 
