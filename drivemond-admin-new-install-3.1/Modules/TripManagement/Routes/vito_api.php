@@ -9,7 +9,7 @@ use Modules\TripManagement\Http\Controllers\Api\Driver\VitoMartDriverController;
 | VitoMart Customer Routes
 |--------------------------------------------------------------------------
 */
-Route::group(['prefix' => 'customer/mart', 'middleware' => ['auth:api', 'maintenance_mode']], function () {
+Route::group(['prefix' => 'customer/mart', 'middleware' => ['auth:api', 'maintenance_mode', 'scope:AccessToCustomer']], function () {
     Route::controller(VitoMartController::class)->group(function () {
         Route::get('products', 'products');
         Route::get('products/{id}', 'productDetails');
@@ -26,7 +26,7 @@ Route::group(['prefix' => 'customer/mart', 'middleware' => ['auth:api', 'mainten
 | VitoMart Driver Routes
 |--------------------------------------------------------------------------
 */
-Route::group(['prefix' => 'driver/mart', 'middleware' => ['auth:api', 'maintenance_mode']], function () {
+Route::group(['prefix' => 'driver/mart', 'middleware' => ['auth:api', 'maintenance_mode', 'scope:AccessToDriver']], function () {
     Route::controller(VitoMartDriverController::class)->group(function () {
         Route::get('pending-orders', 'pendingOrders');
         Route::post('accept-order', 'acceptOrder');

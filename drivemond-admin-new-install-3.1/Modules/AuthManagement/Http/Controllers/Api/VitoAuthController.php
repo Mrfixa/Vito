@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Modules\AuthManagement\Entities\QrToken;
 use Modules\AuthManagement\Service\Interfaces\AuthServiceInterface;
 use Modules\UserManagement\Entities\User;
@@ -60,7 +61,7 @@ class VitoAuthController extends Controller
             ->first();
 
         if (!$user) {
-            return response()->json(responseFormatter(constant: AUTH_LOGIN_404), 403);
+            return response()->json(responseFormatter(constant: AUTH_LOGIN_401), 403);
         }
 
         $hitLimit = businessConfig('maximum_login_hit')?->value ?? 5;
@@ -120,6 +121,14 @@ class VitoAuthController extends Controller
         return response()->json(responseFormatter(AUTH_LOGIN_200, $this->authenticate($user, $accessType)));
     }
 
+    public function logout(Request $request): JsonResponse
+    {
+        $token = auth('api')->user()->token();
+        $token->revoke();
+
+        return response()->json(responseFormatter(DEFAULT_200));
+    }
+
     public function pinRegister(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
@@ -174,6 +183,8 @@ class VitoAuthController extends Controller
 
                 $qrToken->update(['redeemed_at' => now(), 'redeemed_by' => $user->id]);
             });
+        } catch (UniqueConstraintViolationException $e) {
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: [['error_code' => 'username', 'message' => 'Username already taken']]), 409);
         } catch (\RuntimeException $e) {
             if ($e->getMessage() === 'invalid_qr_token') {
                 return response()->json(responseFormatter(constant: DEFAULT_400, errors: [['error_code' => 'qr_token', 'message' => 'Invalid or expired invitation token']]), 403);

@@ -50,7 +50,11 @@ class QrTokenController extends Controller
             return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
         }
 
-        $qrToken = QrToken::where('token', $request->token)->first();
+        $qrToken = DB::transaction(function () use ($request) {
+            return QrToken::where('token', $request->token)
+                ->lockForUpdate()
+                ->first();
+        });
 
         if (!$qrToken || !$qrToken->isValid()) {
             return response()->json(responseFormatter(constant: DEFAULT_404), 404);
@@ -101,7 +105,11 @@ class QrTokenController extends Controller
 
     public function validateTokenPublic(string $token): JsonResponse
     {
-        $qrToken = QrToken::where('token', $token)->first();
+        $qrToken = DB::transaction(function () use ($token) {
+            return QrToken::where('token', $token)
+                ->lockForUpdate()
+                ->first();
+        });
 
         if (!$qrToken || !$qrToken->isValid()) {
             return response()->json(responseFormatter(constant: DEFAULT_404, errors: [['message' => 'Token is invalid or expired']]), 404);

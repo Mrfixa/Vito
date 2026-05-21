@@ -12,7 +12,7 @@ use Modules\TripManagement\Http\Controllers\Api\PaymentController;
  */
 
 #### NEW CUSTOMER TRIP CONTROLLER ####
-Route::group(['prefix' => 'customer', 'middleware' => ['auth:api', 'maintenance_mode']], function () {
+Route::group(['prefix' => 'customer', 'middleware' => ['auth:api', 'maintenance_mode', 'scope:AccessToCustomer']], function () {
     Route::get('drivers-near-me', [NewCustomerTripController::class, 'driversNearMe']);
     Route::group(['prefix' => 'ride'], function () {
         Route::controller(NewCustomerTripController::class)->group(function () {
@@ -63,7 +63,7 @@ Route::group(['prefix' => 'customer', 'middleware' => ['auth:api', 'maintenance_
 /**
  * DRIVER API LIST
  */
-Route::group(['prefix' => 'driver', 'middleware' => ['auth:api', 'maintenance_mode']], function () {
+Route::group(['prefix' => 'driver', 'middleware' => ['auth:api', 'maintenance_mode', 'scope:AccessToDriver']], function () {
     Route::get('last-ride-details', [NewDriverTripController::class, 'lastRideDetails']);
     Route::group(['prefix' => 'ride', 'middleware' => ['auth:api', 'maintenance_mode']], function () {
         Route::get('final-fare', [NewCustomerTripController::class, 'finalFareCalculation']);
@@ -112,7 +112,7 @@ Route::post('ride/store-screenshot', [NewDriverTripController::class, 'storeScre
 | Vito Atomic Trip Acceptance
 |--------------------------------------------------------------------------
 */
-Route::group(['prefix' => 'driver', 'middleware' => ['auth:api', 'maintenance_mode']], function () {
+Route::group(['prefix' => 'driver', 'middleware' => ['auth:api', 'maintenance_mode', 'scope:AccessToDriver']], function () {
     Route::group(['prefix' => 'ride'], function () {
         Route::post('atomic-accept', [\Modules\TripManagement\Http\Controllers\Api\Driver\VitoTripController::class, 'atomicAccept']);
     });

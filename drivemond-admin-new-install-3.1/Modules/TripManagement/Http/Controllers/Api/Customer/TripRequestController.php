@@ -26,6 +26,7 @@ use Modules\ParcelManagement\Service\Interfaces\ParcelWeightServiceInterface;
 use Modules\PromotionManagement\Service\Interfaces\CouponSetupServiceInterface;
 use Modules\TransactionManagement\Traits\TransactionTrait;
 use Modules\TripManagement\Http\Requests\GetEstimatedFaresOrNotRequest;
+use Modules\TripManagement\Entities\TripRequest;
 use Modules\TripManagement\Http\Requests\RideRequestCreate;
 use Modules\TripManagement\Lib\CommonTrait;
 use Modules\TripManagement\Lib\CouponCalculationTrait;
@@ -136,24 +137,112 @@ class TripRequestController extends Controller
 
         $extraFare = $this->checkZoneExtraFare($zone);
         $surgePrice = $this->surgePricingService->checkSurgePricing(zoneId: $zone->id, tripType: $request->type, vehicleCategoryId: $request->vehicle_category_id, scheduledAt: $request['scheduled_at']);
+
+        // SERVER-SIDE FARE CALCULATION — never trust client-supplied fare values.
+        // Re-compute the fare from the zone/fare table using the same estimatedFare()
+        // logic used by getEstimatedFare() so both paths stay in sync.
+        if (!$request->trip_request_id) {
+            $pickupCoordinates  = json_decode($request['pickup_coordinates'], true);
+            $destCoordinates    = json_decode($request['destination_coordinates'], true);
+            $intermediateCoords = [];
+            if ($request->filled('intermediate_coordinates')) {
+                $intermediateCoords = json_decode($request->intermediate_coordinates, true);
+            }
+
+            if ($request->type == 'ride_request') {
+                $tripFareData = $this->tripFareService->getBy(criteria: ['zone_id' => $zone->id], relations: ['vehicleCategory']);
+                $tripFareData = $tripFareData->filter(fn($i) => $i->vehicleCategory !== null && $i->vehicleCategory->is_active != 0)->values();
+                $availableCategories = $tripFareData->pluck('vehicleCategory.type')->unique()->toArray();
+                $drivingModes = count($availableCategories) == 2 ? ['DRIVE', 'TWO_WHEELER'] : ($availableCategories[0] == 'car' ? ['DRIVE'] : ['TWO_WHEELER']);
+            } else {
+                $parcelWeights = $this->parcelWeightService->getBy(limit: 9999, offset: 1);
+                $parcelWeight  = $parcelWeights->firstWhere(function ($pw) use ($request) {
+                    return $request->parcel_weight >= $pw->min_weight && $request->parcel_weight <= $pw->max_weight;
+                });
+                if (!$parcelWeight) {
+                    return response()->json(responseFormatter(PARCEL_WEIGHT_400), 403);
+                }
+                $relations = [
+                    'fares' => [
+                        ['parcel_weight_id', '=', $parcelWeight->id],
+                        ['zone_id', '=', $zone->id],
+                        ['parcel_category_id', '=', $request->parcel_category_id],
+                    ],
+                    'zone' => []
+                ];
+                $whereHasRelations = [
+                    'fares' => [
+                        'parcel_weight_id' => $parcelWeight->id,
+                        'zone_id' => $zone->id,
+                        'parcel_category_id' => $request->parcel_category_id,
+                    ]
+                ];
+                $tripFareData  = $this->parcelFareService->findOneBy(criteria: ['zone_id' => $zone->id], whereHasRelations: $whereHasRelations, relations: $relations);
+                $drivingModes  = ['TWO_WHEELER'];
+            }
+
+            $serverRoutes = getRoutes(
+                originCoordinates: $pickupCoordinates,
+                destinationCoordinates: $destCoordinates,
+                intermediateCoordinates: $intermediateCoords,
+                drivingMode: $drivingModes,
+            );
+            if (array_key_exists('error', $serverRoutes)) {
+                return response()->json(responseFormatter(ROUTE_NOT_FOUND_404), 403);
+            }
+
+            $serverFares = $this->estimatedFare(
+                tripRequest: $request->all(),
+                routes: $serverRoutes,
+                zone_id: $zone->id,
+                zone: $zone,
+                tripFare: $tripFareData,
+                beforeCreate: false
+            );
+        }
+
         if (array_key_exists('bid', $request->all()) && $request['bid']) {
+            // Bid mode: driver proposes a fare, accepted by customer — that fare is already
+            // validated server-side before the bid was created, so keep it for now.
             $estimatedFare = $request['actual_fare'];
             $actualFare = $request['actual_fare'];
             $riseRequestCount = 1;
             $returnFee = $request->type == PARCEL ? $request->return_fee : 0;
             $cancellationFee = $request->type == PARCEL ? $request->cancellation_fee : 0;
         } elseif (!empty($extraFare) || !empty($surgePrice)) {
-            $estimatedFare = $request['extra_estimated_fare'];
-            $actualFare = $request['extra_estimated_fare'];
+            // Use server-computed extra-fare values; ignore any client-sent figures.
+            if (!$request->trip_request_id && isset($serverFares)) {
+                if ($request->type == 'ride_request') {
+                    $matchedFare = collect($serverFares)->firstWhere('vehicle_category_id', $request->vehicle_category_id) ?? $serverFares->first();
+                    $estimatedFare = $matchedFare['extra_estimated_fare'] ?? $matchedFare['estimated_fare'];
+                } else {
+                    $estimatedFare = $serverFares['extra_estimated_fare'] ?? $serverFares['estimated_fare'];
+                }
+            } else {
+                $estimatedFare = $request['extra_estimated_fare'];
+            }
+            $actualFare = $estimatedFare;
             $riseRequestCount = 0;
-            $returnFee = $request->type == PARCEL ? $request->extra_return_fee : 0;
-            $cancellationFee = $request->type == PARCEL ? $request->extra_cancellation_fee : 0;
+            $returnFee = $request->type == PARCEL ? ($serverFares['extra_return_fee'] ?? $request->extra_return_fee ?? 0) : 0;
+            $cancellationFee = $request->type == PARCEL ? ($serverFares['extra_cancellation_fee'] ?? $request->extra_cancellation_fee ?? 0) : 0;
         } else {
-            $estimatedFare = $request['estimated_fare'];
-            $actualFare = $request['estimated_fare'];
+            // Standard path — always use server-computed estimated fare.
+            if (!$request->trip_request_id && isset($serverFares)) {
+                if ($request->type == 'ride_request') {
+                    $matchedFare = collect($serverFares)->firstWhere('vehicle_category_id', $request->vehicle_category_id) ?? $serverFares->first();
+                    $estimatedFare = $matchedFare['estimated_fare'];
+                } else {
+                    $estimatedFare = $serverFares['estimated_fare'];
+                }
+            } else {
+                // Re-trip (trip_request_id set): keep existing fare from DB record.
+                $existingTrip = $this->tripRequestService->findOneBy(criteria: ['id' => $request['trip_request_id']]);
+                $estimatedFare = $existingTrip->estimated_fare;
+            }
+            $actualFare = $estimatedFare;
             $riseRequestCount = 0;
-            $returnFee = $request->type == PARCEL ? $request->return_fee : 0;
-            $cancellationFee = $request->type == PARCEL ? $request->cancellation_fee : 0;
+            $returnFee = $request->type == PARCEL ? ($serverFares['return_fee'] ?? $request->return_fee ?? 0) : 0;
+            $cancellationFee = $request->type == PARCEL ? ($serverFares['cancellation_fee'] ?? $request->cancellation_fee ?? 0) : 0;
         }
         DB::beginTransaction();
         try {
@@ -364,7 +453,7 @@ class TripRequestController extends Controller
 
     public function rideDetails($trip_request_id): JsonResponse
     {
-        $criteria = ['id' => $trip_request_id];
+        $criteria = ['id' => $trip_request_id, 'customer_id' => auth('api')->id()];
         $relations = ['driver', 'vehicle.model', 'vehicleCategory', 'tripStatus',
             'coordinate', 'fee', 'time', 'parcel', 'parcelUserInfo', 'parcelRefund'];
         $withAvgRelation = ['driverReceivedReviews', 'rating'];
