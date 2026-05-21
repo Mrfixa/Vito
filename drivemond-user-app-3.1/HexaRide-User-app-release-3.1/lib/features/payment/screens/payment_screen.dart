@@ -69,6 +69,7 @@ class _PaymentScreenState extends State<PaymentScreen> with WidgetsBindingObserv
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    tipsAmountController.dispose();
     super.dispose();
   }
 

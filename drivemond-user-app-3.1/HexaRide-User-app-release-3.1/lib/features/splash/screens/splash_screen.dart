@@ -49,7 +49,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
         ScaffoldMessenger.of(Get.context!).hideCurrentSnackBar();
         ScaffoldMessenger.of(Get.context!).showSnackBar(SnackBar(
           backgroundColor: isConnected ? Colors.green : Colors.red,
-          duration: Duration(seconds: isConnected ? 3 : 6000),
+          duration: Duration(seconds: isConnected ? 3 : 6),
           content: Text(
             isConnected ? 'connected'.tr : 'no_connection'.tr,
             textAlign: TextAlign.center,

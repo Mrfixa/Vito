@@ -37,12 +37,24 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   final FocusNode oldPasswordFocus = FocusNode();
 
   @override
+  void dispose() {
+    passwordController.dispose();
+    confirmPasswordController.dispose();
+    oldPasswordController.dispose();
+    passwordFocusNode.dispose();
+    confirmPasswordFocusNode.dispose();
+    oldPasswordFocus.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final profileController = Get.find<ProfileController>();
     return SafeArea(
       top: false,
       child: Scaffold(body: BodyWidget(
         appBar: AppBarWidget(
-          title:Get.find<ProfileController>().profileModel?.data?.loggedInVia == 'otp' ? 'set_password'.tr :
+          title:profileController.profileModel?.data?.loggedInVia == 'otp' ? 'set_password'.tr :
           widget.fromChangePassword ? 'change_password'.tr : 'reset_password'.tr,
           showBackButton: true, centerTitle: true,
           onBackPressed: (){
@@ -84,7 +96,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                 ),
                 const SizedBox(height: Dimensions.paddingSizeSignUp),
 
-                widget.fromChangePassword && Get.find<ProfileController>().profileModel?.data?.loggedInVia != 'otp' ?
+                widget.fromChangePassword && profileController.profileModel?.data?.loggedInVia != 'otp' ?
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   TextFieldTitle(title: 'old_password'.tr),
 
@@ -126,7 +138,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                 const SizedBox(height: Dimensions.paddingSizeDefault * 3),
 
                 authController.isLoading ? Center(child: SpinKitCircle(color: Theme.of(context).primaryColor, size: 40.0,)) : ButtonWidget(
-                  buttonText: widget.fromChangePassword && Get.find<ProfileController>().profileModel?.data?.loggedInVia != 'otp' ? 'update'.tr : 'save'.tr,
+                  buttonText: widget.fromChangePassword && profileController.profileModel?.data?.loggedInVia != 'otp' ? 'update'.tr : 'save'.tr,
                   onPressed: () {
                     String oldPassword = oldPasswordController.text;
                     String password = passwordController.text;
@@ -140,11 +152,11 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                       showCustomSnackBar('confirm_password_is_required'.tr);
                     }else if(password != confirmPassword) {
                       showCustomSnackBar('password_is_mismatch'.tr);
-                    }else if(oldPassword.isEmpty && widget.fromChangePassword && Get.find<ProfileController>().profileModel?.data?.loggedInVia != 'otp') {
+                    }else if(oldPassword.isEmpty && widget.fromChangePassword && profileController.profileModel?.data?.loggedInVia != 'otp') {
                       showCustomSnackBar('previous_password_is_required'.tr);
                     }else {
                       if(widget.fromChangePassword) {
-                        authController.changePassword(Get.find<ProfileController>().profileModel?.data?.loggedInVia != 'otp' ? oldPassword : '', password);
+                        authController.changePassword(profileController.profileModel?.data?.loggedInVia != 'otp' ? oldPassword : '', password);
                       }else{
                         authController.resetPassword(widget.phoneNumber, password);
                       }

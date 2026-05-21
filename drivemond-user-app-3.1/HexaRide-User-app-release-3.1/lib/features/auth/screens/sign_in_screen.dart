@@ -42,6 +42,15 @@ class _SignInScreenState extends State<SignInScreen> {
   }
 
   @override
+  void dispose() {
+    usernameController.dispose();
+    pinController.dispose();
+    usernameNode.dispose();
+    pinNode.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return SafeArea(child: Scaffold(
       backgroundColor: Theme.of(context).canvasColor,

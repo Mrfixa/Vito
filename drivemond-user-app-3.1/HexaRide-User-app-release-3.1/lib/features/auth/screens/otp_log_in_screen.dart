@@ -37,6 +37,13 @@ class _OtpLoginScreenState extends State<OtpLoginScreen> {
   }
 
   @override
+  void dispose() {
+    phoneController.dispose();
+    phoneNode.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return SafeArea(
       top: false,

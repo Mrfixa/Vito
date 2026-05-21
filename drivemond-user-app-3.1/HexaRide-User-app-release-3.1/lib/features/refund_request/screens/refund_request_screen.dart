@@ -39,6 +39,13 @@ class _RefundRequestScreenState extends State<RefundRequestScreen> {
     super.initState();
   }
 
+  @override
+  void dispose() {
+    productApproximatePriceController.dispose();
+    refundNoteTextController.dispose();
+    super.dispose();
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -155,7 +162,7 @@ class _RefundRequestScreenState extends State<RefundRequestScreen> {
                           borderRadius: BorderRadius.circular(Dimensions.paddingSizeSmall),
                           borderSide: BorderSide(width: 0.5, color: Theme.of(context).primaryColor.withValues(alpha:0.5)),
                         ),
-                        hintText: 'Ex: 50',
+                        hintText: 'refund_amount_example'.tr,
                         hintStyle: textRegular.copyWith(fontSize: Dimensions.fontSizeSmall, color: Theme.of(context).hintColor),
                         isDense: true,
                         contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0)
@@ -349,7 +356,7 @@ class _RefundRequestScreenState extends State<RefundRequestScreen> {
                         ),
                         children: [
                           TextSpan(
-                            text: ' 10mb ',
+                            text: ' ${'max_file_size_10mb'.tr} ',
                             style: textSemiBold.copyWith(fontSize: Dimensions.fontSizeSmall),
                           ),
                           TextSpan(
@@ -357,7 +364,7 @@ class _RefundRequestScreenState extends State<RefundRequestScreen> {
                             style: textRegular.copyWith(fontSize: Dimensions.fontSizeSmall),
                           ),
                           TextSpan(
-                            text: ' 2min',
+                            text: ' ${'max_duration_2min'.tr}',
                             style: textSemiBold.copyWith(fontSize: Dimensions.fontSizeSmall),
                           )
                         ]

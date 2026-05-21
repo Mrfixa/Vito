@@ -47,6 +47,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }
 
   @override
+  void dispose() {
+    phoneController.dispose();
+    phoneNode.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return SafeArea(
       top: false,

@@ -22,9 +22,16 @@ class _SearchAndPickLocationScreenState extends State<SearchAndPickLocationScree
   int selectedCount = 0;
 
   @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-      controller.text = widget.address?.address ?? Get.find<LocationController>().addAddress?.address ?? '';
-      Get.find<LocationController>().searchLocation(context, widget.address?.address ?? Get.find<LocationController>().addAddress?.address ?? '', fromMap: true);
+      final locationCtrl = Get.find<LocationController>();
+      controller.text = widget.address?.address ?? locationCtrl.addAddress?.address ?? '';
+      locationCtrl.searchLocation(context, widget.address?.address ?? locationCtrl.addAddress?.address ?? '', fromMap: true);
 
     return Scaffold(body: SafeArea(child: Container(
       color: Theme.of(context).cardColor,height: double.infinity,width: double.infinity,
