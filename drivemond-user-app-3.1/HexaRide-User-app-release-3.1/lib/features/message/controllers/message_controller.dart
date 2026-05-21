@@ -263,7 +263,7 @@ class MessageController extends GetxController implements GetxService{
 
     if (Get.find<ConfigController>().pusherConnectionStatus != null ||
         Get.find<ConfigController>().pusherConnectionStatus == 'Connected') {
-      martChannel = PusherHelper.pusherClient!.privateChannel(
+      martChannel = PusherHelper.pusherClient?.privateChannel(
           "private-customer-mart-chat.$orderId",
           authorizationDelegate: EndpointAuthorizableChannelTokenAuthorizationDelegate.forPrivateChannel(
             authorizationEndpoint: Uri.parse(
@@ -275,9 +275,9 @@ class MessageController extends GetxController implements GetxService{
               'Access-Control-Allow-Methods': "PUT, GET, POST, DELETE, OPTIONS"
             },
           ));
-      if (martChannel.currentStatus == null) {
-        martChannel.subscribe();
-        martChannel.bind("customer-mart-chat.$orderId").listen((event) {
+      if (martChannel != null && martChannel!.currentStatus == null) {
+        martChannel!.subscribe();
+        martChannel!.bind("customer-mart-chat.$orderId").listen((event) {
           final data = jsonDecode(event.data!);
           final eventOrderId = data['order_id'] ?? data['channel_conversation']?['channel']?['trip_id'];
           if (eventOrderId == orderId) {
@@ -375,7 +375,7 @@ class MessageController extends GetxController implements GetxService{
   @override
   void onClose() {
     try { channel?.unsubscribe(); } catch (_) {}
-    try { martChannel.unsubscribe(); } catch (_) {}
+    try { martChannel?.unsubscribe(); } catch (_) {}
     super.onClose();
   }
 

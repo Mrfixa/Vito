@@ -41,6 +41,7 @@ class LocationTrackingController extends GetxController implements GetxService{
     if(response!.statusCode == 200){
       rideTrackDetailsModel = RideTrackDetailsModel.fromJson(response.body);
       _polylineCoordinateList = Get.find<MapController>().decodeEncodedPolyline(rideTrackDetailsModel?.data?.encodedPolyline ?? '');
+      if (_polylineCoordinateList.isEmpty) return;
       updateDriverMarker(_polylineCoordinateList, rideTrackDetailsModel?.data?.vehicleType);
       _addPolyLine(_polylineCoordinateList);
       currentPosition = _polylineCoordinateList.first;

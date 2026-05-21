@@ -940,5 +940,21 @@
   "vito_mart": "متجر فيتو",
   "waiting_for_driver": "في انتظار السائق",
   "you_are_offline": "أنت غير متصل",
-  "your_driver": "سائقك"
+  "your_driver": "سائقك",
+  "invitation_required": "مطلوب دعوة",
+  "scan_qr_or_enter_token": "امسح QR أو أدخل الرمز",
+  "enter_invitation_token": "أدخل رمز الدعوة",
+  "validate_token": "التحقق من الرمز",
+  "token_history": "سجل الرموز",
+  "username": "اسم المستخدم",
+  "enter_6_digit_pin": "أدخل رمز PIN من 6 أرقام",
+  "pin_must_be_6_digits": "يجب أن يكون رمز PIN 6 أرقام",
+  "username_min_3_characters": "يجب أن يكون اسم المستخدم 3 أحرف على الأقل",
+  "enter_username_and_pin": "أدخل اسم المستخدم ورمز PIN",
+  "pin_is_required": "رمز PIN مطلوب",
+  "username_is_required": "اسم المستخدم مطلوب",
+  "confirm_booking": "تأكيد الحجز",
+  "confirm_booking_message": "هل أنت متأكد من حجز هذه الرحلة؟",
+  "too_many_requests": "طلبات كثيرة جداً. يرجى المحاولة لاحقاً.",
+  "server_error": "خطأ في الخادم. يرجى المحاولة مرة أخرى."
 }

@@ -230,6 +230,20 @@ class RideController extends GetxController implements GetxService {
   }
 
   Future<Response> submitRideRequest(String note, bool parcel, {String categoryId = ''}) async {
+    if (!parcel) {
+      final confirmed = await Get.dialog<bool>(
+        AlertDialog(
+          title: Text('confirm_booking'.tr),
+          content: Text('confirm_booking_message'.tr),
+          actions: [
+            TextButton(onPressed: () => Get.back(result: false), child: Text('cancel'.tr)),
+            TextButton(onPressed: () => Get.back(result: true), child: Text('confirm'.tr)),
+          ],
+        ),
+      );
+      if (confirmed != true) return Response(statusCode: 0, statusText: 'cancelled');
+    }
+
     initCountingTimeStates();
     isSubmit = true;
     update();
@@ -321,7 +335,10 @@ class RideController extends GetxController implements GetxService {
       _pickupNote = '';
     }else{
       isSubmit = false;
-      ApiChecker.checkApi(response);
+      final errorMessage = (response.body is Map && response.body['message'] != null)
+          ? response.body['message'] as String
+          : 'something_went_wrong'.tr;
+      showCustomSnackBar(errorMessage);
       if(response.statusCode == 403) {
         tripDetails = null;
         rideDetails = null;

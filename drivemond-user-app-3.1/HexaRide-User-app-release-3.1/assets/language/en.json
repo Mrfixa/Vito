@@ -984,5 +984,14 @@
   "tip": "Tip",
   "tip_driver": "Tip driver",
   "you_are_offline": "You are offline",
-  "your_driver": "Your driver"
+  "your_driver": "Your driver",
+  "token_history": "Token History",
+  "username": "Username",
+  "enter_6_digit_pin": "Enter 6-digit PIN",
+  "pin_must_be_6_digits": "PIN must be 6 digits",
+  "username_min_3_characters": "Username must be at least 3 characters",
+  "confirm_booking": "Confirm Booking",
+  "confirm_booking_message": "Are you sure you want to book this ride?",
+  "too_many_requests": "Too many requests. Please try again later.",
+  "server_error": "Server error. Please try again."
 }

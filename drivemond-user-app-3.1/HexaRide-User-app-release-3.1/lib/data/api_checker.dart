@@ -28,10 +28,12 @@ class ApiChecker {
         showCustomSnackBar(response.body['message']);
       }
 
+    }else if(response.statusCode == 429){
+      showCustomSnackBar('too_many_requests'.tr);
     }else if(response.statusCode == 500){
-      showCustomSnackBar(response.statusText!);
+      showCustomSnackBar(response.statusText ?? 'something_went_wrong'.tr);
     }else {
-      showCustomSnackBar(response.statusText!);
+      showCustomSnackBar(response.statusText ?? 'something_went_wrong'.tr);
     }
   }
 }

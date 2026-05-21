@@ -55,6 +55,7 @@ class _MessageScreenState extends State<MessageScreen> {
       top: false,
       child: CustomPopScopeWidget(
         child: Scaffold(
+          resizeToAvoidBottomInset: true,
           body: BodyWidget(
             appBar: AppBarWidget(
               title:"${'chat_with'.tr} ${widget.userName}", showBackButton: true, centerTitle: true,
