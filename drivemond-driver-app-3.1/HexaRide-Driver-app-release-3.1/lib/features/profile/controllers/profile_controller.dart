@@ -434,11 +434,9 @@ class ProfileController extends GetxController implements GetxService{
   }
 
   Timer? _timer;
-  int _heartbeatTick = 0;
   final Location _location = Location();
   void startLocationRecord() {
     _location.enableBackgroundMode(enable: true);
-    _heartbeatTick = 0;
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 10), (timer) {
       List<String> status = ['accepted', 'ongoing', 'out_for_pickup'];
@@ -446,14 +444,12 @@ class ProfileController extends GetxController implements GetxService{
         Get.find<RideController>().remainingDistance(Get.find<RideController>().tripDetail!.id!);
       }
       Get.find<LocationController>().getCurrentLocation(callZone: false);
-      _heartbeatTick++;
     });
   }
 
   void stopLocationRecord() {
     _location.enableBackgroundMode(enable: false);
     _timer?.cancel();
-    _heartbeatTick = 0;
   }
 
   @override
