@@ -644,13 +644,13 @@ class VitoFlowTest extends TestCase
         ]);
 
         // Driver 1 accepts first
-        $this->actingAs($driver1, 'api');
+        Passport::actingAs($driver1, ['AccessToDriver']);
         $res1 = $this->postJson('/api/driver/ride/atomic-accept', ['trip_request_id' => $rideId]);
         $res1->assertOk();
         $this->assertNotNull($res1->json('data'));
 
         // Driver 2 cannot accept (already taken)
-        $this->actingAs($driver2, 'api');
+        Passport::actingAs($driver2, ['AccessToDriver']);
         $res2 = $this->postJson('/api/driver/ride/atomic-accept', ['trip_request_id' => $rideId]);
         $res2->assertStatus(403);
     }
@@ -685,7 +685,7 @@ class VitoFlowTest extends TestCase
     public function test_wallet_topup_intent(): void
     {
         $user = $this->createUser('customer');
-        $this->actingAs($user, 'api');
+        Passport::actingAs($user, ['AccessToCustomer']);
 
         // Invalid amount should fail validation
         $response = $this->postJson('/api/customer/stripe/payment-intent', ['amount' => -5]);
@@ -703,7 +703,7 @@ class VitoFlowTest extends TestCase
     public function test_mart_apply_promo_code(): void
     {
         $customer = $this->createUser('customer');
-        $this->actingAs($customer, 'api');
+        Passport::actingAs($customer, ['AccessToCustomer']);
 
         // Fixed discount promo
         MartPromoCode::create([
@@ -744,7 +744,7 @@ class VitoFlowTest extends TestCase
     public function test_mart_order_server_side_total(): void
     {
         $customer = $this->createUser('customer');
-        $this->actingAs($customer, 'api');
+        Passport::actingAs($customer, ['AccessToCustomer']);
 
         $product = MartProduct::create([
             'name' => 'Burger',
@@ -828,7 +828,7 @@ class VitoFlowTest extends TestCase
             'total_price' => 4.00,
         ]);
 
-        $this->actingAs($driver, 'api');
+        Passport::actingAs($driver, ['AccessToDriver']);
         $response = $this->getJson("/api/driver/mart/orders/{$order->id}");
         $response->assertOk();
         $this->assertEquals($order->id, $response->json('data.id'));
@@ -836,7 +836,7 @@ class VitoFlowTest extends TestCase
 
         // Another driver cannot see this order
         $otherDriver = $this->createUser('driver');
-        $this->actingAs($otherDriver, 'api');
+        Passport::actingAs($otherDriver, ['AccessToDriver']);
         $response2 = $this->getJson("/api/driver/mart/orders/{$order->id}");
         $response2->assertStatus(404);
     }
@@ -848,7 +848,7 @@ class VitoFlowTest extends TestCase
     public function test_mart_products_zone_filter(): void
     {
         $customer = $this->createUser('customer');
-        $this->actingAs($customer, 'api');
+        Passport::actingAs($customer, ['AccessToCustomer']);
 
         $zoneA = Str::uuid()->toString();
         $zoneB = Str::uuid()->toString();
