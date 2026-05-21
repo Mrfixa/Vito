@@ -14,9 +14,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .icon{font-size:48px;margin-bottom:16px}
 .status{font-size:18px;font-weight:600;margin-bottom:8px}
 .detail{color:#999;font-size:14px;margin-bottom:24px;line-height:1.5}
-.driver-name{color:#4fc3f7;font-weight:600}
-.btn{display:inline-block;background:#4fc3f7;color:#0f0f0f;font-weight:600;font-size:16px;padding:14px 48px;border-radius:50px;text-decoration:none;transition:background .2s}
+.btn{display:inline-block;background:#4fc3f7;color:#0f0f0f;font-weight:600;font-size:16px;padding:14px 48px;border-radius:50px;text-decoration:none;transition:background .2s;margin:4px}
 .btn:hover{background:#29b6f6}
+.btn-primary{display:inline-block;background:#4fc3f7;color:#0f0f0f;font-weight:700;font-size:16px;padding:14px 48px;border-radius:50px;text-decoration:none;transition:background .2s;border:none;cursor:pointer;margin:4px}
+.btn-primary:hover{background:#29b6f6}
+.btn-group{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-bottom:16px}
+.desktop-msg{color:#aaa;font-size:14px;line-height:1.6;margin-bottom:20px}
 .error{color:#ef5350}
 .loading{color:#888}
 .spinner{width:32px;height:32px;border:3px solid #333;border-top-color:#4fc3f7;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px}
@@ -29,22 +32,78 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
   <div class="subtitle">Ride &amp; Delivery</div>
   <div class="card" id="card">
     <div class="spinner"></div>
-    <div class="status loading">Validating invitation…</div>
+    <div class="status loading">Validating invitation&#8230;</div>
   </div>
 </div>
 <script>
 (function(){
-  const params = new URLSearchParams(window.location.search);
-  const token = params.get('token') || window.location.pathname.split('/').filter(Boolean).pop();
-  const card = document.getElementById('card');
+  var ANDROID_PACKAGE = 'com.vito.app';
+  var PLAY_STORE_URL  = 'https://play.google.com/store/apps/details?id=' + ANDROID_PACKAGE;
+  var APP_STORE_URL   = 'https://apps.apple.com/app/vito/id000000000'; // placeholder
+  var APP_SCHEME      = 'vito://invite?token=';
 
-  if(!token || token.length !== 64 || !/^[A-Za-z0-9_-]+$/.test(token)){
-    card.innerHTML = '<div class="icon">⚠️</div><div class="status error">Invalid Link</div><div class="detail">This invitation link is not valid.</div>';
+  var params = new URLSearchParams(window.location.search);
+  var token  = params.get('token') || window.location.pathname.split('/').filter(Boolean).pop();
+  var card   = document.getElementById('card');
+
+  // Fix 6 — alphanumeric-only, exactly 64 chars (matches Str::random(64))
+  if(!token || !/^[A-Za-z0-9]{64}$/.test(token)){
+    card.innerHTML = '<div class="icon">&#9888;&#65039;</div><div class="status error">Invalid Link</div><div class="detail">This invitation link is not valid.</div>';
     return;
   }
 
   function escapeHtml(str){
-    var d=document.createElement('div');d.appendChild(document.createTextNode(str));return d.innerHTML;
+    var d = document.createElement('div');
+    d.appendChild(document.createTextNode(str));
+    return d.innerHTML;
+  }
+
+  // Fix 3 — device-aware download buttons
+  function showDownloadButtons(){
+    var isIOS     = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    var isAndroid = /Android/.test(navigator.userAgent);
+    if(isIOS){
+      return '<a href="' + APP_STORE_URL + '" class="btn">Download on the App Store</a>';
+    } else if(isAndroid){
+      return '<a href="' + PLAY_STORE_URL + '" class="btn">Get it on Google Play</a>';
+    } else {
+      // Fix 5 — desktop: clear messaging instead of a mobile button
+      return '<p class="desktop-msg">Vito is a mobile app. Please open this link on your iPhone or Android device.</p>' +
+             '<a href="' + PLAY_STORE_URL + '" class="btn">Android</a>' +
+             '<a href="' + APP_STORE_URL + '" class="btn">iOS</a>';
+    }
+  }
+
+  // Fix 2 — deep-link attempt, fall back to store on mobile, no-op on desktop
+  function tryDeepLink(tok){
+    var appScheme = APP_SCHEME + encodeURIComponent(tok);
+    var isIOS     = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    var isAndroid = /Android/.test(navigator.userAgent);
+
+    // Desktop: nothing to deep-link into — page already shows store buttons
+    if(!isIOS && !isAndroid){ return; }
+
+    var iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = appScheme;
+    document.body.appendChild(iframe);
+
+    var fallbackTimer = setTimeout(function(){
+      document.body.removeChild(iframe);
+      if(isIOS){
+        window.location.href = APP_STORE_URL;
+      } else if(isAndroid){
+        window.location.href = PLAY_STORE_URL;
+      }
+    }, 1500);
+
+    // If the app opens, the page goes hidden — cancel the store redirect
+    document.addEventListener('visibilitychange', function onVisChange(){
+      if(document.hidden){
+        clearTimeout(fallbackTimer);
+        document.removeEventListener('visibilitychange', onVisChange);
+      }
+    });
   }
 
   var baseUrl = window.location.origin;
@@ -52,24 +111,32 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
     .then(function(r){ return r.json(); })
     .then(function(data){
       if(data.data && data.data.valid){
-        var role = data.data.role || '';
-        var driverName = data.data.driver_name || '';
-        var html = '<div class="icon">✅</div>';
-        if(role === 'customer' && driverName){
-          html += '<div class="status">You\'re Invited!</div>';
-          html += '<div class="detail">Referred by <span class="driver-name">' + escapeHtml(driverName) + '</span></div>';
-        } else {
-          html += '<div class="status">Welcome to Vito</div>';
-          html += '<div class="detail">Your invitation is valid. Download the app to get started.</div>';
-        }
-        html += '<a class="btn" href="https://play.google.com/store/apps/details?id=com.vito.app">Download App</a>';
+        // Fix 1 — no driver_name; Fix 4 — "Open in App" button; Fix 3/5 — device buttons
+        var safeToken = escapeHtml(token);
+        var html = '<div class="icon">&#9989;</div>';
+        html += '<div class="status">You\'ve been invited to join Vito!</div>';
+        html += '<div class="detail">Your invitation is valid. Tap below to get started.</div>';
+
+        // Fix 4 — prominent "Open in App" button with safely escaped token
+        html += '<div class="btn-group">';
+        html += '<button class="btn-primary" onclick="window.location.href=\'' + APP_SCHEME + encodeURIComponent(token) + '\'">Open in Vito App</button>';
+        html += '</div>';
+
+        // Fix 3/5 — device-aware store buttons (or desktop message)
+        html += '<div class="btn-group">';
+        html += showDownloadButtons();
+        html += '</div>';
+
         card.innerHTML = html;
+
+        // Fix 2 — give user 2 s to read, then attempt deep link
+        setTimeout(function(){ tryDeepLink(token); }, 2000);
       } else {
-        card.innerHTML = '<div class="icon">❌</div><div class="status error">Invitation Expired</div><div class="detail">This invitation has expired or been revoked. Please request a new one.</div>';
+        card.innerHTML = '<div class="icon">&#10060;</div><div class="status error">Invitation Expired</div><div class="detail">This invitation has expired or been revoked. Please request a new one.</div>';
       }
     })
     .catch(function(){
-      card.innerHTML = '<div class="icon">⚠️</div><div class="status error">Connection Error</div><div class="detail">Could not validate the invitation. Please try again.</div>';
+      card.innerHTML = '<div class="icon">&#9888;&#65039;</div><div class="status error">Connection Error</div><div class="detail">Could not validate the invitation. Please try again.</div>';
     });
 })();
 </script>
