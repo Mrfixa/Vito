@@ -1009,5 +1009,13 @@
   "success": "Éxito",
   "tap_to_capture_signature": "Toca para capturar la firma",
   "tap_to_take_photo": "Toca para tomar la foto",
-  "you_are_offline": "Estás desconectado"
+  "you_are_offline": "Estás desconectado",
+  "location_permission_required": "Se requiere permiso de ubicación para estar en línea",
+  "upload_failed_try_again": "Carga fallida. Inténtelo de nuevo.",
+  "too_many_requests": "Demasiadas solicitudes. Inténtelo más tarde.",
+  "server_error": "Error del servidor. Inténtelo de nuevo.",
+  "proof_of_delivery": "Prueba de Entrega",
+  "upload_photo": "Subir Foto",
+  "withdraw_earnings": "Retirar Ganancias",
+  "confirm_status_update": "¿Confirmar actualización de estado?"
 }

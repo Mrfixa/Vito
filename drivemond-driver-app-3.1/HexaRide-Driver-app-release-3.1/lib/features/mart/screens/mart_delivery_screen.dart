@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -11,6 +10,7 @@ import 'package:ride_sharing_user_app/util/app_constants.dart';
 import 'package:ride_sharing_user_app/util/dimensions.dart';
 import 'package:ride_sharing_user_app/util/styles.dart';
 import 'package:ride_sharing_user_app/common_widgets/app_bar_widget.dart';
+import 'package:ride_sharing_user_app/helper/display_helper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -556,13 +556,19 @@ class _MartDeliveryScreenState extends State<MartDeliveryScreen> {
         extraFields['signature_base64'] = base64Encode(_signatureBytes!);
       }
 
-      await Get.find<ApiClient>().postMultipartData(
+      final uploadResponse = await Get.find<ApiClient>().postMultipartData(
         AppConstants.martUploadProof,
         extraFields,
         multipartFiles,
         null,
         <MultipartDocument>[],
       );
+
+      if (uploadResponse.statusCode != 200) {
+        setState(() => _isUpdating = false);
+        showCustomSnackBar('upload_failed_try_again'.tr);
+        return;
+      }
 
       final response = await Get.find<ApiClient>().putData(
         AppConstants.martUpdateStatus,

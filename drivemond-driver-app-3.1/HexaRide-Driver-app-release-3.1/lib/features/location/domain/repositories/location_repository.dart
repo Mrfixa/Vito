@@ -43,7 +43,8 @@ class LocationRepository implements LocationRepositoryInterface{
           "type": "driver",
           "latitude": lat,
           "longitude": lng,
-          "zone_id": zoneID});
+          "zone_id": zoneID,
+          "is_online": true});
   }
 
   @override

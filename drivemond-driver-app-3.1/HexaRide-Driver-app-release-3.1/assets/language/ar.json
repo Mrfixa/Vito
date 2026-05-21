@@ -969,5 +969,13 @@
   "success": "نجاح",
   "tap_to_capture_signature": "اضغط لالتقاط التوقيع",
   "tap_to_take_photo": "اضغط لالتقاط الصورة",
-  "you_are_offline": "أنت غير متصل"
+  "you_are_offline": "أنت غير متصل",
+  "location_permission_required": "إذن الموقع مطلوب للاتصال بالإنترنت",
+  "upload_failed_try_again": "فشل التحميل. يرجى المحاولة مرة أخرى.",
+  "too_many_requests": "طلبات كثيرة جداً. يرجى المحاولة لاحقاً.",
+  "server_error": "خطأ في الخادم. يرجى المحاولة مرة أخرى.",
+  "proof_of_delivery": "دليل التسليم",
+  "upload_photo": "رفع صورة",
+  "withdraw_earnings": "سحب الأرباح",
+  "confirm_status_update": "تأكيد تحديث الحالة؟"
 }

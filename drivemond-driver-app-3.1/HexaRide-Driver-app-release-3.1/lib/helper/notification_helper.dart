@@ -33,6 +33,7 @@ import 'package:ride_sharing_user_app/util/app_constants.dart';
 import 'package:ride_sharing_user_app/features/dashboard/screens/dashboard_screen.dart';
 import 'package:ride_sharing_user_app/features/map/controllers/map_controller.dart';
 import 'package:ride_sharing_user_app/features/map/screens/map_screen.dart';
+import 'package:ride_sharing_user_app/features/auth/controllers/auth_controller.dart';
 import 'package:ride_sharing_user_app/features/profile/controllers/profile_controller.dart';
 import 'package:ride_sharing_user_app/features/ride/controllers/ride_controller.dart';
 import 'package:ride_sharing_user_app/features/splash/controllers/splash_controller.dart';

@@ -240,7 +240,21 @@ class ChatController extends GetxController implements GetxService{
     update();
   }
 
-   late PrivateChannel channel;
+  PrivateChannel? _rideChannel;
+  PrivateChannel? _martChannel;
+
+  @override
+  void onClose() {
+    try {
+      _rideChannel?.unsubscribe();
+    } catch (_) {}
+    try {
+      _martChannel?.unsubscribe();
+    } catch (_) {}
+    super.onClose();
+  }
+
+  late PrivateChannel channel;
 
   String id ="";
 
@@ -251,6 +265,8 @@ class ChatController extends GetxController implements GetxService{
     }
 
     if (Get.find<SplashController>().pusherConnectionStatus != null || Get.find<SplashController>().pusherConnectionStatus == 'Connected'){
+      // Unsubscribe previous ride channel if any
+      try { _rideChannel?.unsubscribe(); } catch (_) {}
       channel = PusherHelper.pusherClient!.privateChannel("private-driver-ride-chat.$id", authorizationDelegate:
       EndpointAuthorizableChannelTokenAuthorizationDelegate.forPrivateChannel(
         authorizationEndpoint: Uri.parse('https://${Get.find<SplashController>().config!.webSocketUrl}/broadcasting/auth'),
@@ -263,6 +279,7 @@ class ChatController extends GetxController implements GetxService{
       ));
       if(channel.currentStatus == null){
         channel.subscribe();
+        _rideChannel = channel;
 
         channel.bind("driver-ride-chat.$id").listen((event) {
           if(id == jsonDecode(event.data!)['channel_conversation']['channel']['trip_id']){
@@ -270,6 +287,8 @@ class ChatController extends GetxController implements GetxService{
             update();
           }
         });
+      } else {
+        _rideChannel = channel;
       }
     }
 
@@ -283,6 +302,8 @@ class ChatController extends GetxController implements GetxService{
     id = orderId;
     if (Get.find<SplashController>().pusherConnectionStatus != null ||
         Get.find<SplashController>().pusherConnectionStatus == 'Connected') {
+      // Unsubscribe previous mart channel if any
+      try { _martChannel?.unsubscribe(); } catch (_) {}
       martChannel = PusherHelper.pusherClient!.privateChannel(
           "private-driver-mart-chat.$orderId",
           authorizationDelegate: EndpointAuthorizableChannelTokenAuthorizationDelegate.forPrivateChannel(
@@ -297,6 +318,7 @@ class ChatController extends GetxController implements GetxService{
           ));
       if (martChannel.currentStatus == null) {
         martChannel.subscribe();
+        _martChannel = martChannel;
         martChannel.bind("driver-mart-chat.$orderId").listen((event) {
           final data = jsonDecode(event.data!);
           final eventOrderId = data['order_id'] ?? data['channel_conversation']?['channel']?['trip_id'];
@@ -305,6 +327,8 @@ class ChatController extends GetxController implements GetxService{
             update();
           }
         });
+      } else {
+        _martChannel = martChannel;
       }
     }
   }

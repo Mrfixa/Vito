@@ -1010,5 +1010,13 @@
   "success": "Success",
   "tap_to_capture_signature": "Tap to capture signature",
   "tap_to_take_photo": "Tap to take photo",
-  "you_are_offline": "You are offline"
+  "you_are_offline": "You are offline",
+  "location_permission_required": "Location permission is required to go online",
+  "upload_failed_try_again": "Upload failed. Please try again.",
+  "too_many_requests": "Too many requests. Please try again later.",
+  "server_error": "Server error. Please try again.",
+  "proof_of_delivery": "Proof of Delivery",
+  "upload_photo": "Upload Photo",
+  "withdraw_earnings": "Withdraw Earnings",
+  "confirm_status_update": "Confirm status update?"
 }
