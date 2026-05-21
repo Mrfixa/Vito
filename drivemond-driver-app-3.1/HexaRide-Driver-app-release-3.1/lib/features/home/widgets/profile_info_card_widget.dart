@@ -179,10 +179,16 @@ class _ProfileStatusCardWidgetState extends State<ProfileStatusCardWidget> {
                       icon: Images.errorMessageIcon,
                       onYesPressed: () async{
                         Get.back();
+                        final String previousState = widget.profileController.isOnline;
                         Get.dialog(const LoaderWidget(), barrierDismissible: false);
                         await widget.profileController.profileOnlineOffline(val).then((value){
                           if(value.statusCode == 200){
                             Get.back();
+                          } else {
+                            // Roll back: ensure loader is closed (controller calls Get.back() on error)
+                            // isOnline is already preserved in controller (only flipped on success)
+                            widget.profileController.isOnline = previousState;
+                            widget.profileController.update();
                           }
                         });
                       },
@@ -190,6 +196,7 @@ class _ProfileStatusCardWidgetState extends State<ProfileStatusCardWidget> {
                     ));
 
                   }else{
+                    final String previousState = widget.profileController.isOnline;
                     Get.dialog(const LoaderWidget(), barrierDismissible: false);
                     await widget.profileController.profileOnlineOffline(val).then((value){
                       if(value.statusCode == 200){
@@ -197,7 +204,11 @@ class _ProfileStatusCardWidgetState extends State<ProfileStatusCardWidget> {
                         if((Get.find<SplashController>().config?.chooseVerificationWhenToTrigger == "before_going_online") && (Get.find<SplashController>().config?.verifyDriverIdentity ?? false)){
                             HomeScreenHelper().faceVerificationSheet();
                         }
-
+                      } else {
+                        // Roll back: close loader and restore previous toggle state
+                        if (Get.isDialogOpen ?? false) Get.back();
+                        widget.profileController.isOnline = previousState;
+                        widget.profileController.update();
                       }
                     });
                   }

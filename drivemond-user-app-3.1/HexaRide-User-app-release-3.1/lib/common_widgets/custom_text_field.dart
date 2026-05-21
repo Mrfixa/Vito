@@ -44,6 +44,7 @@ class CustomTextField extends StatefulWidget {
   final TextAlign? textAlignment;
   final EdgeInsets? contentPadding;
   final int? maxLength;
+  final List<TextInputFormatter>? inputFormatters;
 
 
   const CustomTextField({
@@ -83,7 +84,8 @@ class CustomTextField extends StatefulWidget {
     this.textAlignment,
     this.prefixBackgroundColor,
     this.contentPadding,
-    this.maxLength
+    this.maxLength,
+    this.inputFormatters,
   });
 
   @override
@@ -118,9 +120,9 @@ class _CustomTextFieldState extends State<CustomTextField> {
           : widget.inputType == TextInputType.url ? [AutofillHints.url]
           : widget.inputType == TextInputType.visiblePassword ? [AutofillHints.password] : null,
       obscureText: widget.isPassword ? _obscureText : false,
-      inputFormatters: widget.inputType == TextInputType.phone
+      inputFormatters: widget.inputFormatters ?? (widget.inputType == TextInputType.phone
           ? <TextInputFormatter>[FilteringTextInputFormatter.allow(RegExp(r'[0-9+]'))]
-          : widget.isAmount ? [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))] : null,
+          : widget.isAmount ? [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))] : null),
       decoration: InputDecoration(
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(widget.borderRadius),

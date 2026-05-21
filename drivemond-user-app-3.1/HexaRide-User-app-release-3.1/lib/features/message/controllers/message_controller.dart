@@ -249,10 +249,18 @@ class MessageController extends GetxController implements GetxService{
     update();
   }
 
-  late PrivateChannel martChannel;
+  PrivateChannel? martChannel;
 
   void subscribeMartMessageChannel(String orderId) {
+    final martChannelName = "private-customer-mart-chat.$orderId";
+    if (_subscribedMartChannelName == martChannelName) return;
+
+    if (_subscribedMartChannelName.isNotEmpty) {
+      try { martChannel?.unsubscribe(); } catch (_) {}
+    }
+    _subscribedMartChannelName = martChannelName;
     id = orderId;
+
     if (Get.find<ConfigController>().pusherConnectionStatus != null ||
         Get.find<ConfigController>().pusherConnectionStatus == 'Connected') {
       martChannel = PusherHelper.pusherClient!.privateChannel(
@@ -325,17 +333,23 @@ class MessageController extends GetxController implements GetxService{
     update();
   }
 
-  late PrivateChannel channel;
+  PrivateChannel? channel;
   String id ="";
+  String _subscribedRideChannelName = '';
+  String _subscribedMartChannelName = '';
 
   void subscribeMessageChannel(String tripId){
-    id = "";
-    if(id == ""){
-      id = tripId;
+    final channelName = "private-customer-ride-chat.$tripId";
+    if (_subscribedRideChannelName == channelName) return;
+
+    if (_subscribedRideChannelName.isNotEmpty) {
+      try { channel?.unsubscribe(); } catch (_) {}
     }
+    _subscribedRideChannelName = channelName;
+    id = tripId;
 
     if (Get.find<ConfigController>().pusherConnectionStatus != null || Get.find<ConfigController>().pusherConnectionStatus == 'Connected'){
-      channel = PusherHelper.pusherClient!.privateChannel("private-customer-ride-chat.$id", authorizationDelegate:
+      channel = PusherHelper.pusherClient!.privateChannel(channelName, authorizationDelegate:
       EndpointAuthorizableChannelTokenAuthorizationDelegate.forPrivateChannel(
         authorizationEndpoint: Uri.parse('https://${Get.find<ConfigController>().config!.webSocketUrl}/broadcasting/auth'),
         headers:  {
@@ -346,9 +360,9 @@ class MessageController extends GetxController implements GetxService{
         },
       ));
 
-      if(channel.currentStatus == null){
-        channel.subscribe();
-        channel.bind("customer-ride-chat.$id").listen((event) {
+      if(channel!.currentStatus == null){
+        channel!.subscribe();
+        channel!.bind("customer-ride-chat.$id").listen((event) {
           if(id == jsonDecode(event.data!)['channel_conversation']['channel']['trip_id']){
             messageModel!.data!.insert(0,Message.fromJson(jsonDecode(event.data!)['channel_conversation']));
             update();
@@ -356,8 +370,13 @@ class MessageController extends GetxController implements GetxService{
         });
       }
     }
+  }
 
-
+  @override
+  void onClose() {
+    try { channel?.unsubscribe(); } catch (_) {}
+    try { martChannel.unsubscribe(); } catch (_) {}
+    super.onClose();
   }
 
 

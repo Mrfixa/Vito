@@ -50,7 +50,7 @@ class AuthController extends GetxController implements GetxService {
   }
 
   void setCountryCode( String countryCode){
-    countryDialCode  = countryDialCode;
+    countryDialCode  = countryCode;
     update();
   }
 

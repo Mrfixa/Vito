@@ -119,19 +119,32 @@ class VitoMartController extends Controller
                     ];
                 }
 
-                $tipAmount = (float) ($request->tip_amount ?? 0);
+                // Cap tip to 30 % of subtotal to prevent price manipulation.
+                $maxTip = $subtotal * 0.30;
+                $tipAmount = min((float) ($request->tip_amount ?? 0), $maxTip);
+
                 $discountAmount = 0.0;
                 $appliedPromoCode = null;
 
                 if ($request->promo_code) {
+                    // Re-fetch with lockForUpdate inside the outer transaction so the
+                    // isValid() check + increment is fully atomic under a row lock.
                     $promo = MartPromoCode::where('code', strtoupper(trim($request->promo_code)))
                         ->lockForUpdate()
                         ->first();
 
                     if ($promo && $promo->isValid()) {
-                        $discountAmount = $promo->computeDiscount($subtotal);
-                        $appliedPromoCode = $promo->code;
-                        $promo->increment('used_count');
+                        // Per-user limit check: default 1 use per user per code.
+                        $perUserLimit = $promo->per_user_limit ?? 1;
+                        $userUsageCount = MartOrder::where('customer_id', $request->user()->id)
+                            ->where('promo_code', $promo->code)
+                            ->count();
+
+                        if ($userUsageCount < $perUserLimit) {
+                            $discountAmount = $promo->computeDiscount($subtotal);
+                            $appliedPromoCode = $promo->code;
+                            $promo->increment('used_count');
+                        }
                     }
                 }
 

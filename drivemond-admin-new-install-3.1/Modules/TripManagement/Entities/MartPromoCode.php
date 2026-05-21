@@ -17,6 +17,7 @@ class MartPromoCode extends Model
         'min_order_amount',
         'max_discount',
         'usage_limit',
+        'per_user_limit',
         'used_count',
         'is_active',
         'expires_at',

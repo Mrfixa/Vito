@@ -128,10 +128,15 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     }
 
-    await Get.find<RideController>().getNearestDriverList(
-      Get.find<LocationController>().getUserAddress()!.latitude!.toString(),
-      Get.find<LocationController>().getUserAddress()!.longitude!.toString(),
-    );
+    final userAddress = Get.find<LocationController>().getUserAddress();
+    if (userAddress == null || userAddress.latitude == null || userAddress.longitude == null) {
+      showCustomSnackBar('you_have_to_allow'.tr);
+    } else {
+      await Get.find<RideController>().getNearestDriverList(
+        userAddress.latitude!.toString(),
+        userAddress.longitude!.toString(),
+      );
+    }
 
     HomeScreenHelper.checkMaintanceMode();
   }

@@ -67,8 +67,8 @@ class HomeMapViewState extends State<HomeMapView> {
                   Get.find<ThemeController>().lightMap,
                   markers: mapController.nearestDeliveryManMarkers!.toSet(),
                   initialCameraPosition: CameraPosition(target: LatLng(
-                    Get.find<LocationController>().getUserAddress()?.latitude ?? 0,
-                    Get.find<LocationController>().getUserAddress()?.longitude ?? 0,
+                    Get.find<LocationController>().getUserAddress()?.latitude ?? 23.8103,
+                    Get.find<LocationController>().getUserAddress()?.longitude ?? 90.4125,
                   ), zoom: 13),
                    minMaxZoomPreference: const MinMaxZoomPreference(0, 16),
                   onMapCreated: (gController) {

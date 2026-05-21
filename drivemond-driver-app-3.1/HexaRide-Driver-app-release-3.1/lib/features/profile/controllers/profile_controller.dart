@@ -184,14 +184,27 @@ class ProfileController extends GetxController implements GetxService{
   }
 
   Future<Response> profileOnlineOffline( bool value) async {
+    // Before going online, ensure location permission is granted
+    if (isOnline == "0") {
+      final permission = await Permission.location.status;
+      if (!permission.isGranted) {
+        final result = await Permission.location.request();
+        if (!result.isGranted) {
+          showCustomSnackBar('location_permission_required'.tr);
+          return Response(statusCode: 403);
+        }
+      }
+    }
     isLoading = true;
     update();
     Response? response = await profileServiceInterface.profileOnlineOffline();
     if(response!.statusCode == 200){
       if(isOnline == "0"){
         isOnline = "1";
+        startLocationRecord();
       }else if(isOnline == "1"){
         isOnline = "0";
+        stopLocationRecord();
       }
     }else{
       Get.back();
@@ -421,9 +434,11 @@ class ProfileController extends GetxController implements GetxService{
   }
 
   Timer? _timer;
+  int _heartbeatTick = 0;
   final Location _location = Location();
   void startLocationRecord() {
     _location.enableBackgroundMode(enable: true);
+    _heartbeatTick = 0;
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 10), (timer) {
       List<String> status = ['accepted', 'ongoing', 'out_for_pickup'];
@@ -431,12 +446,24 @@ class ProfileController extends GetxController implements GetxService{
         Get.find<RideController>().remainingDistance(Get.find<RideController>().tripDetail!.id!);
       }
       Get.find<LocationController>().getCurrentLocation(callZone: false);
+      _heartbeatTick++;
     });
   }
 
   void stopLocationRecord() {
     _location.enableBackgroundMode(enable: false);
     _timer?.cancel();
+    _heartbeatTick = 0;
+  }
+
+  @override
+  void onClose() {
+    if (isOnline == "1") {
+      // best effort — fire and forget
+      profileServiceInterface.profileOnlineOffline();
+    }
+    stopLocationRecord();
+    super.onClose();
   }
 
   void _checkPermission(Function callback) async {

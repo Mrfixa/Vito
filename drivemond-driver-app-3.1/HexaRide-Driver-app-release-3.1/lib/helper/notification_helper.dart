@@ -276,6 +276,15 @@ class NotificationHelper {
       notificationToRoute(message.data);
 
     });
+
+    // Refresh FCM token when OS rotates it
+    FirebaseMessaging.instance.onTokenRefresh.listen((newToken) {
+      try {
+        Get.find<AuthController>().updateToken();
+      } catch (_) {
+        // Controller may not be registered yet during cold start — ignore
+      }
+    });
   }
 
   static Future<void> showNotification(RemoteMessage message, FlutterLocalNotificationsPlugin fln, bool data) async {

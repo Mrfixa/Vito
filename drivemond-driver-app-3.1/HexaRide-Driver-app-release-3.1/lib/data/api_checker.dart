@@ -20,8 +20,10 @@ class ApiChecker {
         showCustomSnackBar(response.body['message']!);
       }
 
-    }else {
-      showCustomSnackBar(response.statusText!);
+    } else if (response.statusCode == 429) {
+      showCustomSnackBar('too_many_requests'.tr);
+    } else {
+      showCustomSnackBar(response.statusText ?? 'something_went_wrong'.tr);
     }
   }
 }

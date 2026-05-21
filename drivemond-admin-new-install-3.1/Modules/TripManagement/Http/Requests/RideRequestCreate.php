@@ -27,12 +27,11 @@ class RideRequestCreate extends FormRequest
             // Trip and Fare Information
             'estimated_distance' => 'required_if:trip_request_id,null',
             'estimated_time' => 'required_if:trip_request_id,null',
-            'estimated_fare' => 'required_if:trip_request_id,null|numeric|max:99999999',
+            // estimated_fare / actual_fare are IGNORED from the request body — fares are always
+            // recomputed server-side. Keep them as optional/nullable so old clients don't break.
+            'estimated_fare' => 'sometimes|nullable|numeric|max:99999999',
             'bid' => 'required|bool',
-            'actual_fare' => ['nullable',
-                Rule::requiredIf(function () {
-                    return $this->bid;
-                }), 'numeric', 'max:99999999'],
+            'actual_fare' => ['sometimes', 'nullable', 'numeric', 'max:99999999'],
 
             // Return and Cancellation Fees
             'return_fee' => [
@@ -74,8 +73,8 @@ class RideRequestCreate extends FormRequest
             'weight' => 'required_if:type,parcel',
             'payer' => 'required_if:type,parcel',
 
-            // Additional Fare Fields
-            'extra_estimated_fare' => 'sometimes|numeric',
+            // Additional Fare Fields — all ignored server-side, kept for backward compat with old clients
+            'extra_estimated_fare' => 'sometimes|nullable|numeric',
             'extra_discount_fare' => 'sometimes|numeric',
             'extra_discount_amount' => 'sometimes|numeric',
             'extra_return_fee' => 'sometimes|numeric',
