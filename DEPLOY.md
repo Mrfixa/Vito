@@ -1,7 +1,8 @@
 # Vito — AWS EC2 Deployment Guide (A to Z)
 
-> **Stack:** Laravel 12 · PHP 8.2 · MySQL 8.0 · Nginx · Laravel Reverb · Redis · Supervisor  
-> **Target OS:** Ubuntu 22.04 LTS  
+> **Stack:** Laravel 12 · PHP 8.3 · MySQL 8.4 · Nginx · Laravel Reverb · Redis 7 · Supervisor  
+> **Target OS:** Ubuntu 26.04 LTS  
+> **Instance minimum:** t3.medium (2 vCPU / 4 GB RAM)  
 > **Estimated time:** 45–60 minutes on a fresh server
 
 ---
@@ -32,102 +33,154 @@
 
 ## 1. Launch the EC2 Instance
 
-### 1.1 Instance settings
+### 1.1 AMI & Instance Type
 
-| Setting | Recommended value |
+| Setting | Value |
 |---|---|
-| AMI | **Ubuntu Server 22.04 LTS** (64-bit x86) |
-| Instance type | `t3.medium` (2 vCPU · 4 GB RAM) — minimum. Use `t3.large` if you expect real traffic. |
-| Storage | **30 GB gp3** SSD |
-| Key pair | Create new → download `vito.pem` → keep it safe |
+| AMI | Ubuntu Server 26.04 LTS (HVM), SSD Volume Type |
+| Architecture | x86_64 or arm64 (Graviton) |
+| Instance type | **t3.medium** minimum (t3.large for >50 concurrent users) |
+| Storage | 30 GB gp3 root volume |
+| Key pair | Create new → download `.pem` |
 
-### 1.2 Security group — inbound rules
+### 1.2 Security Group — Inbound Rules
 
-| Protocol | Port | Source | Purpose |
+| Port | Protocol | Source | Purpose |
 |---|---|---|---|
-| TCP | 22 | **Your IP only** | SSH |
-| TCP | 80 | 0.0.0.0/0 | HTTP (redirects to HTTPS) |
-| TCP | 443 | 0.0.0.0/0 | HTTPS / Laravel app |
-| TCP | 6015 | 0.0.0.0/0 | Reverb WebSocket (Flutter connects here) |
+| 22 | TCP | Your IP only | SSH |
+| 80 | TCP | 0.0.0.0/0, ::/0 | HTTP (redirect to HTTPS) |
+| 443 | TCP | 0.0.0.0/0, ::/0 | HTTPS |
+| 6015 | TCP | 0.0.0.0/0, ::/0 | Laravel Reverb WebSocket |
 
-> **Tip:** Never open port 22 to 0.0.0.0/0. Restrict it to your current IP.
+> **Note:** Port 6015 is the public-facing Reverb WebSocket port. Nginx proxies it to Reverb's internal port 8080.
 
 ### 1.3 Elastic IP
 
-In the AWS console go to **EC2 → Elastic IPs → Allocate**, then **Associate** it with your new instance. This gives you a static IP that survives reboots.
-
-### 1.4 Secure your key on your local machine
-
-```bash
-chmod 400 ~/Downloads/vito.pem
-```
+Allocate an Elastic IP and associate it with the instance so your DNS record doesn't change on restart.
 
 ---
 
 ## 2. Connect and Harden the Server
 
 ```bash
-# Connect
-ssh -i ~/Downloads/vito.pem ubuntu@<ELASTIC_IP>
+# Fix key permissions and connect
+chmod 400 ~/your-key.pem
+ssh -i ~/your-key.pem ubuntu@<ELASTIC_IP>
+```
 
-# Create a dedicated deploy user
-sudo adduser deploy              # set a strong password
+### 2.1 Create a deploy user
+
+```bash
+sudo adduser deploy
 sudo usermod -aG sudo deploy
 
-# Copy your SSH key to the new user
-sudo rsync --archive --chown=deploy:deploy ~/.ssh /home/deploy
+# Copy your SSH key to the deploy user
+sudo mkdir -p /home/deploy/.ssh
+sudo cp ~/.ssh/authorized_keys /home/deploy/.ssh/
+sudo chown -R deploy:deploy /home/deploy/.ssh
+sudo chmod 700 /home/deploy/.ssh
+sudo chmod 600 /home/deploy/.ssh/authorized_keys
+```
 
-# Disable root SSH login and password auth
-sudo sed -i 's/^PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config
-sudo sed -i 's/^#PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
+### 2.2 Harden SSH
+
+```bash
+sudo nano /etc/ssh/sshd_config
+```
+
+Set these values:
+
+```
+PermitRootLogin no
+PasswordAuthentication no
+PubkeyAuthentication yes
+```
+
+```bash
 sudo systemctl restart ssh
+```
 
-# Switch to deploy for all remaining steps
-sudo su - deploy
+### 2.3 Firewall (UFW)
+
+```bash
+sudo ufw allow OpenSSH
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw allow 6015/tcp
+sudo ufw --force enable
+sudo ufw status
+```
+
+### 2.4 Automatic security updates
+
+```bash
+sudo apt install -y unattended-upgrades
+sudo dpkg-reconfigure --priority=low unattended-upgrades
+```
+
+### 2.5 Swap (recommended for t3.medium)
+
+```bash
+sudo fallocate -l 2G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
 ```
 
 ---
 
 ## 3. Install System Dependencies
 
-### 3.1 PHP 8.2 and all required extensions
+Switch to the deploy user for all remaining steps:
+
+```bash
+ssh -i ~/your-key.pem deploy@<ELASTIC_IP>
+```
+
+### 3.1 System update
 
 ```bash
 sudo apt update && sudo apt upgrade -y
-sudo apt install -y software-properties-common
-sudo add-apt-repository ppa:ondrej/php -y
-sudo apt update
-
-sudo apt install -y \
-  php8.2 php8.2-fpm php8.2-mysql php8.2-xml php8.2-curl \
-  php8.2-gd php8.2-mbstring php8.2-bcmath php8.2-zip \
-  php8.2-intl php8.2-fileinfo php8.2-dom php8.2-redis \
-  php8.2-sqlite3 php8.2-tokenizer php8.2-openssl
-
-php -v   # should print PHP 8.2.x
+sudo apt install -y git curl wget unzip zip gnupg2 ca-certificates lsb-release \
+  software-properties-common apt-transport-https
 ```
 
-### 3.2 MySQL 8.0
+### 3.2 PHP 8.3
+
+Ubuntu 26.04 ships with PHP 8.3. Install it plus all required extensions:
 
 ```bash
-sudo apt install -y mysql-server
-sudo mysql_secure_installation
-# Recommended answers:
-#   Validate password plugin? No (or Yes for stricter enforcement)
-#   Remove anonymous users? Yes
-#   Disallow root login remotely? Yes
-#   Remove test database? Yes
-#   Reload privilege tables? Yes
+sudo apt install -y php8.3-fpm php8.3-cli php8.3-common \
+  php8.3-mysql php8.3-xml php8.3-curl php8.3-mbstring \
+  php8.3-zip php8.3-bcmath php8.3-intl php8.3-redis \
+  php8.3-gd php8.3-imagick php8.3-opcache
+
+# Verify
+php -v
 ```
 
-### 3.3 Nginx
+Tune PHP-FPM for production:
 
 ```bash
-sudo apt install -y nginx
-sudo systemctl enable nginx
+sudo nano /etc/php/8.3/fpm/pool.d/www.conf
 ```
 
-### 3.4 Composer
+```ini
+pm = dynamic
+pm.max_children = 20
+pm.start_servers = 4
+pm.min_spare_servers = 2
+pm.max_spare_servers = 6
+pm.max_requests = 500
+```
+
+```bash
+sudo systemctl enable php8.3-fpm
+sudo systemctl start php8.3-fpm
+```
+
+### 3.3 Composer
 
 ```bash
 curl -sS https://getcomposer.org/installer | php
@@ -135,22 +188,40 @@ sudo mv composer.phar /usr/local/bin/composer
 composer --version
 ```
 
-### 3.5 Node.js 20 LTS
+### 3.4 MySQL 8.4
 
 ```bash
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-sudo apt install -y nodejs
-node -v    # should print v20.x.x
-npm -v
+sudo apt install -y mysql-server
+
+# Secure MySQL
+sudo mysql_secure_installation
+# → Set root password, remove test DB, disallow remote root, reload privileges
+
+sudo systemctl enable mysql
+sudo systemctl start mysql
 ```
 
-### 3.6 Redis
+### 3.5 Nginx
+
+```bash
+sudo apt install -y nginx
+sudo systemctl enable nginx
+sudo systemctl start nginx
+```
+
+### 3.6 Redis 7
 
 ```bash
 sudo apt install -y redis-server
+
+sudo nano /etc/redis/redis.conf
+# Set: supervised systemd
+# Set: maxmemory 256mb
+# Set: maxmemory-policy allkeys-lru
+
 sudo systemctl enable redis-server
 sudo systemctl start redis-server
-redis-cli ping   # should return PONG
+redis-cli ping   # → PONG
 ```
 
 ### 3.7 Supervisor
@@ -158,39 +229,41 @@ redis-cli ping   # should return PONG
 ```bash
 sudo apt install -y supervisor
 sudo systemctl enable supervisor
+sudo systemctl start supervisor
 ```
 
-### 3.8 Certbot (SSL)
+### 3.8 Certbot (Let's Encrypt)
 
 ```bash
-sudo apt install -y certbot python3-certbot-nginx
+sudo snap install --classic certbot
+sudo ln -s /snap/bin/certbot /usr/bin/certbot
 ```
 
-### 3.9 Git and unzip
+### 3.9 Node.js 22 LTS (for any build tools)
 
 ```bash
-sudo apt install -y git unzip
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+sudo apt install -y nodejs
+node -v   # → v22.x.x
 ```
 
 ---
 
 ## 4. Point Your Domain
 
-In your DNS provider's control panel, add the following records:
+In your DNS provider (Route 53 or external), create:
 
-| Type | Name | Value |
+| Record | Type | Value |
 |---|---|---|
-| A | `your-domain.com` | `<ELASTIC_IP>` |
-| A | `www.your-domain.com` | `<ELASTIC_IP>` |
+| `api.yourdomain.com` | A | `<ELASTIC_IP>` |
+| `yourdomain.com` | A | `<ELASTIC_IP>` (landing page) |
 
-DNS propagation can take a few minutes to a few hours. You can check with:
+Wait for DNS propagation (usually < 5 minutes with TTL 60).
 
 ```bash
-dig +short your-domain.com
-# Should return your Elastic IP
+# Verify
+dig +short api.yourdomain.com
 ```
-
-> **Do not proceed to step 11 (SSL) until DNS resolves correctly.**
 
 ---
 
@@ -201,15 +274,9 @@ sudo mysql -u root -p
 ```
 
 ```sql
-CREATE DATABASE vito
-  CHARACTER SET utf8mb4
-  COLLATE utf8mb4_unicode_ci;
-
-CREATE USER 'vito'@'localhost'
-  IDENTIFIED BY 'REPLACE_WITH_STRONG_PASSWORD';
-
+CREATE DATABASE vito CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'vito'@'localhost' IDENTIFIED BY 'STRONG_PASSWORD_HERE';
 GRANT ALL PRIVILEGES ON vito.* TO 'vito'@'localhost';
-
 FLUSH PRIVILEGES;
 EXIT;
 ```
@@ -219,144 +286,122 @@ EXIT;
 ## 6. Deploy the Laravel App
 
 ```bash
-# Create the web root and set ownership
+# Create web root
 sudo mkdir -p /var/www/vito
-sudo chown deploy:www-data /var/www/vito
-
-cd /var/www/vito
+sudo chown -R deploy:www-data /var/www/vito
 
 # Clone the repository
-git clone https://github.com/Mrfixa/Vito.git .
+cd /var/www
+git clone https://github.com/Mrfixa/Vito.git vito-repo
+cd vito-repo
 
-# Move into the backend directory
-cd /var/www/vito/drivemond-admin-new-install-3.1
+# The backend lives in this subdirectory
+APP_DIR=/var/www/vito-repo/drivemond-admin-new-install-3.1
 
-# Install PHP dependencies (production mode, no dev packages)
-composer install \
-  --no-dev \
-  --optimize-autoloader \
-  --no-interaction \
-  --ignore-platform-reqs
-
-# Install Node dependencies and compile assets
-npm ci
-npm run production
-
-# Create .env from the example
-cp .env.example .env
-php artisan key:generate
+# Install PHP dependencies
+cd "$APP_DIR"
+composer install --no-dev --optimize-autoloader --no-interaction --no-scripts
 ```
 
 ---
 
 ## 7. Configure .env
 
-Open the file for editing:
-
 ```bash
-nano /var/www/vito/drivemond-admin-new-install-3.1/.env
+cd "$APP_DIR"
+cp .env.example .env
+nano .env
 ```
 
-Replace every value shown in `< >` with your real values:
+Fill in every value:
 
-```ini
-# ── App ──────────────────────────────────────────────────────────────
-APP_NAME=Vito
+```dotenv
+APP_NAME="Vito"
 APP_ENV=production
-APP_KEY=                          # already generated — do not change
+APP_KEY=                          # generated in step 8
 APP_DEBUG=false
-APP_URL=https://your-domain.com
+APP_URL=https://api.yourdomain.com
 
-# ── Database ─────────────────────────────────────────────────────────
+LOG_CHANNEL=daily
+LOG_LEVEL=error
+
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306
 DB_DATABASE=vito
 DB_USERNAME=vito
-DB_PASSWORD=<STRONG_PASSWORD_FROM_STEP_5>
+DB_PASSWORD=STRONG_PASSWORD_HERE
 
-# ── Queue / Cache / Session ───────────────────────────────────────────
-# Change queue from "sync" to "database" so jobs are processed by workers
-QUEUE_CONNECTION=database
 CACHE_DRIVER=redis
 SESSION_DRIVER=redis
-SESSION_LIFETIME=120
+QUEUE_CONNECTION=redis
 
-# ── Redis ─────────────────────────────────────────────────────────────
 REDIS_HOST=127.0.0.1
 REDIS_PASSWORD=null
 REDIS_PORT=6379
 
-# ── Broadcasting (Laravel Reverb) ────────────────────────────────────
+MAIL_MAILER=smtp
+MAIL_HOST=smtp.ses.amazonaws.com   # or your SMTP provider
+MAIL_PORT=587
+MAIL_USERNAME=your_smtp_user
+MAIL_PASSWORD=your_smtp_pass
+MAIL_ENCRYPTION=tls
+MAIL_FROM_ADDRESS=noreply@yourdomain.com
+MAIL_FROM_NAME="${APP_NAME}"
+
+# Stripe (use live keys in production)
+STRIPE_SECRET_KEY=sk_live_XXXX
+STRIPE_WEBHOOK_SECRET=whsec_XXXX
+
+# Laravel Reverb (WebSocket)
+REVERB_APP_ID=vito
+REVERB_APP_KEY=your_reverb_key
+REVERB_APP_SECRET=your_reverb_secret
+REVERB_HOST=0.0.0.0
+REVERB_PORT=8080
+REVERB_SCHEME=http
+
 BROADCAST_DRIVER=reverb
 
-REVERB_APP_ID=vito
-REVERB_APP_KEY=<RANDOM_32_CHAR_STRING>    # e.g. openssl rand -hex 16
-REVERB_APP_SECRET=<RANDOM_32_CHAR_STRING>
-REVERB_HOST=your-domain.com
-REVERB_PORT=6015
-REVERB_SCHEME=https
-
-# Reverb server binds to this port internally (Nginx proxies 6015 → 8080)
-REVERB_SERVER_HOST=0.0.0.0
-REVERB_SERVER_PORT=8080
-
-# ── Pusher (Flutter SDK talks to Reverb using Pusher protocol) ────────
-PUSHER_APP_ID="${REVERB_APP_ID}"
-PUSHER_APP_KEY="${REVERB_APP_KEY}"
-PUSHER_APP_SECRET="${REVERB_APP_SECRET}"
-PUSHER_HOST="${REVERB_HOST}"
-PUSHER_PORT="${REVERB_PORT}"
-PUSHER_SCHEME="${REVERB_SCHEME}"
+# Pusher config (used by Flutter — points at Reverb)
+PUSHER_APP_ID=vito
+PUSHER_APP_KEY=your_reverb_key
+PUSHER_APP_SECRET=your_reverb_secret
+PUSHER_HOST=api.yourdomain.com
+PUSHER_PORT=6015
+PUSHER_SCHEME=https
 PUSHER_APP_CLUSTER=mt1
-
-# ── Stripe ────────────────────────────────────────────────────────────
-STRIPE_KEY=pk_live_...
-STRIPE_SECRET=sk_live_...
-STRIPE_WEBHOOK_SECRET=whsec_...   # fill in after step 15
-
-# ── Mail ──────────────────────────────────────────────────────────────
-MAIL_MAILER=smtp
-MAIL_HOST=smtp.mailgun.org        # or SES, Postmark, etc.
-MAIL_PORT=587
-MAIL_USERNAME=<SMTP_USERNAME>
-MAIL_PASSWORD=<SMTP_PASSWORD>
-MAIL_ENCRYPTION=tls
-MAIL_FROM_ADDRESS=noreply@your-domain.com
-MAIL_FROM_NAME=Vito
-
-# ── Storage ───────────────────────────────────────────────────────────
-FILESYSTEM_DRIVER=local           # change to "s3" if using AWS S3
-
-# AWS S3 (optional — only needed if FILESYSTEM_DRIVER=s3)
-AWS_ACCESS_KEY_ID=
-AWS_SECRET_ACCESS_KEY=
-AWS_DEFAULT_REGION=us-east-1
-AWS_BUCKET=
 ```
-
-> **Generate random strings:** `openssl rand -hex 16` (gives 32 hex characters)
 
 ---
 
 ## 8. Run Migrations and Bootstrap Laravel
 
 ```bash
-cd /var/www/vito/drivemond-admin-new-install-3.1
+cd "$APP_DIR"
 
-# Generate Laravel Passport OAuth key pair
+# Generate app key
+php artisan key:generate
+
+# Generate Passport OAuth keys
 php artisan passport:keys --force
 
-# Run all database migrations
+# Run all migrations
 php artisan migrate --force
 
-# Create the public storage symlink (for uploaded images, etc.)
-php artisan storage:link
+# Seed essential config (business settings, levels, vehicle types, etc.)
+php artisan db:seed --force
 
-# Cache config, routes, and views for production performance
+# Create Passport personal access client
+php artisan passport:client --personal --no-interaction
+
+# Cache config/routes/views for production
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
+
+# Create storage symlink
+php artisan storage:link
 ```
 
 ---
@@ -364,121 +409,135 @@ php artisan view:cache
 ## 9. File Permissions
 
 ```bash
-sudo chown -R deploy:www-data /var/www/vito/drivemond-admin-new-install-3.1
+cd "$APP_DIR"
 
-# Regular files: owner rw, group r, others r
-sudo find /var/www/vito/drivemond-admin-new-install-3.1 \
-  -type f -exec chmod 644 {} \;
-
-# Directories: owner rwx, group rx, others rx
-sudo find /var/www/vito/drivemond-admin-new-install-3.1 \
-  -type d -exec chmod 755 {} \;
-
-# Laravel needs to write to these two directories
-sudo chmod -R 775 \
-  /var/www/vito/drivemond-admin-new-install-3.1/storage \
-  /var/www/vito/drivemond-admin-new-install-3.1/bootstrap/cache
+sudo chown -R deploy:www-data .
+sudo find . -type f -exec chmod 644 {} \;
+sudo find . -type d -exec chmod 755 {} \;
+sudo chmod -R 775 storage bootstrap/cache
+sudo chmod 600 storage/oauth-private.key storage/oauth-public.key
 ```
 
 ---
 
 ## 10. Configure Nginx
 
-Create the site config:
-
 ```bash
 sudo nano /etc/nginx/sites-available/vito
 ```
 
-Paste the following (replace every `your-domain.com`):
+Paste the full config:
 
 ```nginx
-# ── Redirect HTTP → HTTPS ────────────────────────────────────────────
+# Redirect HTTP → HTTPS
 server {
     listen 80;
-    server_name your-domain.com www.your-domain.com;
+    listen [::]:80;
+    server_name api.yourdomain.com yourdomain.com;
     return 301 https://$host$request_uri;
 }
 
-# ── Main HTTPS site ──────────────────────────────────────────────────
+# Main HTTPS server (Laravel API)
 server {
     listen 443 ssl http2;
-    server_name your-domain.com www.your-domain.com;
+    listen [::]:443 ssl http2;
+    server_name api.yourdomain.com;
 
-    root /var/www/vito/drivemond-admin-new-install-3.1/public;
+    root /var/www/vito-repo/drivemond-admin-new-install-3.1/public;
     index index.php;
 
-    # SSL — paths filled by Certbot in step 11
-    ssl_certificate     /etc/letsencrypt/live/your-domain.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/your-domain.com/privkey.pem;
-    include             /etc/letsencrypt/options-ssl-nginx.conf;
-    ssl_dhparam         /etc/letsencrypt/ssl-dhparams.pem;
+    ssl_certificate     /etc/letsencrypt/live/api.yourdomain.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/api.yourdomain.com/privkey.pem;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_ciphers         ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384;
+    ssl_prefer_server_ciphers off;
+    ssl_session_cache   shared:SSL:10m;
+    ssl_session_timeout 1d;
 
-    # Security headers
     add_header X-Frame-Options "SAMEORIGIN";
     add_header X-Content-Type-Options "nosniff";
     add_header X-XSS-Protection "1; mode=block";
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
 
-    # Increase for file uploads (profile photos, delivery proofs, etc.)
     client_max_body_size 50M;
 
-    # Laravel routing
     location / {
         try_files $uri $uri/ /index.php?$query_string;
     }
 
-    # PHP-FPM
     location ~ \.php$ {
-        fastcgi_pass unix:/var/run/php/php8.2-fpm.sock;
-        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
         include fastcgi_params;
-        fastcgi_read_timeout 300;
+        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+        fastcgi_hide_header X-Powered-By;
     }
 
-    # Reverb WebSocket — proxied via /app path on port 443
-    # (Flutter apps can also connect on port 6015 — see block below)
-    location /app {
-        proxy_pass         http://127.0.0.1:8080;
-        proxy_http_version 1.1;
-        proxy_set_header   Upgrade $http_upgrade;
-        proxy_set_header   Connection "upgrade";
-        proxy_set_header   Host $host;
-        proxy_read_timeout 60s;
-    }
-
-    # Block dot-files except .well-known (needed by Certbot)
     location ~ /\.(?!well-known).* {
         deny all;
     }
+
+    # Gzip
+    gzip on;
+    gzip_types text/plain text/css application/json application/javascript text/xml application/xml;
+    gzip_min_length 256;
 }
 
-# ── Reverb WebSocket on port 6015 (Flutter apps connect here) ────────
+# Reverb WebSocket (port 6015 → internal 8080)
 server {
     listen 6015 ssl http2;
-    server_name your-domain.com;
+    listen [::]:6015 ssl http2;
+    server_name api.yourdomain.com;
 
-    ssl_certificate     /etc/letsencrypt/live/your-domain.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/your-domain.com/privkey.pem;
-    include             /etc/letsencrypt/options-ssl-nginx.conf;
-    ssl_dhparam         /etc/letsencrypt/ssl-dhparams.pem;
+    ssl_certificate     /etc/letsencrypt/live/api.yourdomain.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/api.yourdomain.com/privkey.pem;
+    ssl_protocols       TLSv1.2 TLSv1.3;
 
     location / {
-        proxy_pass         http://127.0.0.1:8080;
-        proxy_http_version 1.1;
-        proxy_set_header   Upgrade $http_upgrade;
-        proxy_set_header   Connection "upgrade";
-        proxy_set_header   Host $host;
-        proxy_read_timeout 60s;
+        proxy_pass             http://127.0.0.1:8080;
+        proxy_http_version     1.1;
+        proxy_set_header       Upgrade $http_upgrade;
+        proxy_set_header       Connection "Upgrade";
+        proxy_set_header       Host $host;
+        proxy_set_header       X-Real-IP $remote_addr;
+        proxy_set_header       X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header       X-Forwarded-Proto $scheme;
+        proxy_read_timeout     3600s;
+        proxy_send_timeout     3600s;
+    }
+}
+
+# Landing page
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name yourdomain.com;
+
+    ssl_certificate     /etc/letsencrypt/live/yourdomain.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/yourdomain.com/privkey.pem;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+
+    root /var/www/vito-repo/landing;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+
+    # Proxy token validation to the API
+    location /api/ {
+        proxy_pass https://api.yourdomain.com/api/;
+        proxy_set_header Host api.yourdomain.com;
+        proxy_ssl_server_name on;
     }
 }
 ```
 
-Enable the site and reload Nginx:
+Enable and test:
 
 ```bash
 sudo ln -s /etc/nginx/sites-available/vito /etc/nginx/sites-enabled/
-sudo rm -f /etc/nginx/sites-enabled/default   # remove the default placeholder
-sudo nginx -t                                  # must print "syntax is ok"
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo nginx -t
 sudo systemctl reload nginx
 ```
 
@@ -486,41 +545,40 @@ sudo systemctl reload nginx
 
 ## 11. SSL Certificate (Let's Encrypt)
 
-> DNS must be pointing to your server before running this. Verify with `dig +short your-domain.com`.
-
 ```bash
-sudo certbot --nginx \
-  -d your-domain.com \
-  -d www.your-domain.com \
+# Issue certificates for API domain and landing domain
+sudo certbot certonly --nginx \
+  -d api.yourdomain.com \
+  -d yourdomain.com \
   --non-interactive \
   --agree-tos \
-  -m your@email.com
+  -m you@yourdomain.com
 
-sudo systemctl reload nginx
+# Test auto-renewal
+sudo certbot renew --dry-run
 ```
 
-Certbot auto-renews. Verify the renewal timer is active:
+After SSL is issued, reload Nginx to pick up the certs:
 
 ```bash
-sudo systemctl status certbot.timer
+sudo systemctl reload nginx
 ```
 
 ---
 
 ## 12. Supervisor — Queue Workers and Reverb
 
-Create the supervisor config:
+### 12.1 Queue worker
 
 ```bash
-sudo nano /etc/supervisor/conf.d/vito.conf
+sudo nano /etc/supervisor/conf.d/vito-worker.conf
 ```
 
 ```ini
-; ── Queue workers ──────────────────────────────────────────────────────
 [program:vito-worker]
 process_name=%(program_name)s_%(process_num)02d
-command=php /var/www/vito/drivemond-admin-new-install-3.1/artisan queue:work redis --sleep=3 --tries=3 --max-time=3600
-directory=/var/www/vito/drivemond-admin-new-install-3.1
+command=php /var/www/vito-repo/drivemond-admin-new-install-3.1/artisan queue:work redis \
+        --sleep=3 --tries=3 --max-time=3600 --queue=default,notifications
 autostart=true
 autorestart=true
 stopasgroup=true
@@ -529,34 +587,46 @@ user=deploy
 numprocs=2
 redirect_stderr=true
 stdout_logfile=/var/log/supervisor/vito-worker.log
+stdout_logfile_maxbytes=10MB
+stdout_logfile_backups=5
 stopwaitsecs=3600
+```
 
-; ── Laravel Reverb WebSocket server ───────────────────────────────────
+### 12.2 Laravel Reverb (WebSocket server)
+
+```bash
+sudo nano /etc/supervisor/conf.d/vito-reverb.conf
+```
+
+```ini
 [program:vito-reverb]
-command=php /var/www/vito/drivemond-admin-new-install-3.1/artisan reverb:start --host=0.0.0.0 --port=8080 --no-interaction
-directory=/var/www/vito/drivemond-admin-new-install-3.1
+command=php /var/www/vito-repo/drivemond-admin-new-install-3.1/artisan reverb:start \
+        --host=127.0.0.1 --port=8080 --no-interaction
 autostart=true
 autorestart=true
+stopasgroup=true
+killasgroup=true
 user=deploy
 redirect_stderr=true
 stdout_logfile=/var/log/supervisor/vito-reverb.log
+stdout_logfile_maxbytes=10MB
+stdout_logfile_backups=5
 ```
 
-Apply and start:
+### 12.3 Apply
 
 ```bash
 sudo supervisorctl reread
 sudo supervisorctl update
-sudo supervisorctl start vito-worker:*
-sudo supervisorctl start vito-reverb
+sudo supervisorctl start all
 sudo supervisorctl status
 ```
 
 Expected output:
 ```
-vito-reverb          RUNNING   pid 12345, uptime 0:00:05
-vito-worker:00       RUNNING   pid 12346, uptime 0:00:05
-vito-worker:01       RUNNING   pid 12347, uptime 0:00:05
+vito-reverb           RUNNING   pid XXXX, uptime 0:00:05
+vito-worker:00        RUNNING   pid XXXX, uptime 0:00:05
+vito-worker:01        RUNNING   pid XXXX, uptime 0:00:05
 ```
 
 ---
@@ -564,245 +634,273 @@ vito-worker:01       RUNNING   pid 12347, uptime 0:00:05
 ## 13. Laravel Scheduler (Cron)
 
 ```bash
-crontab -e -u deploy
+sudo crontab -u deploy -e
 ```
 
-Add this single line at the bottom:
+Add:
 
 ```cron
-* * * * * cd /var/www/vito/drivemond-admin-new-install-3.1 && php artisan schedule:run >> /dev/null 2>&1
+* * * * * php /var/www/vito-repo/drivemond-admin-new-install-3.1/artisan schedule:run >> /dev/null 2>&1
 ```
 
-This fires every minute. Laravel's scheduler then decides which commands actually run:
+This runs the scheduler every minute. It handles QR token pruning (`qr:prune-tokens`) and any other scheduled jobs.
 
-| Command | Frequency | Purpose |
-|---|---|---|
-| `trip-request:cancel` | Every minute | Cancel stale unaccepted trips |
-| `app:process-scheduled-trips` | Every minute | Start pre-booked rides on time |
-| `vito:prune-qr-tokens` | Daily | Delete expired QR tokens |
+Verify it's registered:
+
+```bash
+cd /var/www/vito-repo/drivemond-admin-new-install-3.1
+php artisan schedule:list
+```
 
 ---
 
 ## 14. Firebase Push Notifications
 
-Vito stores Firebase credentials in the database — there is no `FCM_KEY` in `.env`. After the site is live:
+Firebase credentials are stored in the admin panel database, **not** in `.env`.
 
-1. Go to the **Firebase Console** → your project → **Project Settings → Service Accounts**
-2. Click **Generate new private key** → download the `.json` file
-3. Log into the Vito admin panel at `https://your-domain.com/admin`
-4. Navigate to **Business Settings → Third Party → Firebase**
-5. Paste the contents of the JSON file into the **Server Key** field and save
-
-The `project_id` from that JSON is used automatically to call the FCM v1 HTTP API.
+1. Go to Firebase Console → your project → **Project Settings → Service Accounts**
+2. Generate a new private key → download the JSON file
+3. Log in to the Vito admin panel: `https://api.yourdomain.com/admin`
+4. Navigate to **Business Settings → Third Party API**
+5. Upload the Firebase service account JSON under **FCM v1 Credentials**
 
 ---
 
 ## 15. Stripe Webhook
 
-**Register the webhook in the Stripe Dashboard:**
-
-1. Go to **Stripe Dashboard → Developers → Webhooks → Add endpoint**
-2. URL: `https://your-domain.com/api/payment/stripe/webhook`
-3. Events to listen for:
-   - `payment_intent.succeeded`
-   - `payment_intent.payment_failed`
-4. Copy the **Signing secret** (`whsec_...`)
-
-**Add it to `.env`:**
-
-```bash
-nano /var/www/vito/drivemond-admin-new-install-3.1/.env
-# Set: STRIPE_WEBHOOK_SECRET=whsec_...
-```
-
-Re-cache config:
-
-```bash
-php artisan config:cache
-```
+1. Go to [Stripe Dashboard → Webhooks](https://dashboard.stripe.com/webhooks)
+2. Add endpoint: `https://api.yourdomain.com/api/stripe/webhook`
+3. Select events: `payment_intent.succeeded`, `payment_intent.payment_failed`
+4. Copy the **Signing secret** (`whsec_...`) → paste into `.env` as `STRIPE_WEBHOOK_SECRET`
+5. Re-cache config: `php artisan config:cache`
 
 ---
 
 ## 16. Update Flutter Apps
 
-In both Flutter apps, find the constants file (usually `lib/util/app_constants.dart` or similar) and update the base URL and WebSocket settings to match your server:
+In both Flutter apps, update the base URL constants before building the production APKs.
+
+**User app** — `drivemond-user-app-3.1/HexaRide-User-app-release-3.1/lib/util/app_constants.dart`:
 
 ```dart
-// Base API URL
-static const String BASE_URL = 'https://your-domain.com';
-
-// Reverb / Pusher WebSocket connection
-static const String PUSHER_APP_KEY = 'SAME_VALUE_AS_REVERB_APP_KEY_IN_ENV';
-static const String PUSHER_HOST    = 'your-domain.com';
-static const int    PUSHER_PORT    = 6015;
-static const String PUSHER_SCHEME  = 'https';
-static const String PUSHER_CLUSTER = 'mt1';
+static const String baseUrl = 'https://api.yourdomain.com';
+static const String reverbHost = 'api.yourdomain.com';
+static const int reverbPort = 6015;
 ```
 
-Rebuild and redistribute the APKs:
+**Driver app** — `drivemond-driver-app-3.1/HexaRide-Driver-app-release-3.1/lib/util/app_constants.dart`:
+
+```dart
+static const String baseUrl = 'https://api.yourdomain.com';
+static const String reverbHost = 'api.yourdomain.com';
+static const int reverbPort = 6015;
+```
+
+Build the production APKs:
 
 ```bash
+# User app
+cd drivemond-user-app-3.1/HexaRide-User-app-release-3.1
 flutter build apk --release \
-  --dart-define=MAPS_API_KEY=<your_maps_key> \
-  --dart-define=STRIPE_PUBLISHABLE_KEY=<your_stripe_pk>
+  --dart-define=MAPS_API_KEY=YOUR_MAPS_KEY \
+  --dart-define=STRIPE_PUBLISHABLE_KEY=YOUR_STRIPE_PK
+
+# Driver app
+cd drivemond-driver-app-3.1/HexaRide-Driver-app-release-3.1
+flutter build apk --release \
+  --dart-define=MAPS_API_KEY=YOUR_MAPS_KEY \
+  --dart-define=STRIPE_PUBLISHABLE_KEY=YOUR_STRIPE_PK
 ```
 
 ---
 
 ## 17. Smoke Test
 
-Run each check in order and confirm no errors before going live:
+Run these checks in order:
 
 ```bash
-# 1. All supervisor processes running
+# 1. PHP-FPM running
+sudo systemctl status php8.3-fpm | grep Active
+
+# 2. Nginx running, config valid
+sudo nginx -t && sudo systemctl status nginx | grep Active
+
+# 3. MySQL accepting connections
+mysql -u vito -p -e "SELECT 1;" vito
+
+# 4. Redis alive
+redis-cli ping   # → PONG
+
+# 5. Queue workers running
 sudo supervisorctl status
 
-# 2. Nginx serving your domain over HTTPS
-curl -I https://your-domain.com
-# Expect: HTTP/2 200
+# 6. Laravel health
+cd /var/www/vito-repo/drivemond-admin-new-install-3.1
+php artisan about | grep -E "Environment|Cache|Debug"
 
-# 3. Laravel app is alive
-curl https://your-domain.com/api/health 2>/dev/null || \
-  curl -s https://your-domain.com | grep -i "vito\|login\|dashboard" | head -3
+# 7. Test API endpoint
+curl -s https://api.yourdomain.com/api/customer/auth/check \
+     -H "Content-Type: application/json" \
+     -d '{"phone":"test"}' | python3 -m json.tool
 
-# 4. WebSocket port reachable
-curl -I https://your-domain.com:6015
-# Expect: HTTP/2 400 (Nginx got it; 400 is correct — WebSocket upgrade required)
+# 8. WebSocket reachable
+curl -si --http1.1 \
+     -H "Upgrade: websocket" \
+     -H "Connection: Upgrade" \
+     "https://api.yourdomain.com:6015/app/YOUR_REVERB_KEY?protocol=7&client=php&version=1.0&flash=false" \
+     | head -5
 
-# 5. Queue workers are processing jobs
-php artisan queue:monitor
+# 9. Landing page
+curl -si https://yourdomain.com | head -3   # → HTTP/2 200
 
-# 6. Scheduler is wired up
-php artisan schedule:list
-
-# 7. Tail the log for any runtime errors
-tail -f /var/www/vito/drivemond-admin-new-install-3.1/storage/logs/laravel.log
+# 10. QR token generate (admin Passport token required)
+curl -s -X POST https://api.yourdomain.com/api/qr-token/generate \
+     -H "Authorization: Bearer ADMIN_TOKEN" \
+     -H "Content-Type: application/json" \
+     -d '{"role":"customer"}' | python3 -m json.tool
 ```
 
 ---
 
 ## 18. Deploying Updates
 
-Every time you push new code, run this deploy script on the server:
+Create `/var/www/vito-repo/deploy.sh`:
 
 ```bash
 #!/bin/bash
 set -e
 
-APP=/var/www/vito/drivemond-admin-new-install-3.1
+APP_DIR="/var/www/vito-repo/drivemond-admin-new-install-3.1"
 
-echo "→ Pulling latest code..."
-cd /var/www/vito && git pull origin master
+echo "==> Pulling latest code..."
+cd /var/www/vito-repo
+git pull origin claude/analyze-mart-qr-code-FySPn   # change to main/master after merge
 
-echo "→ Installing PHP dependencies..."
-cd $APP
-composer install --no-dev --optimize-autoloader --no-interaction --ignore-platform-reqs
+echo "==> Installing PHP dependencies..."
+cd "$APP_DIR"
+composer install --no-dev --optimize-autoloader --no-interaction --no-scripts
 
-echo "→ Building assets..."
-npm ci && npm run production
+echo "==> Putting app in maintenance mode..."
+php artisan down --render="errors::503" --retry=60
 
-echo "→ Running migrations..."
+echo "==> Running migrations..."
 php artisan migrate --force
 
-echo "→ Clearing and re-caching..."
+echo "==> Clearing and re-caching..."
+php artisan config:clear
+php artisan route:clear
+php artisan view:clear
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
 
-echo "→ Restarting workers and Reverb..."
-sudo supervisorctl restart vito-worker:*
+echo "==> Fixing permissions..."
+sudo chown -R deploy:www-data .
+sudo chmod -R 775 storage bootstrap/cache
+
+echo "==> Restarting queue workers..."
+php artisan queue:restart
+
+echo "==> Restarting Reverb..."
 sudo supervisorctl restart vito-reverb
 
-echo "✓ Deploy complete."
+echo "==> Taking app out of maintenance mode..."
+php artisan up
+
+echo "==> Done!"
 ```
 
-Save this as `/home/deploy/deploy.sh`, make it executable:
+```bash
+chmod +x /var/www/vito-repo/deploy.sh
+```
+
+Run a deploy:
 
 ```bash
-chmod +x /home/deploy/deploy.sh
+bash /var/www/vito-repo/deploy.sh
 ```
 
 ---
 
 ## 19. Troubleshooting
 
-### App shows a blank page or 500 error
-
+### Nginx 502 Bad Gateway
 ```bash
-# Check PHP-FPM
-sudo systemctl status php8.2-fpm
-
-# Check Nginx error log
+# Check PHP-FPM is running
+sudo systemctl status php8.3-fpm
+# Check the socket exists
+ls -la /run/php/php8.3-fpm.sock
+# Tail error log
 sudo tail -50 /var/log/nginx/error.log
-
-# Check Laravel log
-tail -50 /var/www/vito/drivemond-admin-new-install-3.1/storage/logs/laravel.log
-
-# Try clearing all caches
-cd /var/www/vito/drivemond-admin-new-install-3.1
-php artisan optimize:clear
 ```
 
-### WebSocket / chat not connecting
-
+### Laravel 500 errors
 ```bash
-# Is Reverb running?
-sudo supervisorctl status vito-reverb
-
-# Check Reverb log
-tail -50 /var/log/supervisor/vito-reverb.log
-
-# Is port 6015 open on the security group? Check:
-curl -v https://your-domain.com:6015
-
-# Verify .env values match what the Flutter app uses
-grep -E "REVERB_|PUSHER_" /var/www/vito/drivemond-admin-new-install-3.1/.env
+tail -100 /var/www/vito-repo/drivemond-admin-new-install-3.1/storage/logs/laravel-$(date +%Y-%m-%d).log
 ```
 
-### Jobs not processing (trips not updating, notifications not sending)
-
+### Queue jobs not processing
 ```bash
-# Check queue worker logs
-tail -50 /var/log/supervisor/vito-worker.log
+sudo supervisorctl status
+sudo supervisorctl tail -f vito-worker
+# Force restart
+sudo supervisorctl restart vito-worker:*
+```
 
-# Check for failed jobs
-cd /var/www/vito/drivemond-admin-new-install-3.1
-php artisan queue:failed
+### WebSocket connections failing
+```bash
+# Check Reverb is listening on 8080
+ss -tlnp | grep 8080
+# Check Nginx is proxying 6015 → 8080
+sudo supervisorctl tail -f vito-reverb
+sudo tail -20 /var/log/nginx/error.log
+```
 
-# Retry all failed jobs
-php artisan queue:retry all
+### MySQL too many connections
+```bash
+sudo mysql -e "SHOW STATUS LIKE 'Threads_connected';"
+sudo mysql -e "SHOW VARIABLES LIKE 'max_connections';"
+# Increase if needed
+sudo mysql -e "SET GLOBAL max_connections = 200;"
+```
+
+### Redis out of memory
+```bash
+redis-cli info memory | grep used_memory_human
+redis-cli info memory | grep maxmemory_human
+# Check eviction policy
+redis-cli config get maxmemory-policy
 ```
 
 ### SSL certificate renewal fails
-
 ```bash
-# Test renewal dry-run
 sudo certbot renew --dry-run
-
-# Manually renew if needed
-sudo certbot renew
-sudo systemctl reload nginx
+# Check Nginx is running (needed for HTTP-01 challenge)
+sudo systemctl status nginx
 ```
 
-### Out of disk space
-
+### Disk space
 ```bash
 df -h
-# Laravel logs can grow large
-php artisan log:clear 2>/dev/null || \
-  truncate -s 0 /var/www/vito/drivemond-admin-new-install-3.1/storage/logs/laravel.log
+# Clean old Laravel logs
+find /var/www/vito-repo/drivemond-admin-new-install-3.1/storage/logs \
+     -name "*.log" -mtime +30 -delete
+# Clean supervisor logs
+sudo find /var/log/supervisor -name "*.log" -mtime +7 -delete
 ```
 
 ---
 
-## Port Reference
+## Quick Reference
 
-| Port | Protocol | Direction | Purpose |
-|---|---|---|---|
-| 22 | TCP | Inbound | SSH (your IP only) |
-| 80 | TCP | Inbound | HTTP → redirect to HTTPS |
-| 443 | TCP | Inbound | HTTPS — Laravel app |
-| 6015 | TCP | Inbound | Reverb WebSocket — Flutter apps |
-| 8080 | TCP | Internal only | Reverb server (Nginx proxies to this) |
-| 3306 | TCP | Internal only | MySQL (never expose externally) |
-| 6379 | TCP | Internal only | Redis (never expose externally) |
+| Service | Command |
+|---|---|
+| Restart Nginx | `sudo systemctl restart nginx` |
+| Restart PHP-FPM | `sudo systemctl restart php8.3-fpm` |
+| Restart MySQL | `sudo systemctl restart mysql` |
+| Restart Redis | `sudo systemctl restart redis-server` |
+| Queue status | `sudo supervisorctl status` |
+| Restart all workers | `sudo supervisorctl restart all` |
+| Laravel logs | `tail -f storage/logs/laravel-$(date +%Y-%m-%d).log` |
+| Nginx error log | `sudo tail -f /var/log/nginx/error.log` |
+| Deploy update | `bash /var/www/vito-repo/deploy.sh` |
