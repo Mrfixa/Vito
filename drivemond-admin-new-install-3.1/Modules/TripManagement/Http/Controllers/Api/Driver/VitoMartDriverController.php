@@ -207,7 +207,7 @@ class VitoMartDriverController extends Controller
         $orders = MartOrder::where('driver_id', $request->user()->id)
             ->with('items.product', 'customer')
             ->orderByDesc('created_at')
-            ->paginate($request->input('limit', 20));
+            ->paginate(min($request->input('limit', 20), 100));
 
         return response()->json(responseFormatter(DEFAULT_200, $orders));
     }

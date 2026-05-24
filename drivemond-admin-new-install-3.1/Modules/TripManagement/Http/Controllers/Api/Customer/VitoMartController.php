@@ -51,7 +51,7 @@ class VitoMartController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 422);
         }
 
         $promo = MartPromoCode::where('code', strtoupper(trim($request->code)))->first();

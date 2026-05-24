@@ -1020,5 +1020,8 @@
   "wallet_withdraw_request_accepted": "تم قبول طلب سحب المحفظة",
   "wallet_withdraw_request_cancelled": "تم إلغاء طلب سحب المحفظة",
   "we_have_send_a_varification_code_to": "لقد أرسلنا رمز تحقق إلى",
-  "withdraw_request_sent_successfully": "تم إرسال طلب السحب بنجاح"
+  "withdraw_request_sent_successfully": "تم إرسال طلب السحب بنجاح",
+  "order_not_available": "الطلب لم يعد متاحاً",
+  "items_ordered": "عناصر",
+  "delivery_details": "تفاصيل التوصيل"
 }

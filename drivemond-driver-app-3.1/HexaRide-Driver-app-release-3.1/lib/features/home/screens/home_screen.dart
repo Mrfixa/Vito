@@ -23,6 +23,7 @@ import 'package:ride_sharing_user_app/features/home/screens/parcel_list_screen.d
 import 'package:ride_sharing_user_app/features/home/widgets/ongoing_ride_card_widget.dart';
 import 'package:ride_sharing_user_app/features/home/widgets/profile_info_card_widget.dart';
 import 'package:ride_sharing_user_app/features/home/widgets/vehicle_pending_widget.dart';
+import 'package:ride_sharing_user_app/features/mart/screens/mart_pending_orders_screen.dart';
 import 'package:ride_sharing_user_app/features/profile/screens/profile_menu_screen.dart';
 import 'package:ride_sharing_user_app/features/ride/controllers/ride_controller.dart';
 import 'package:ride_sharing_user_app/common_widgets/app_bar_widget.dart';
@@ -254,6 +255,33 @@ class _HomeScreenState extends State<HomeScreen> {
 
                       if(Get.find<ProfileController>().profileInfo?.vehicle != null)
                         const MyActivityListViewWidget(),
+                      const SizedBox(height: Dimensions.paddingSizeDefault),
+
+                      // Mart pending orders shortcut
+                      if(Get.find<ProfileController>().profileInfo?.vehicle != null)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: Dimensions.paddingSizeDefault,
+                          ),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(Dimensions.radiusDefault),
+                            onTap: () => Get.to(() => const MartPendingOrdersScreen()),
+                            child: Container(
+                              padding: const EdgeInsets.all(Dimensions.paddingSizeDefault),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(Dimensions.radiusDefault),
+                                color: Theme.of(context).cardColor,
+                                border: Border.all(color: Theme.of(context).primaryColor.withValues(alpha: 0.2)),
+                              ),
+                              child: Row(children: [
+                                Icon(Icons.storefront_outlined, color: Theme.of(context).primaryColor),
+                                const SizedBox(width: Dimensions.paddingSizeDefault),
+                                Expanded(child: Text('pending_mart_orders'.tr, style: textMedium)),
+                                Icon(Icons.arrow_forward_ios, size: 14, color: Theme.of(context).hintColor),
+                              ]),
+                            ),
+                          ),
+                        ),
                       const SizedBox(height: Dimensions.paddingSizeDefault),
 
                       if(Get.find<SplashController>().config?.referralEarningStatus ?? false)

@@ -1020,5 +1020,8 @@
   "confirm_status_update": "¿Confirmar actualización de estado?",
   "pending_mart_orders": "Pedidos Pendientes",
   "accept_order": "Aceptar Pedido",
-  "no_pending_orders": "No hay pedidos de mart pendientes"
+  "no_pending_orders": "No hay pedidos de mart pendientes",
+  "order_not_available": "El pedido ya no está disponible",
+  "items_ordered": "artículos",
+  "delivery_details": "Detalles de Entrega"
 }

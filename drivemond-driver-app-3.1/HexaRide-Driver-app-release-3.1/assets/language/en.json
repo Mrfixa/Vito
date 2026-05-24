@@ -1021,5 +1021,8 @@
   "confirm_status_update": "Confirm status update?",
   "pending_mart_orders": "Pending Orders",
   "accept_order": "Accept Order",
-  "no_pending_orders": "No pending mart orders"
+  "no_pending_orders": "No pending mart orders",
+  "order_not_available": "Order no longer available",
+  "items_ordered": "items",
+  "delivery_details": "Delivery Details"
 }

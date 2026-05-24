@@ -43,7 +43,10 @@ jobs:
         continue-on-error: true
 
       - name: Build release APK
-        run: flutter build apk --release
+        run: |
+          flutter build apk --release \
+            --dart-define=MAPS_API_KEY=${{ secrets.MAPS_API_KEY }} \
+            --dart-define=STRIPE_PUBLISHABLE_KEY=${{ secrets.STRIPE_PUBLISHABLE_KEY }}
 
       - name: Stage APKs for upload
         run: |
@@ -97,7 +100,10 @@ jobs:
         continue-on-error: true
 
       - name: Build release APK
-        run: flutter build apk --release
+        run: |
+          flutter build apk --release \
+            --dart-define=MAPS_API_KEY=${{ secrets.MAPS_API_KEY }} \
+            --dart-define=STRIPE_PUBLISHABLE_KEY=${{ secrets.STRIPE_PUBLISHABLE_KEY }}
 
       - name: Stage APKs for upload
         run: |
@@ -139,7 +145,7 @@ jobs:
         run: find . -name "*.php" -not -path "./vendor/*" -exec php -l {} \; | grep -v "No syntax errors" || true
 
   create-release:
-    name: Create GitHub Release v1.1.0
+    name: Create GitHub Release v1.1.2
     needs: [build-driver-apk, build-user-apk]
     runs-on: ubuntu-latest
     permissions:
@@ -172,11 +178,11 @@ jobs:
           name: vito-user-release-apk
           path: release-assets/
 
-      - name: Create Release v1.1.0
+      - name: Create Release v1.1.2
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.1.0
-          name: Vito v1.1.0
+          tag_name: v1.1.2
+          name: Vito v1.1.2
           files: release-assets/*
           generate_release_notes: true
         env:
