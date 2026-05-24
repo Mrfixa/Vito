@@ -8,8 +8,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use MatanYadaev\EloquentSpatial\Objects\Polygon;
-use MatanYadaev\EloquentSpatial\Traits\HasSpatial;
 use Modules\AdminModule\Entities\ActivityLog;
 use Modules\FareManagement\Entities\TripFare;
 use Modules\FareManagement\Entities\ZoneWiseDefaultTripFare;
@@ -18,7 +16,7 @@ use Modules\UserManagement\Entities\UserLastLocation;
 
 class Zone extends Model
 {
-    use HasFactory, SoftDeletes, HasUuid, HasSpatial;
+    use HasFactory, SoftDeletes, HasUuid;
 
     /**
      * The attributes that are mass assignable.
@@ -47,7 +45,7 @@ class Zone extends Model
         'readable_id'=> 'integer',
         'is_active' => 'boolean',
         'extra_fare_status' => 'boolean',
-        'coordinates' => Polygon::class
+        'coordinates' => 'string'
     ];
 
     /**
