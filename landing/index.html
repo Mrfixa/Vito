@@ -107,7 +107,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
     });
   }
 
-  var baseUrl = window.location.origin;
+  var baseUrl = 'https://dacatlon.store';
   fetch(baseUrl + '/api/qr/validate/' + encodeURIComponent(token))
     .then(function(r){ return r.json(); })
     .then(function(data){
