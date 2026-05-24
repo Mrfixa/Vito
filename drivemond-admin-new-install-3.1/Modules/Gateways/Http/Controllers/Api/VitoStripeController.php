@@ -19,12 +19,12 @@ class VitoStripeController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
         }
 
         $stripeSecret = businessConfig('stripe_secret_key')?->value;
         if (!$stripeSecret) {
-            return response()->json(responseFormatter(constant: DEFAULT_404), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_404), 500);
         }
 
         try {

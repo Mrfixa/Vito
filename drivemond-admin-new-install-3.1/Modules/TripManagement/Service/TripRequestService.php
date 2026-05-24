@@ -1625,13 +1625,9 @@ class TripRequestService extends BaseService implements TripRequestServiceInterf
             'driver.driverDetails' => [], 'customer' => [], 'ignoredRequests' => [], 'time' => [], 'fee' => [],
             'parcel' => [], 'parcelRefund' => [],
             'fare_biddings' => [['driver_id', '=', auth('api')->id()]],
-            'coordinate' => fn($query) => $query->distanceSphere('pickup_coordinates', $data['driver_locations'], $data['distance'])
+            'coordinate',
         ];
         $whereHasRelations = [];
-
-        $whereHasRelations['coordinate'] = function ($query) use ($data) {
-            $query->distanceSphere('pickup_coordinates', $data['driver_locations'], $data['distance']);
-        };
         $orderBy = ['created_at' => 'desc'];
         $withAvgRelations = [['customerReceivedReviews', 'rating']];
         return $this->tripRequestRepository->getPendingRide(criteria: $criteria, relations: $relations, whereHasRelations: $whereHasRelations, withAvgRelations: $withAvgRelations, orderBy: $orderBy, attributes: $data);

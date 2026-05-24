@@ -194,8 +194,8 @@ class DashboardController extends BaseController
             $url = route('admin.trip.show', $trip->id);
             return [
                 'position' => [
-                    'lat' => $trip?->coordinate?->pickup_coordinates?->latitude ?? 0,
-                    'lng' => $trip?->coordinate?->pickup_coordinates?->longitude ?? 0,
+                    'lat' => (float)(explode(',', $trip?->coordinate?->pickup_coordinates ?? '0,0')[0] ?? 0),
+                    'lng' => (float)(explode(',', $trip?->coordinate?->pickup_coordinates ?? '0,0')[1] ?? 0),
                 ],
                 'title' => "<a href=\"{$url}\" target=\"_blank\">Trip #{$trip->ref_id}</a>",
             ];
@@ -210,9 +210,13 @@ class DashboardController extends BaseController
         $totalPoints = 0;
 
         foreach ($zones as $zone) {
-            $latSum += trim(explode(' ', $zone->center)[1], 'POINT()');
-            $lngSum += trim(explode(' ', $zone->center)[0], 'POINT()');
-            $totalPoints++;
+            $coords = json_decode($zone->coordinates, true);
+            $ring = $coords['coordinates'][0] ?? [];
+            if (count($ring) > 0) {
+                $latSum += array_sum(array_column($ring, 1)) / count($ring);
+                $lngSum += array_sum(array_column($ring, 0)) / count($ring);
+                $totalPoints++;
+            }
         }
 
         $centerLat = $latSum / ($totalPoints == 0 ? 1 : $totalPoints);
@@ -252,8 +256,8 @@ class DashboardController extends BaseController
             $url = route('admin.trip.show', $trip->id);
             return [
                 'position' => [
-                    'lat' => $trip?->coordinate?->pickup_coordinates?->latitude ?? 0, // Default to 0 if not defined
-                    'lng' => $trip?->coordinate?->pickup_coordinates?->longitude ?? 0, // Default to 0 if not defined
+                    'lat' => (float)(explode(',', $trip?->coordinate?->pickup_coordinates ?? '0,0')[0] ?? 0),
+                    'lng' => (float)(explode(',', $trip?->coordinate?->pickup_coordinates ?? '0,0')[1] ?? 0),
                 ],
                 'title' => "<a href=\"{$url}\" target=\"_blank\">Trip #{$trip->ref_id}</a>",
             ];
@@ -265,9 +269,13 @@ class DashboardController extends BaseController
         $lngSum = 0;
         $totalPoints = 0;
         foreach ($zones as $zone) {
-            $latSum += trim(explode(' ', $zone->center)[1], 'POINT()');
-            $lngSum += trim(explode(' ', $zone->center)[0], 'POINT()');
-            $totalPoints++;
+            $coords = json_decode($zone->coordinates, true);
+            $ring = $coords['coordinates'][0] ?? [];
+            if (count($ring) > 0) {
+                $latSum += array_sum(array_column($ring, 1)) / count($ring);
+                $lngSum += array_sum(array_column($ring, 0)) / count($ring);
+                $totalPoints++;
+            }
         }
 
         $centerLat = $latSum / ($totalPoints == 0 ? 1 : $totalPoints);
@@ -393,8 +401,8 @@ class DashboardController extends BaseController
                     $url = route('admin.trip.show', $trip->id);
                     return [
                         'position' => [
-                            'lat' => $trip?->coordinate?->pickup_coordinates?->latitude ?? 0, // Default to 0 if not defined
-                            'lng' => $trip?->coordinate?->pickup_coordinates?->longitude ?? 0, // Default to 0 if not defined
+                            'lat' => (float)(explode(',', $trip?->coordinate?->pickup_coordinates ?? '0,0')[0] ?? 0),
+                            'lng' => (float)(explode(',', $trip?->coordinate?->pickup_coordinates ?? '0,0')[1] ?? 0),
                         ],
                         'title' => "<a href=\"{$url}\" target=\"_blank\">Trip #{$trip->ref_id}</a>",
                     ];
@@ -408,9 +416,11 @@ class DashboardController extends BaseController
         $latSum = 0;
         $lngSum = 0;
         $totalPoints = 0;
-        $polygons = $zone ? json_encode([formatCoordinates(json_decode($zone?->coordinates[0]->toJson(), true)['coordinates'])]) : json_encode([[]]);
+        $zoneGeo = $zone ? json_decode($zone->coordinates, true) : null;
+        $zonePoly = $zoneGeo['coordinates'][0] ?? [];
+        $polygons = $zone ? json_encode([formatCoordinates($zonePoly)]) : json_encode([[]]);
         if ($zone) {
-            foreach (formatCoordinates(json_decode($zone?->coordinates[0]->toJson(), true)['coordinates']) as $point) {
+            foreach (formatCoordinates($zonePoly) as $point) {
                 $latSum += $point->lat;
                 $lngSum += $point->lng;
                 $totalPoints++;

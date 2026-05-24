@@ -689,11 +689,11 @@ class VitoFlowTest extends TestCase
 
         // Invalid amount should fail validation
         $response = $this->postJson('/api/customer/stripe/payment-intent', ['amount' => -5]);
-        $response->assertStatus(403);
+        $response->assertStatus(400);
 
         // Missing amount should fail
         $response2 = $this->postJson('/api/customer/stripe/payment-intent', []);
-        $response2->assertStatus(403);
+        $response2->assertStatus(400);
     }
 
     // ========================================================================

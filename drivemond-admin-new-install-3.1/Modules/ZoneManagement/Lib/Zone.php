@@ -16,8 +16,8 @@ if (!function_exists('formatZoneCoordinates')) {
         $data = [];
         foreach($zones as $zone)
         {
-            $area = json_decode($zone->coordinates[0]->toJson(),true);
-            $data[] = formatCoordinates(coordinates: $area['coordinates']);
+            $area = json_decode($zone->coordinates, true);
+            $data[] = formatCoordinates(coordinates: $area['coordinates'][0] ?? []);
         }
         return $data;
     }

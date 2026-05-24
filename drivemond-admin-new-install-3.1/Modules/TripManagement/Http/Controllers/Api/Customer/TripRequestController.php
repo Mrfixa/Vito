@@ -922,24 +922,24 @@ class TripRequestController extends Controller
             if ($request->status == 'cancelled') {
                 $attributes['fee']['cancelled_by'] = 'customer';
             }
-            $attributes['coordinate']['drop_coordinates'] = new Point($trip->driver->lastLocations->latitude, $trip->driver->lastLocations->longitude);
+            $attributes['coordinate']['drop_coordinates'] = $trip->driver->lastLocations->latitude . ',' . $trip->driver->lastLocations->longitude;
             $drivingMode = $trip?->vehicleCategory?->type === 'motor_bike' ? 'TWO_WHEELER' : 'DRIVE';
             $intermediate_coordinate = [];
             if ($trip->coordinate->is_reached_1) {
                 if ($trip->coordinate->is_reached_2) {
                     $intermediate_coordinate[1] = [
-                        $trip->coordiante->int_coordinate_2->latitude,
-                        $trip->coordiante->int_coordinate_2->longitude
+                        explode(',', $trip->coordinate->int_coordinate_2)[0],
+                        explode(',', $trip->coordinate->int_coordinate_2)[1]
                     ];
                 }
                 $intermediate_coordinate[0] = [
-                    $trip->coordiante->int_coordinate_1->latitude,
-                    $trip->coordiante->int_coordinate_1->longitude
+                    explode(',', $trip->coordinate->int_coordinate_1)[0],
+                    explode(',', $trip->coordinate->int_coordinate_1)[1]
                 ];
             }
             $getRoutes = getRoutes([
-                $trip->coordinate->pickup_coordinates->latitude,
-                $trip->coordinate->pickup_coordinates->longitude
+                explode(',', $trip->coordinate->pickup_coordinates)[0],
+                explode(',', $trip->coordinate->pickup_coordinates)[1]
             ], [$trip->driver->lastLocations->latitude, $trip->driver->lastLocations->longitude], $intermediate_coordinate, [$drivingMode]);
             if (array_key_exists('error', $getRoutes)) {
                 return response()->json(responseFormatter(constant: [ 'response_code' => 'drop_off_location_not_found_404',
