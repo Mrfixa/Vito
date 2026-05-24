@@ -401,14 +401,11 @@ class TripRequestController extends Controller
             tripFare: $tripFare,
             beforeCreate: true
         );
-        $pickup_point = DB::raw("ST_GeomFromText('POINT({$pickupCoordinates[0]} {$pickupCoordinates[1]})', 4326)");
-        $destination_point = DB::raw("ST_GeomFromText('POINT({$destinationCoordinates[0]} {$destinationCoordinates[1]})', 4326)");
-
         $this->recentAddressService->create(data: [
             'user_id' => $user?->id,
             'zone_id' => $zone->id,
-            'pickup_coordinates' => $pickup_point,
-            'destination_coordinates' => $destination_point,
+            'pickup_coordinates' => $pickupCoordinates[0] . ',' . $pickupCoordinates[1],
+            'destination_coordinates' => $destinationCoordinates[0] . ',' . $destinationCoordinates[1],
             'pickup_address' => $request->pickup_address,
             'destination_address' => $request->destination_address,
         ]);

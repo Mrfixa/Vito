@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
+use MatanYadaev\EloquentSpatial\Objects\Point;
 use Modules\ZoneManagement\Entities\Zone;
 use Modules\ZoneManagement\Repository\ZoneRepositoryInterface;
 
@@ -157,7 +158,7 @@ class ZoneRepository extends BaseRepository implements ZoneRepositoryInterface
         return $model->get();
     }
 
-    public function getZoneContainingBothPoints(int|string $zoneId, $pickupPoint, $destinationPoint): ?Model
+    public function getZoneContainingBothPoints(int|string $zoneId, Point $pickupPoint, Point $destinationPoint): ?Model
     {
         return $this->model->where('id', $zoneId)->first();
     }
