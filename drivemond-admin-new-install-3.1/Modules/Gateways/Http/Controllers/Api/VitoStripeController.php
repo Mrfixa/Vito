@@ -22,7 +22,17 @@ class VitoStripeController extends Controller
             return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
         }
 
-        $stripeSecret = businessConfig('stripe_secret_key')?->value;
+        $stripeConfig = DB::table('settings')
+            ->where('key_name', 'stripe')
+            ->where('settings_type', PAYMENT_CONFIG)
+            ->first();
+        if (!$stripeConfig) {
+            return response()->json(responseFormatter(constant: DEFAULT_404), 500);
+        }
+        $stripeValues = $stripeConfig->mode === 'live'
+            ? json_decode($stripeConfig->live_values, true)
+            : json_decode($stripeConfig->test_values, true);
+        $stripeSecret = $stripeValues['api_key'] ?? null;
         if (!$stripeSecret) {
             return response()->json(responseFormatter(constant: DEFAULT_404), 500);
         }
@@ -69,7 +79,7 @@ class VitoStripeController extends Controller
 
     public function webhook(Request $request): JsonResponse
     {
-        $stripeWebhookSecret = businessConfig('stripe_webhook_secret')?->value;
+        $stripeWebhookSecret = env('STRIPE_WEBHOOK_SECRET');
         $payload = $request->getContent();
         $sigHeader = $request->header('Stripe-Signature');
 

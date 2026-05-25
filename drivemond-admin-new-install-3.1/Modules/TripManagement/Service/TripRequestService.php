@@ -1163,10 +1163,11 @@ class TripRequestService extends BaseService implements TripRequestServiceInterf
     {
         DB::beginTransaction();
         Cache::put($trip->id, ACCEPTED, now()->addHour());
+        $pickupParts = explode(',', $trip->coordinate->pickup_coordinates ?? '0,0');
         $driverArrivalTime = getRoutes(
             originCoordinates: [
-                $trip->coordinate->pickup_coordinates->getLat(),
-                $trip->coordinate->pickup_coordinates->getLng()
+                (float)($pickupParts[0] ?? 0),
+                (float)($pickupParts[1] ?? 0)
             ],
             destinationCoordinates: [
                 $user->lastLocations->latitude,
@@ -1933,13 +1934,14 @@ class TripRequestService extends BaseService implements TripRequestServiceInterf
                 if (($details->ride_count ?? 0) >= 2 || $user->getDriverAcceptedRegularTrip()) {
                     return false;
                 }
-                $destination = json_decode($user->getDriverOngoingTrip()?->coordinate, true);
-                if ($destination && isset($destination['destination_coordinates']['coordinates'])) {
+                $ongoingTrip = $user->getDriverOngoingTrip();
+                if ($ongoingTrip && $ongoingTrip->coordinate) {
+                    $destParts = explode(',', $ongoingTrip->coordinate->destination_coordinates ?? '0,0');
                     $data = [
                         'from_longitude' => (float)$driver->longitude,
                         'from_latitude' => (float)$driver->latitude,
-                        'to_longitude' => (float)$destination['destination_coordinates']['coordinates'][0],
-                        'to_latitude' => (float)$destination['destination_coordinates']['coordinates'][1],
+                        'to_longitude' => (float)($destParts[1] ?? 0),
+                        'to_latitude' => (float)($destParts[0] ?? 0),
                     ];
                     if ((distanceCalculator(data: $data) * 1.5) > 1) {
                         return false;
@@ -2127,9 +2129,18 @@ class TripRequestService extends BaseService implements TripRequestServiceInterf
     private function buildSegment($from, $to): array
     {
         return [
-            'from' => ['longitude' => (float)$from->longitude, 'latitude' => (float)$from->latitude],
-            'to' => ['longitude' => (float)$to->longitude, 'latitude' => (float)$to->latitude],
+            'from' => $this->coordsToArray($from),
+            'to' => $this->coordsToArray($to),
         ];
+    }
+
+    private function coordsToArray($point): array
+    {
+        if (is_string($point)) {
+            $parts = explode(',', $point);
+            return ['latitude' => (float)($parts[0] ?? 0), 'longitude' => (float)($parts[1] ?? 0)];
+        }
+        return ['longitude' => (float)($point->longitude ?? 0), 'latitude' => (float)($point->latitude ?? 0)];
     }
 
     public function canDriverAcceptRegularTrip(User $user, Model $trip, float $estimatedDistance, float $avgKmPerMinute): bool

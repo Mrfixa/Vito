@@ -590,11 +590,11 @@ class AuthController extends Controller
 
         $otp = $this->otpVerificationService->findOneBy(criteria: ['phone_or_email' => $request['phone_or_email']]);
         if (!$otp) {
-            return response()->json(responseFormatter(DEFAULT_404), 403);
+            return response()->json(responseFormatter(DEFAULT_404), 404);
         }
 
         if (now()->greaterThan($otp->expires_at)) {
-            return response()->json(responseFormatter(OTP_EXPIRE_404), 403);
+            return response()->json(responseFormatter(OTP_EXPIRE_404), 404);
         }
 
         $block_time = businessConfig('temporary_block_time')?->value ?? 30;

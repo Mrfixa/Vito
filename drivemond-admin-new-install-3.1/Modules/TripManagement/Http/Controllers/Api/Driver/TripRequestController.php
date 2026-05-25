@@ -480,12 +480,12 @@ class TripRequestController extends Controller
         $ongoingTrip = $this->tripRequestService->findOneBy(criteria: ['driver_id' => $user->id, 'type' => RIDE_REQUEST, 'current_status' => ONGOING], relations: ['coordinate', 'driver.lastLocations']);
 
         if ($ongoingTrip) {
-            $coordinates = json_decode($ongoingTrip->coordinate, true);
+            $destParts = explode(',', $ongoingTrip->coordinate->destination_coordinates ?? '0,0');
             $distance = distanceCalculator([
                 'from_longitude' => $ongoingTrip->driver->lastLocations->longitude,
                 'from_latitude' => $ongoingTrip->driver->lastLocations->latitude,
-                'to_longitude' => $coordinates['destination_coordinates']['coordinates'][0],
-                'to_latitude' => $coordinates['destination_coordinates']['coordinates'][1],
+                'to_longitude' => (float)($destParts[1] ?? 0),
+                'to_latitude' => (float)($destParts[0] ?? 0),
             ]);
 
             $data = ($distance * 1.5) > 1

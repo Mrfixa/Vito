@@ -504,13 +504,13 @@ class ConfigController extends Controller
         $trip = $this->tripRequestService->findOneBy(criteria: [
             'id' => $request->trip_request_id,
         ]);
-        $destinationCoordinates = json_decode($trip?->coordinate, true);
+        $destParts = explode(',', $trip?->coordinate?->destination_coordinates ?? '0,0');
 
         $data = [];
         $data['from_longitude'] = (float)$request->driver_last_longitude;
         $data['from_latitude'] = (float)$request->driver_last_latitude;
-        $data['to_longitude'] = (float)$destinationCoordinates['destination_coordinates']['coordinates'][0];
-        $data['to_latitude'] = (float)$destinationCoordinates['destination_coordinates']['coordinates'][1];
+        $data['to_longitude'] = (float)($destParts[1] ?? 0);
+        $data['to_latitude'] = (float)($destParts[0] ?? 0);
         $distanceToReach = number_format(distanceCalculator($data) * 1.3, 2);
 
         return response()->json(['distance' => $distanceToReach], 200);
