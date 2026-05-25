@@ -131,6 +131,11 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
       token = scannedValue.split('/invite/').last;
     }
 
+    if (token.length != 64) {
+      setState(() => _hasScanned = false);
+      return;
+    }
+
     Get.back();
     widget.onTokenScanned(token);
   }

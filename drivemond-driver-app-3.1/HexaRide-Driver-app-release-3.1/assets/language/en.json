@@ -1024,5 +1024,6 @@
   "no_pending_orders": "No pending mart orders",
   "order_not_available": "Order no longer available",
   "items_ordered": "items",
-  "delivery_details": "Delivery Details"
+  "delivery_details": "Delivery Details",
+  "something_went_wrong": "Something went wrong. Please try again."
 }

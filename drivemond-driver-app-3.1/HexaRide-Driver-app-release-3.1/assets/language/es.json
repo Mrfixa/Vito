@@ -1023,5 +1023,6 @@
   "no_pending_orders": "No hay pedidos de mart pendientes",
   "order_not_available": "El pedido ya no está disponible",
   "items_ordered": "artículos",
-  "delivery_details": "Detalles de Entrega"
+  "delivery_details": "Detalles de Entrega",
+  "something_went_wrong": "Algo salió mal. Por favor, inténtelo de nuevo."
 }

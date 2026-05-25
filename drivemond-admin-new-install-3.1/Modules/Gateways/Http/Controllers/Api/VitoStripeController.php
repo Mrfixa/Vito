@@ -115,13 +115,29 @@ class VitoStripeController extends Controller
             $userId = is_object($data) && isset($data->metadata->user_id)
                 ? $data->metadata->user_id
                 : ($data['metadata']['user_id'] ?? null);
+            $amount = is_object($data) ? $data->amount / 100 : (($data['amount'] ?? 0) / 100);
+            $currency = is_object($data) ? ($data->currency ?? 'usd') : ($data['currency'] ?? 'usd');
 
-            DB::transaction(function () use ($paymentIntentId, $stripeEventId, $userId, $data) {
+            DB::transaction(function () use ($paymentIntentId, $stripeEventId, $userId, $amount, $currency) {
                 $stripeEvent = StripeEvent::where('payment_intent_id', $paymentIntentId)
                     ->lockForUpdate()
                     ->first();
 
-                if (!$stripeEvent || $stripeEvent->status === 'succeeded') {
+                if (!$stripeEvent) {
+                    // Webhook arrived before createPaymentIntent stored the record.
+                    // Create it now so we can proceed and ensure idempotency on retries.
+                    $stripeEvent = StripeEvent::create([
+                        'stripe_event_id' => $stripeEventId,
+                        'type' => 'payment_intent.succeeded',
+                        'user_id' => $userId,
+                        'amount' => $amount,
+                        'currency' => $currency,
+                        'status' => 'pending',
+                        'payment_intent_id' => $paymentIntentId,
+                    ]);
+                }
+
+                if ($stripeEvent->status === 'succeeded') {
                     return;
                 }
 
@@ -135,7 +151,6 @@ class VitoStripeController extends Controller
                 if ($userId) {
                     $user = \Modules\UserManagement\Entities\User::find($userId);
                     if ($user && $user->userAccount) {
-                        $amount = is_object($data) ? $data->amount / 100 : (($data['amount'] ?? 0) / 100);
                         $user->userAccount()->increment('wallet_balance', $amount);
                     }
                 }

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:ui' as ui;
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -51,6 +52,7 @@ class _MartDeliveryScreenState extends State<MartDeliveryScreen> {
           _orderData = Map<String, dynamic>.from(response.body['data']);
           _orderStatus = _orderData['status'] ?? 'accepted';
           _isLoading = false;
+          _isOffline = false;
         });
       } else {
         setState(() => _isLoading = false);
@@ -546,7 +548,7 @@ class _MartDeliveryScreenState extends State<MartDeliveryScreen> {
       final fields = {'order_id': widget.orderId};
       final multipartFiles = <MultipartBody>[];
 
-      if (_deliveryPhotoPath != null) {
+      if (_deliveryPhotoPath != null && File(_deliveryPhotoPath!).existsSync()) {
         multipartFiles.add(MultipartBody('delivery_photo', XFile(_deliveryPhotoPath!)));
       }
 

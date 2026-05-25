@@ -40,6 +40,7 @@ class QrToken extends Model
     {
         return !$this->is_revoked
             && !$this->redeemed_at
+            && $this->expires_at !== null
             && $this->expires_at->isFuture();
     }
 }

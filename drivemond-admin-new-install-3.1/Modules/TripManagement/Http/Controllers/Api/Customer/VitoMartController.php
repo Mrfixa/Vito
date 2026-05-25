@@ -219,13 +219,14 @@ class VitoMartController extends Controller
             }
 
             foreach ($order->items as $item) {
-                if ($item->product) {
-                    $item->product->increment('stock', $item->quantity);
+                $lockedProduct = $item->product()->withTrashed()->lockForUpdate()->first();
+                if ($lockedProduct) {
+                    $lockedProduct->increment('stock', $item->quantity);
                 }
             }
 
             if ($order->promo_code) {
-                $promo = MartPromoCode::where('code', $order->promo_code)
+                $promo = MartPromoCode::where('code', strtoupper($order->promo_code))
                     ->lockForUpdate()
                     ->first();
                 if ($promo && $promo->used_count > 0) {

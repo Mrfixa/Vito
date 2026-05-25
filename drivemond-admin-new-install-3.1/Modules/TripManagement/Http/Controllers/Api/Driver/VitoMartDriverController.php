@@ -106,9 +106,9 @@ class VitoMartDriverController extends Controller
             if ($request->status === 'cancelled') {
                 // Restore product stock atomically under the same transaction lock.
                 foreach ($order->items as $item) {
-                    if ($item->product) {
-                        $item->product()->lockForUpdate()->first();
-                        $item->product->increment('stock', $item->quantity);
+                    $lockedProduct = $item->product()->withTrashed()->lockForUpdate()->first();
+                    if ($lockedProduct) {
+                        $lockedProduct->increment('stock', $item->quantity);
                     }
                 }
                 // If a promo code was used, decrement its global used_count.

@@ -103,7 +103,7 @@ class NotificationHelper {
             Get.find<ParcelController>().updateParcelState(ParcelDeliveryState.parcelOngoing);
             if(Get.find<RideController>().tripDetails == null ){
               Get.find<RideController>().getRideDetails(message.data['ride_request_id']).then((value) {
-                if (Get.find<RideController>().tripDetails!.parcelInformation!.payer == 'sender') {
+                if (Get.find<RideController>().tripDetails?.parcelInformation?.payer == 'sender') {
                   Get.find<RideController>().getFinalFare(message.data['ride_request_id']).then((value) {
                     if (value.statusCode == 200) {
                       Get.find<MapController>().notifyMapController();
@@ -115,7 +115,7 @@ class NotificationHelper {
               });
 
             }else{
-              if (Get.find<RideController>().tripDetails!.parcelInformation!.payer == 'sender') {
+              if (Get.find<RideController>().tripDetails?.parcelInformation?.payer == 'sender') {
                 Get.find<RideController>().getFinalFare(message.data['ride_request_id']).then((value) {
                   if (value.statusCode == 200) {
                     Get.find<MapController>().notifyMapController();

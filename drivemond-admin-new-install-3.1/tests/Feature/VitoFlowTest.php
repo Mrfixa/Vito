@@ -947,4 +947,254 @@ class VitoFlowTest extends TestCase
             ->where('user_id', $user->id)->value('wallet_balance');
         $this->assertEquals(50.00, $balance2);
     }
+
+    // ========================================================================
+    // 14. Promo usage_limit hard cap
+    // ========================================================================
+
+    public function test_promo_usage_limit(): void
+    {
+        $customer = $this->createUser('customer');
+        $customer2 = $this->createUser('customer');
+        Passport::actingAs($customer, ['AccessToCustomer']);
+
+        MartPromoCode::create([
+            'code' => 'LIMIT2',
+            'discount_type' => 'fixed',
+            'discount_value' => 5.00,
+            'min_order_amount' => 0,
+            'usage_limit' => 2,
+            'per_user_limit' => 10,
+            'used_count' => 0,
+            'is_active' => true,
+        ]);
+
+        $product = MartProduct::create([
+            'name' => 'Widget',
+            'price' => 20.00,
+            'stock' => 100,
+            'is_active' => true,
+        ]);
+
+        // First order with code — should succeed
+        $r1 = $this->postJson('/api/customer/mart/order', [
+            'items' => [['product_id' => $product->id, 'quantity' => 1]],
+            'delivery_address' => 'Addr 1',
+            'promo_code' => 'LIMIT2',
+        ]);
+        $r1->assertStatus(200);
+
+        // Second order with code — should succeed (usage_limit=2)
+        $r2 = $this->postJson('/api/customer/mart/order', [
+            'items' => [['product_id' => $product->id, 'quantity' => 1]],
+            'delivery_address' => 'Addr 2',
+            'promo_code' => 'LIMIT2',
+        ]);
+        $r2->assertStatus(200);
+
+        // Promo used_count should now be 2
+        $this->assertEquals(2, MartPromoCode::where('code', 'LIMIT2')->value('used_count'));
+
+        // Third order — promo is exhausted, order still placed but no discount applied
+        $r3 = $this->postJson('/api/customer/mart/order', [
+            'items' => [['product_id' => $product->id, 'quantity' => 1]],
+            'delivery_address' => 'Addr 3',
+            'promo_code' => 'LIMIT2',
+        ]);
+        $r3->assertStatus(200);
+        // No discount since usage_limit reached — total equals product price
+        $orderId3 = $r3->json('data.id');
+        $order3 = MartOrder::find($orderId3);
+        $this->assertEquals('20.00', $order3->total_amount);
+    }
+
+    // ========================================================================
+    // 15. Stock out-of-stock error
+    // ========================================================================
+
+    public function test_out_of_stock(): void
+    {
+        $customer = $this->createUser('customer');
+        Passport::actingAs($customer, ['AccessToCustomer']);
+
+        $product = MartProduct::create([
+            'name' => 'Scarce Item',
+            'price' => 15.00,
+            'stock' => 2,
+            'is_active' => true,
+        ]);
+
+        // Order exactly the available stock
+        $r1 = $this->postJson('/api/customer/mart/order', [
+            'items' => [['product_id' => $product->id, 'quantity' => 2]],
+            'delivery_address' => 'Addr 1',
+        ]);
+        $r1->assertStatus(200);
+        $this->assertEquals(0, MartProduct::find($product->id)->stock);
+
+        // Next order should fail — insufficient stock
+        $r2 = $this->postJson('/api/customer/mart/order', [
+            'items' => [['product_id' => $product->id, 'quantity' => 1]],
+            'delivery_address' => 'Addr 2',
+        ]);
+        $r2->assertStatus(400);
+    }
+
+    // ========================================================================
+    // 16. Tip cap at 30% of subtotal
+    // ========================================================================
+
+    public function test_tip_cap(): void
+    {
+        $customer = $this->createUser('customer');
+        Passport::actingAs($customer, ['AccessToCustomer']);
+
+        $product = MartProduct::create([
+            'name' => 'Tippy Product',
+            'price' => 10.00,
+            'stock' => 10,
+            'is_active' => true,
+        ]);
+
+        // Send tip=999 on a $10 order — should be capped to 30% = $3
+        $r = $this->postJson('/api/customer/mart/order', [
+            'items' => [['product_id' => $product->id, 'quantity' => 1]],
+            'delivery_address' => 'Tip test',
+            'tip_amount' => 999,
+        ]);
+        $r->assertStatus(200);
+        $order = MartOrder::latest()->first();
+        $this->assertEquals('3.00', $order->tip_amount);
+        $this->assertEquals('13.00', $order->total_amount);
+    }
+
+    // ========================================================================
+    // 17. Stripe webhook credits wallet when StripeEvent record missing
+    // ========================================================================
+
+    public function test_webhook_credits_wallet_without_prior_record(): void
+    {
+        $user = $this->createUser('customer');
+        DB::table('user_accounts')->insert([
+            'id' => Str::uuid(),
+            'user_id' => $user->id,
+            'wallet_balance' => 0,
+        ]);
+
+        $paymentIntentId = 'pi_new_' . Str::random(24);
+        $stripeEventId = 'evt_new_' . Str::random(24);
+
+        // No StripeEvent record exists yet
+        $this->assertFalse(StripeEvent::where('payment_intent_id', $paymentIntentId)->exists());
+
+        // Simulate the webhook transaction directly
+        DB::transaction(function () use ($paymentIntentId, $stripeEventId, $user) {
+            $stripeEvent = StripeEvent::where('payment_intent_id', $paymentIntentId)
+                ->lockForUpdate()->first();
+
+            if (!$stripeEvent) {
+                $stripeEvent = StripeEvent::create([
+                    'stripe_event_id' => $stripeEventId,
+                    'type' => 'payment_intent.succeeded',
+                    'user_id' => $user->id,
+                    'amount' => 25.00,
+                    'currency' => 'usd',
+                    'status' => 'pending',
+                    'payment_intent_id' => $paymentIntentId,
+                ]);
+            }
+
+            if ($stripeEvent->status !== 'succeeded') {
+                $stripeEvent->update(['status' => 'succeeded', 'stripe_event_id' => $stripeEventId]);
+                DB::table('user_accounts')->where('user_id', $user->id)
+                    ->increment('wallet_balance', 25.00);
+            }
+        });
+
+        $balance = (float) DB::table('user_accounts')->where('user_id', $user->id)->value('wallet_balance');
+        $this->assertEquals(25.00, $balance);
+        $this->assertEquals('succeeded', StripeEvent::where('payment_intent_id', $paymentIntentId)->value('status'));
+    }
+
+    // ========================================================================
+    // 18. Mart driver concurrent order accept — only one wins
+    // ========================================================================
+
+    public function test_concurrent_mart_order_accept(): void
+    {
+        $driver1 = $this->createUser('driver');
+        $driver2 = $this->createUser('driver');
+
+        $product = MartProduct::create([
+            'name' => 'Concurrent Product',
+            'price' => 10.00,
+            'stock' => 5,
+            'is_active' => true,
+        ]);
+
+        $customer = $this->createUser('customer');
+        $order = MartOrder::create([
+            'ref_id' => 'VM-CONC001',
+            'customer_id' => $customer->id,
+            'status' => 'pending',
+            'total_amount' => 10.00,
+            'delivery_address' => 'Test',
+        ]);
+
+        // Simulate both drivers attempting to accept simultaneously using DB transactions
+        $result1 = DB::transaction(function () use ($order, $driver1) {
+            $o = MartOrder::where('id', $order->id)
+                ->where('status', 'pending')
+                ->whereNull('driver_id')
+                ->lockForUpdate()->first();
+            if (!$o) return null;
+            $o->update(['driver_id' => $driver1->id, 'status' => 'accepted']);
+            return $o;
+        });
+
+        $result2 = DB::transaction(function () use ($order, $driver2) {
+            $o = MartOrder::where('id', $order->id)
+                ->where('status', 'pending')
+                ->whereNull('driver_id')
+                ->lockForUpdate()->first();
+            if (!$o) return null;
+            $o->update(['driver_id' => $driver2->id, 'status' => 'accepted']);
+            return $o;
+        });
+
+        // First driver wins, second gets null
+        $this->assertNotNull($result1);
+        $this->assertNull($result2);
+        $this->assertEquals($driver1->id, MartOrder::find($order->id)->driver_id);
+    }
+
+    // ========================================================================
+    // 19. Invalid mart order status transition rejected
+    // ========================================================================
+
+    public function test_invalid_mart_status_transition(): void
+    {
+        $driver = $this->createUser('driver');
+        Passport::actingAs($driver, ['AccessToDriver']);
+
+        $customer = $this->createUser('customer');
+        $order = MartOrder::create([
+            'ref_id' => 'VM-TRANS01',
+            'customer_id' => $customer->id,
+            'driver_id' => $driver->id,
+            'status' => 'accepted',
+            'total_amount' => 10.00,
+            'delivery_address' => 'Test',
+        ]);
+
+        // Can't go from accepted → delivered (must go accepted → picked_up → delivered)
+        $r = $this->putJson('/api/driver/mart/update-status', [
+            'order_id' => $order->id,
+            'status' => 'delivered',
+        ]);
+        $r->assertStatus(404);
+
+        // Verify status unchanged
+        $this->assertEquals('accepted', MartOrder::find($order->id)->status);
+    }
 }

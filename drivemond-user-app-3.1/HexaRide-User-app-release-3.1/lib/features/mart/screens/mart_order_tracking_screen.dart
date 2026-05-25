@@ -77,6 +77,10 @@ class _MartOrderTrackingScreenState extends State<MartOrderTrackingScreen> {
             _driverInfo = Map<String, dynamic>.from(data['driver']);
             _driverId = data['driver_id'] ?? data['driver']?['id'] ?? '';
             _driverName = '${data['driver']?['first_name'] ?? ''} ${data['driver']?['last_name'] ?? ''}'.trim();
+          } else {
+            _driverInfo = {};
+            _driverId = '';
+            _driverName = '';
           }
           _estimatedArrival = data['estimated_arrival'] ?? '';
           _isLoading = false;
