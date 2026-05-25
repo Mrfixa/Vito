@@ -26,7 +26,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
   FocusNode usernameNode = FocusNode();
   FocusNode fNameNode = FocusNode();
   FocusNode lNameNode = FocusNode();
-  FocusNode phoneNode = FocusNode();
   FocusNode confirmPasswordNode = FocusNode();
   FocusNode passwordNode = FocusNode();
   FocusNode referralNode = FocusNode();

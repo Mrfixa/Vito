@@ -80,8 +80,13 @@ class WalletTransferController extends Controller
                         'message' => 'mart account not found',
                     ]), 403);
                 }
-            }catch (\Exception $exception){
-
+            } catch (\RuntimeException $e) {
+                if ($e->getMessage() === 'insufficient_fund') {
+                    return response()->json(responseFormatter(constant: INSUFFICIENT_FUND_403), 403);
+                }
+                throw $e;
+            } catch (\Exception $exception) {
+                // HTTP/network failure contacting mart — fall through to error response below
             }
 
 
