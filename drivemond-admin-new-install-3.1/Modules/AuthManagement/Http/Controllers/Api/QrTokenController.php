@@ -54,11 +54,7 @@ class QrTokenController extends Controller
             return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 422);
         }
 
-        $qrToken = DB::transaction(function () use ($request) {
-            return QrToken::where('token', $request->token)
-                ->lockForUpdate()
-                ->first();
-        });
+        $qrToken = QrToken::where('token', $request->token)->first();
 
         if (!$qrToken || !$qrToken->isValid()) {
             return response()->json(responseFormatter(constant: DEFAULT_404), 404);

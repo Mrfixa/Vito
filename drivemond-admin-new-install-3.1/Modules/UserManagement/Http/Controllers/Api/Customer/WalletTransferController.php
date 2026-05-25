@@ -34,7 +34,10 @@ class WalletTransferController extends Controller
             return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
         }
         $customer = Auth::user();
-        if ($customer && $customer?->userAccount?->wallet_balance < $request->amount) {
+        if (!$customer || !$customer->userAccount) {
+            return response()->json(responseFormatter(constant: DEFAULT_404), 404);
+        }
+        if ($customer->userAccount->wallet_balance < $request->amount) {
             return response()->json(responseFormatter(constant: INSUFFICIENT_FUND_403), 403);
         }
         if (checkSelfExternalConfiguration()) {
@@ -54,14 +57,12 @@ class WalletTransferController extends Controller
                 if ($response->successful()) {
                     $martCustomerResponse = $response->json();
                     if ($martCustomerResponse['status']) {
-                        $martCustomer = $martCustomerResponse['data'];
-                        $customer = $this->customerService->findOneBy(criteria: ['phone' => $martCustomer['phone'], 'user_type' => CUSTOMER]);
                         if ($customer && $customer->userAccount) {
                             $this->customerService->walletTransfer(customer: $customer, data: [
                                 'amount' => $request->amount,
                                 'type' => 'debit'
                             ]);
-                            $customer = $this->customerService->findOneBy(criteria: ['phone' => $martCustomer['phone'], 'user_type' => CUSTOMER]);
+                            $customer->refresh();
                             return response()->json(responseFormatter(constant: FUND_TRANSFER_200,content: $customer));
                         }
                     }
@@ -132,23 +133,24 @@ class WalletTransferController extends Controller
                     if ($martCustomerResponse['status']) {
                         $martCustomer = $martCustomerResponse['data'];
                         $customer = $this->customerService->findOneBy(criteria: ['phone' => $martCustomer['phone'], 'user_type' => CUSTOMER]);
-                        if ($customer && $customer->userAccount) {
-                            $this->customerService->walletTransfer(customer: $customer, data: [
-                                'amount' => $request->amount,
-                                'type' => 'credit'
-                            ]);
-                            sendDeviceNotification(
-                                fcm_token: $customer?->fcm_token,
-                                title:translate("wallet_transfer_vito_from_mart") ,
-                                description: translate("you_transfer_your_wallet_balance_vito_from_mart"),
-                                status: 1
-                            );
-                            $data = [
-                                'status' => true,
-                                'data' => $customer
-                            ];
-                            return response()->json(data: $data);
+                        if (!$customer || !$customer->userAccount) {
+                            return response()->json(['status' => false, 'errors' => ['error_code' => 404, 'message' => 'Vito customer not found']], 200);
                         }
+                        $this->customerService->walletTransfer(customer: $customer, data: [
+                            'amount' => $request->amount,
+                            'type' => 'credit'
+                        ]);
+                        sendDeviceNotification(
+                            fcm_token: $customer?->fcm_token,
+                            title:translate("wallet_transfer_vito_from_mart") ,
+                            description: translate("you_transfer_your_wallet_balance_vito_from_mart"),
+                            status: 1
+                        );
+                        $data = [
+                            'status' => true,
+                            'data' => $customer
+                        ];
+                        return response()->json(data: $data);
                     }
 
                     $martCustomer = $martCustomerResponse['data'];

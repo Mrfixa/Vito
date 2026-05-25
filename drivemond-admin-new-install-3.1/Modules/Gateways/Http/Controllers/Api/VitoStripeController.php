@@ -43,11 +43,12 @@ class VitoStripeController extends Controller
             // Idempotency key: one PaymentIntent per user per day for wallet top-ups.
             // Using user_id + date means retrying within the same calendar day is safe
             // and won't create duplicate charges.
-            $idempotencyKey = 'pi_' . $request->user()->id . '_walletTopup_' . date('Ymd');
+            $amountCents = (int) round($request->amount * 100);
+            $idempotencyKey = 'pi_' . $request->user()->id . '_walletTopup_' . date('Ymd') . '_' . $amountCents;
 
             $paymentIntent = \Stripe\PaymentIntent::create(
                 [
-                    'amount' => (int) round($request->amount * 100),
+                    'amount' => $amountCents,
                     'currency' => $request->input('currency', 'usd'),
                     'metadata' => [
                         'user_id' => $request->user()->id,
@@ -57,15 +58,17 @@ class VitoStripeController extends Controller
                 ['idempotency_key' => $idempotencyKey],
             );
 
-            StripeEvent::create([
-                'stripe_event_id' => $paymentIntent->id,
-                'type' => 'payment_intent.created',
-                'user_id' => $request->user()->id,
-                'amount' => $request->amount,
-                'currency' => $request->input('currency', 'usd'),
-                'status' => 'pending',
-                'payment_intent_id' => $paymentIntent->id,
-            ]);
+            StripeEvent::firstOrCreate(
+                ['stripe_event_id' => $paymentIntent->id],
+                [
+                    'type' => 'payment_intent.created',
+                    'user_id' => $request->user()->id,
+                    'amount' => $request->amount,
+                    'currency' => $request->input('currency', 'usd'),
+                    'status' => 'pending',
+                    'payment_intent_id' => $paymentIntent->id,
+                ]
+            );
 
             return response()->json(responseFormatter(DEFAULT_200, [
                 'client_secret' => $paymentIntent->client_secret,

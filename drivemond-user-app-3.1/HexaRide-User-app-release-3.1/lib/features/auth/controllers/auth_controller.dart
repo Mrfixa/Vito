@@ -37,6 +37,7 @@ class AuthController extends GetxController implements GetxService {
   bool get isActiveRememberMe => _isActiveRememberMe;
   bool showNavigationBar = true;
 
+  TextEditingController usernameController = TextEditingController();
   TextEditingController fNameController = TextEditingController();
   TextEditingController lNameController = TextEditingController();
   TextEditingController phoneController = TextEditingController();
@@ -65,7 +66,7 @@ class AuthController extends GetxController implements GetxService {
 
     if (response?.statusCode == 200) {
 
-      saveUserNumberAndPassword(countryCode, phone, password, true);
+      saveUserNumberAndPassword(countryCode, phone, password, false);
       setUserToken(response!.body['data']['token']);
       PusherHelper.initializePusher();
       updateToken();
@@ -126,7 +127,7 @@ class AuthController extends GetxController implements GetxService {
 
     Response? response = await authServiceInterface.registration(signUpBody: signUpBody);
     if(response!.statusCode == 200){
-      login(countryCode, phoneWithoutCountryCode, signUpBody.password!);
+      login('', signUpBody.username ?? '', signUpBody.password!);
     } else if(response.statusCode == 407){
       Get.bottomSheet(ManualAuthWaringBottomSheetWidget(phoneNumber: phoneWithoutCountryCode, from: VerificationForm.verifyUser));
     }else {

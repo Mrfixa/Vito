@@ -68,6 +68,7 @@ class AuthController extends GetxController implements GetxService {
     update();
   }
 
+  TextEditingController usernameController = TextEditingController();
   TextEditingController fNameController = TextEditingController();
   TextEditingController lNameController = TextEditingController();
   TextEditingController passwordController = TextEditingController();
@@ -78,6 +79,7 @@ class AuthController extends GetxController implements GetxService {
   TextEditingController identityNumberController = TextEditingController();
   TextEditingController referralCodeController = TextEditingController();
 
+  FocusNode usernameNode = FocusNode();
   FocusNode fNameNode = FocusNode();
   FocusNode lNameNode = FocusNode();
   FocusNode phoneNode = FocusNode();
@@ -279,7 +281,7 @@ class AuthController extends GetxController implements GetxService {
 
       }else{
         showCustomSnackBar('registration_completed_successfully'.tr, isError: false);
-        login(code, signUpBody.phone?.replaceAll(code, '') ?? '', signUpBody.password ?? '');
+        login('', signUpBody.username ?? '', signUpBody.password ?? '');
       }
       Get.find<ProfileController>().updateFirstTimeShowBottomSheet(true);
     }else if(response.statusCode == 407){

@@ -166,6 +166,7 @@ class VitoMartDriverController extends Controller
 
         $order = MartOrder::where('id', $request->order_id)
             ->where('driver_id', $request->user()->id)
+            ->whereIn('status', ['accepted', 'picked_up'])
             ->first();
 
         if (!$order) {

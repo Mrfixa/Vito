@@ -964,6 +964,7 @@
   "on_the_way": "On the way",
   "check_back_later": "Check back later",
   "enter_username_and_pin": "Enter username and PIN",
+  "pin": "PIN (6 digits)",
   "pin_is_required": "PIN is required",
   "username_is_required": "Username is required",
   "please_enter_delivery_address": "Please enter delivery address",

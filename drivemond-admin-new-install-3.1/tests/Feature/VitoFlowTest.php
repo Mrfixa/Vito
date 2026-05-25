@@ -560,8 +560,10 @@ class VitoFlowTest extends TestCase
         $this->assertTrue(Hash::check('111222', $user->pin_hash));
         $this->assertEquals('driver', $user->user_type);
 
-        // Token redeemed
+        // Token redeemed with redeemed_by set
         $this->assertNotNull(DB::table('qr_tokens')->where('token', $driverToken)->value('redeemed_at'));
+        $driverUser = User::where('username', 'johndriver')->first();
+        $this->assertDatabaseHas('qr_tokens', ['token' => $driverToken, 'redeemed_by' => $driverUser->id]);
     }
 
     // ========================================================================

@@ -1,7 +1,5 @@
-import 'package:country_code_picker/country_code_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:phone_numbers_parser/phone_numbers_parser.dart';
 import 'package:ride_sharing_user_app/common_widgets/button_widget.dart';
 import 'package:ride_sharing_user_app/common_widgets/text_field_widget.dart';
 import 'package:ride_sharing_user_app/features/auth/controllers/auth_controller.dart';
@@ -41,6 +39,20 @@ class AdditionalSignUpScreen1 extends StatelessWidget {
                     Padding(
                       padding: EdgeInsets.symmetric(horizontal: Dimensions.paddingSizeDefault),
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        TextFieldTitleWidget(title: 'username'.tr, isRequired: true),
+
+                        TextFieldWidget(
+                          hintText: 'username'.tr,
+                          inputType: TextInputType.text,
+                          prefixIcon: Images.person,
+                          controller: authController.usernameController,
+                          focusNode: authController.usernameNode,
+                          nextFocus: authController.fNameNode,
+                          inputAction: TextInputAction.next,
+                          autoFocus: authController.usernameController.text.isEmpty,
+                        ),
+                        const SizedBox(width: Dimensions.paddingSizeDefault),
+
                         TextFieldTitleWidget(title: 'first_name'.tr, isRequired: true),
 
                         TextFieldWidget(
@@ -52,7 +64,6 @@ class AdditionalSignUpScreen1 extends StatelessWidget {
                           focusNode: authController.fNameNode,
                           nextFocus: authController.lNameNode,
                           inputAction: TextInputAction.next,
-                          autoFocus: authController.fNameController.text.isEmpty,
                         ),
                         const SizedBox(width: Dimensions.paddingSizeDefault),
 
@@ -65,25 +76,8 @@ class AdditionalSignUpScreen1 extends StatelessWidget {
                           prefixIcon: Images.person,
                           controller: authController.lNameController,
                           focusNode: authController.lNameNode,
-                          nextFocus: authController.phoneNode,
-                          inputAction: TextInputAction.next,
-                        ),
-
-                        TextFieldTitleWidget(title: 'phone'.tr, isRequired: true),
-
-                        TextFieldWidget(
-                          hintText: 'enter_your_phone'.tr,
-                          inputType: TextInputType.number,
-                          countryDialCode: authController.countryDialCode,
-                          controller: authController.phoneController,
-                          focusNode: authController.phoneNode,
                           nextFocus: authController.passwordNode,
                           inputAction: TextInputAction.next,
-                          onCountryChanged: (CountryCode countryCode){
-                            authController.countryDialCode = countryCode.dialCode!;
-                            authController.setCountryCode(countryCode.dialCode!);
-                            FocusScope.of(context).requestFocus(authController.phoneNode);
-                          },
                         ),
 
                         if(Get.find<SplashController>().config?.referralEarningStatus ?? false)...[
@@ -145,25 +139,25 @@ class AdditionalSignUpScreen1 extends StatelessWidget {
                   radius: Dimensions.radiusExtraLarge,
                   buttonText: 'next'.tr,
                   onPressed: (){
+                    String username = authController.usernameController.text.trim();
                     String fName = authController.fNameController.text;
-                    String phone = authController.phoneController.text.trim();
                     String password = authController.passwordController.text;
                     String confirmPassword = authController.confirmPasswordController.text;
 
-                    if(fName.isEmpty){
+                    if(username.isEmpty){
+                      showCustomSnackBar('username_is_required'.tr);
+                      FocusScope.of(context).requestFocus(authController.usernameNode);
+                    }else if(username.length < 3){
+                      showCustomSnackBar('username_min_3_characters'.tr);
+                      FocusScope.of(context).requestFocus(authController.usernameNode);
+                    }else if(fName.isEmpty){
                       showCustomSnackBar('first_name_is_required'.tr);
                       FocusScope.of(context).requestFocus(authController.fNameNode);
-                    }else if(phone.isEmpty){
-                      showCustomSnackBar('phone_is_required'.tr);
-                      FocusScope.of(context).requestFocus(authController.phoneNode);
-                    }else if(!PhoneNumber.parse(authController.countryDialCode + phone).isValid(type: PhoneNumberType.mobile)){
-                      showCustomSnackBar('phone_number_is_not_valid'.tr);
-                      FocusScope.of(context).requestFocus(authController.phoneNode);
                     }else if(password.isEmpty){
-                      showCustomSnackBar('password_is_required'.tr);
+                      showCustomSnackBar('pin_is_required'.tr);
                       FocusScope.of(context).requestFocus(authController.passwordNode);
-                    }else if(password.length<8){
-                      showCustomSnackBar('minimum_password_length_is_8'.tr);
+                    }else if(!RegExp(r'^\d{6}$').hasMatch(password)){
+                      showCustomSnackBar('pin_must_be_6_digits'.tr);
                       FocusScope.of(context).requestFocus(authController.passwordNode);
                     }else if(confirmPassword.isEmpty){
                       showCustomSnackBar('confirm_password_is_required'.tr);

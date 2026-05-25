@@ -91,7 +91,6 @@ Route::controller(\Modules\AuthManagement\Http\Controllers\Api\VitoAuthControlle
 Route::controller(\Modules\AuthManagement\Http\Controllers\Api\QrTokenController::class)->group(function () {
     Route::middleware('throttle:10,1')->group(function () {
         Route::post('qr-token/validate', 'validateToken');
-        Route::post('qr-token/redeem', 'redeemToken');
         Route::get('qr/validate/{token}', 'validateTokenPublic');
     });
 

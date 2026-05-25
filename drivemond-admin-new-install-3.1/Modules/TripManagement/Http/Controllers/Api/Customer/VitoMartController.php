@@ -110,6 +110,10 @@ class VitoMartController extends Controller
                 $items = array_values($merged);
 
                 foreach ($items as $item) {
+                    if ($item['quantity'] > 100) {
+                        throw new \RuntimeException('Quantity exceeds maximum (100) for product: ' . ($item['product_id'] ?? ''));
+                    }
+
                     $product = MartProduct::where('id', $item['product_id'])
                         ->where('is_active', true)
                         ->lockForUpdate()
@@ -150,6 +154,7 @@ class VitoMartController extends Controller
                         $perUserLimit = $promo->per_user_limit ?? 1;
                         $userUsageCount = MartOrder::where('customer_id', $request->user()->id)
                             ->where('promo_code', $promo->code)
+                            ->whereNotIn('status', ['cancelled'])
                             ->count();
 
                         if ($userUsageCount < $perUserLimit) {
