@@ -1024,5 +1024,9 @@
   "order_not_available": "الطلب لم يعد متاحاً",
   "items_ordered": "عناصر",
   "delivery_details": "تفاصيل التوصيل",
-  "something_went_wrong": "حدث خطأ ما. يرجى المحاولة مرة أخرى."
+  "something_went_wrong": "حدث خطأ ما. يرجى المحاولة مرة أخرى.",
+  "order_accepted": "مقبول",
+  "order_picked_up": "تم الاستلام",
+  "order_delivered": "تم التوصيل",
+  "order_cancelled": "ملغى"
 }

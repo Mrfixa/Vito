@@ -1024,5 +1024,9 @@
   "order_not_available": "El pedido ya no está disponible",
   "items_ordered": "artículos",
   "delivery_details": "Detalles de Entrega",
-  "something_went_wrong": "Algo salió mal. Por favor, inténtelo de nuevo."
+  "something_went_wrong": "Algo salió mal. Por favor, inténtelo de nuevo.",
+  "order_accepted": "Aceptado",
+  "order_picked_up": "Recogido",
+  "order_delivered": "Entregado",
+  "order_cancelled": "Cancelado"
 }

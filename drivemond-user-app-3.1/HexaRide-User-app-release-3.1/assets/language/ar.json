@@ -997,5 +997,6 @@
   "we_do_for_you_the_best": "نقدم لك الأفضل",
   "your_payment_cancelled": "تم إلغاء دفعتك",
   "your_payment_failed": "فشلت دفعتك",
-  "your_payment_successfully_done": "تمت دفعتك بنجاح"
+  "your_payment_successfully_done": "تمت دفعتك بنجاح",
+  "order_not_found": "الطلب غير موجود أو لا يمكن إلغاؤه"
 }

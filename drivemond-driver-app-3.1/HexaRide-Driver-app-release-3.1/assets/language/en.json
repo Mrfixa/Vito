@@ -1025,5 +1025,9 @@
   "order_not_available": "Order no longer available",
   "items_ordered": "items",
   "delivery_details": "Delivery Details",
-  "something_went_wrong": "Something went wrong. Please try again."
+  "something_went_wrong": "Something went wrong. Please try again.",
+  "order_accepted": "Accepted",
+  "order_picked_up": "Picked Up",
+  "order_delivered": "Delivered",
+  "order_cancelled": "Cancelled"
 }

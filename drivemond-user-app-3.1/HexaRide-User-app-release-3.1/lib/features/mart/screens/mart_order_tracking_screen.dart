@@ -448,12 +448,18 @@ class _MartOrderTrackingScreenState extends State<MartOrderTrackingScreen> {
             onPressed: () async {
               Get.back();
               try {
-                await Get.find<ApiClient>().putData(
+                final cancelResponse = await Get.find<ApiClient>().putData(
                   '${AppConstants.martCancelOrder}${widget.orderId}/cancel',
                   {},
                 );
-                Get.back();
-                Get.snackbar('success'.tr, 'order_cancelled'.tr);
+                if (cancelResponse.statusCode == 200) {
+                  Get.back();
+                  Get.snackbar('success'.tr, 'order_cancelled'.tr);
+                } else if (cancelResponse.statusCode == 404) {
+                  Get.snackbar('error'.tr, 'order_not_found'.tr);
+                } else {
+                  Get.snackbar('error'.tr, 'cancel_failed'.tr);
+                }
               } catch (e) {
                 debugPrint('Mart tracking error: $e');
                 Get.snackbar('error'.tr, 'cancel_failed'.tr);

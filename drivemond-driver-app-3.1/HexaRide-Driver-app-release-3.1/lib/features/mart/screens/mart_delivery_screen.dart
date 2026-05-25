@@ -155,7 +155,7 @@ class _MartDeliveryScreenState extends State<MartDeliveryScreen> {
                       borderRadius: BorderRadius.circular(Dimensions.radiusSmall),
                     ),
                     child: Text(
-                      _orderStatus.tr,
+                      _statusTranslationKey(_orderStatus).tr,
                       style: textMedium.copyWith(
                         color: _getStatusColor(),
                         fontSize: Dimensions.fontSizeSmall,
@@ -610,6 +610,16 @@ class _MartDeliveryScreenState extends State<MartDeliveryScreen> {
     );
   }
 
+  String _statusTranslationKey(String status) {
+    const keys = {
+      'accepted': 'order_accepted',
+      'picked_up': 'order_picked_up',
+      'delivered': 'order_delivered',
+      'cancelled': 'order_cancelled',
+    };
+    return keys[status] ?? status;
+  }
+
   Color _getStatusColor() {
     switch (_orderStatus) {
       case 'accepted':
@@ -618,6 +628,8 @@ class _MartDeliveryScreenState extends State<MartDeliveryScreen> {
         return Colors.indigo;
       case 'delivered':
         return Colors.green;
+      case 'cancelled':
+        return Colors.red;
       default:
         return Colors.grey;
     }
