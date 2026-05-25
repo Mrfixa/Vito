@@ -77,10 +77,11 @@ class ZoneController extends BaseController
 
         $zone = $this->zoneService->findOne($id);
         if (isset($zone)) {
-            $area = json_decode($zone->coordinates[0]->toJson(), true);
-            $current_zone = formatCoordinates(json_decode($zone->coordinates[0]->toJson(), true));
-            $centerLat = trim(explode(' ', $zone->coordinates)[1], 'POINT()');
-            $centerLng = trim(explode(' ', $zone->coordinates)[0], 'POINT()');
+            $area = json_decode($zone->coordinates, true);
+            $ring = $area['coordinates'][0] ?? [];
+            $current_zone = formatCoordinates($ring);
+            $centerLat = count($ring) > 0 ? array_sum(array_column($ring, 1)) / count($ring) : 0;
+            $centerLng = count($ring) > 0 ? array_sum(array_column($ring, 0)) / count($ring) : 0;
             return view('zonemanagement::admin.zone.edit', compact('zone', 'current_zone', 'centerLat', 'centerLng', 'area'));
         }
 

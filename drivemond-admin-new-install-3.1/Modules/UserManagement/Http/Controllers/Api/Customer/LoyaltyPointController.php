@@ -33,7 +33,7 @@ class LoyaltyPointController extends Controller
         ]);
         if ($validator->fails()) {
 
-            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
         }
         $criteria =[
             'user_id' => auth('api')->id(),
@@ -55,7 +55,7 @@ class LoyaltyPointController extends Controller
         ]);
         if ($validator->fails()) {
 
-            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
         }
         $conversion_rate = businessConfig('loyalty_points', 'customer_settings')?->value;
         $user = auth('api')->user();

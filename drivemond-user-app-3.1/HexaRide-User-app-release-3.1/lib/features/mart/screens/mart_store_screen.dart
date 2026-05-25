@@ -335,7 +335,8 @@ class _MartCartScreenState extends State<MartCartScreen> {
   double get _subtotal {
     double total = 0;
     for (final item in widget.cartItems) {
-      total += (item['price'] as num? ?? 0) * (item['quantity'] as int? ?? 1);
+      final price = double.tryParse(item['price']?.toString() ?? '0') ?? 0.0;
+      total += price * (item['quantity'] as int? ?? 1);
     }
     return total;
   }
@@ -436,9 +437,12 @@ class _MartCartScreenState extends State<MartCartScreen> {
             Text('${item['quantity'] ?? 1}', style: textMedium),
             IconButton(
               onPressed: () {
-                setState(() {
-                  item['quantity'] = (item['quantity'] ?? 1) + 1;
-                });
+                final current = item['quantity'] as int? ?? 1;
+                if (current < 100) {
+                  setState(() {
+                    item['quantity'] = current + 1;
+                  });
+                }
               },
               icon: const Icon(Icons.add_circle_outline),
             ),
@@ -714,6 +718,7 @@ class _MartCartScreenState extends State<MartCartScreen> {
         setState(() {
           _discount = (response.body['data']['discount'] as num?)?.toDouble() ?? 0.0;
           _appliedPromoCode = code;
+          _promoController.clear();
         });
       } else {
         Get.snackbar('error'.tr, 'invalid_promo_code'.tr);

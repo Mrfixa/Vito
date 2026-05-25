@@ -32,24 +32,28 @@ class BusinessManagementServiceProvider extends ServiceProvider
         $this->registerViews();
         $this->loadMigrationsFrom(module_path($this->moduleName, 'Database/Migrations'));
         BusinessSetting::observe(BusinessSettingObserver::class);
-        $config = businessConfig('email_config', 'email_config')?->value;
-        if ($config) {
-            Config::set('mail', [
-                'driver' => $config['driver'],
-                'host' => $config['host'],
-                'port' => $config['port'],
-                'username' => $config['username'],
-                'password' => $config['password'],
-                'encryption' => $config['encryption'],
-                'from' => array('address' => $config['email_id'], 'name' => $config['mailer_name']),
-                'sendmail' => '/usr/sbin/sendmail -bs',
-                'pretend' => false,
-            ]);
-        }
-        $timezone = businessConfig('time_zone', 'business_information')?->value;
-        if ($timezone) {
-            Config::set('timezone', $timezone);
-            date_default_timezone_set($timezone);
+        try {
+            $config = businessConfig('email_config', 'email_config')?->value;
+            if ($config) {
+                Config::set('mail', [
+                    'driver' => $config['driver'],
+                    'host' => $config['host'],
+                    'port' => $config['port'],
+                    'username' => $config['username'],
+                    'password' => $config['password'],
+                    'encryption' => $config['encryption'],
+                    'from' => array('address' => $config['email_id'], 'name' => $config['mailer_name']),
+                    'sendmail' => '/usr/sbin/sendmail -bs',
+                    'pretend' => false,
+                ]);
+            }
+            $timezone = businessConfig('time_zone', 'business_information')?->value;
+            if ($timezone) {
+                Config::set('timezone', $timezone);
+                date_default_timezone_set($timezone);
+            }
+        } catch (\Throwable $e) {
+            // DB not ready yet (fresh install) — skip
         }
     }
 

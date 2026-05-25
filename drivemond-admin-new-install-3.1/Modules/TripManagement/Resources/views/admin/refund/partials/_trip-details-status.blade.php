@@ -124,12 +124,12 @@
             directionsDisplay.setMap(map);
 
             const start = ({
-                lat: {{$trip->coordinate->pickup_coordinates->latitude}},
-                lng: {{$trip->coordinate->pickup_coordinates->longitude}}
+                lat: {{ (float)(explode(',', $trip->coordinate->pickup_coordinates ?? '0,0')[0] ?? 0) }},
+                lng: {{ (float)(explode(',', $trip->coordinate->pickup_coordinates ?? '0,0')[1] ?? 0) }}
             });
             const end = ({
-                lat: {{$trip->coordinate->destination_coordinates->latitude}},
-                lng: {{$trip->coordinate->destination_coordinates->longitude}}
+                lat: {{ (float)(explode(',', $trip->coordinate->destination_coordinates ?? '0,0')[0] ?? 0) }},
+                lng: {{ (float)(explode(',', $trip->coordinate->destination_coordinates ?? '0,0')[1] ?? 0) }}
             });
             drawPath(directionsService, directionsDisplay, start, end);
         }

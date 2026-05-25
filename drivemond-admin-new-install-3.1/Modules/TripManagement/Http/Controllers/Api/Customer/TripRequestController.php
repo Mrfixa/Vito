@@ -122,17 +122,17 @@ class TripRequestController extends Controller
         } else {
             $pickup_coordinates = json_decode($request['pickup_coordinates'], true);
             $destination_coordinates = json_decode($request['destination_coordinates'], true);
-            $pickup_point = new Point($pickup_coordinates[0], $pickup_coordinates[1]);
-            $destination_point = new Point($destination_coordinates[0], $destination_coordinates[1]);
+            $pickup_point = $pickup_coordinates[0] . ',' . $pickup_coordinates[1];
+            $destination_point = $destination_coordinates[0] . ',' . $destination_coordinates[1];
         }
 
         $zone = $this->zoneService->getByPoints($pickup_point)->where('is_active', 1)->first();
         if (!$zone) {
-            return response()->json(responseFormatter(ZONE_404), 403);
+            return response()->json(responseFormatter(ZONE_404), 404);
         }
         $getTripZone = $this->zoneService->getZoneContainingBothPoints($zone->id, $pickup_point, $destination_point);
         if (!$getTripZone) {
-            return response()->json(responseFormatter(ZONE_404), 403);
+            return response()->json(responseFormatter(ZONE_404), 404);
         }
 
         $extraFare = $this->checkZoneExtraFare($zone);
@@ -160,7 +160,7 @@ class TripRequestController extends Controller
                     return $request->parcel_weight >= $pw->min_weight && $request->parcel_weight <= $pw->max_weight;
                 });
                 if (!$parcelWeight) {
-                    return response()->json(responseFormatter(PARCEL_WEIGHT_400), 403);
+                    return response()->json(responseFormatter(PARCEL_WEIGHT_400), 400);
                 }
                 $relations = [
                     'fares' => [
@@ -188,7 +188,7 @@ class TripRequestController extends Controller
                 drivingMode: $drivingModes,
             );
             if (array_key_exists('error', $serverRoutes)) {
-                return response()->json(responseFormatter(ROUTE_NOT_FOUND_404), 403);
+                return response()->json(responseFormatter(ROUTE_NOT_FOUND_404), 404);
             }
 
             $serverFares = $this->estimatedFare(
@@ -258,7 +258,7 @@ class TripRequestController extends Controller
                 $this->tripRequestService->updatedBy(criteria: ['id' => $save_trip->id], data: $attributes);
             } else {
                 $customer_coordinates = json_decode($request['customer_coordinates'], true);
-                $customer_point = new Point($customer_coordinates[0], $customer_coordinates[1]);
+                $customer_point = $customer_coordinates[0] . ',' . $customer_coordinates[1];
                 $request->merge([
                     'customer_id' => auth('api')->id(),
                     'zone_id' => $zone->id,
@@ -318,7 +318,7 @@ class TripRequestController extends Controller
         }
 
         if (!$request->header('zoneId') || !$this->zoneService->findOne(id: $request->header('zoneId'))) {
-            return response()->json(responseFormatter(ZONE_404), 403);
+            return response()->json(responseFormatter(ZONE_404), 404);
         }
 
         $user = auth('api')->user();
@@ -338,12 +338,12 @@ class TripRequestController extends Controller
 
         $zone = $this->zoneService->getByPoints($pickupPoint)->where('is_active', 1)->first();
         if (!$zone) {
-            return response()->json(responseFormatter(ZONE_404), 403);
+            return response()->json(responseFormatter(ZONE_404), 404);
         }
         $getTripZone = $this->zoneService->getZoneContainingBothPoints($zone->id, $pickupPoint, $destinationPoint);
 
         if (!$getTripZone) {
-            return response()->json(responseFormatter(ZONE_404), 403);
+            return response()->json(responseFormatter(ZONE_404), 404);
         }
 
         if ($request->type == 'ride_request') {
@@ -353,7 +353,7 @@ class TripRequestController extends Controller
             })->values();
             $availableCategories = $tripFare->pluck('vehicleCategory.type')->unique()->toArray();
             if (empty($availableCategories)) {
-                return response()->json(responseFormatter(NO_ACTIVE_CATEGORY_IN_ZONE_404), 403);
+                return response()->json(responseFormatter(NO_ACTIVE_CATEGORY_IN_ZONE_404), 404);
             }
         } else {
             $parcelWeights = $this->parcelWeightService->getBy(limit: 9999, offset: 1);
@@ -362,7 +362,7 @@ class TripRequestController extends Controller
                 return $request->parcel_weight >= $parcelWeight->min_weight && $request->parcel_weight <= $parcelWeight->max_weight;
             });
             if (!$parcelWeight) {
-                return response()->json(responseFormatter(PARCEL_WEIGHT_400), 403);
+                return response()->json(responseFormatter(PARCEL_WEIGHT_400), 400);
             }
             $parcelWeightId = $parcelWeight->id;
             $relations = [
@@ -390,7 +390,7 @@ class TripRequestController extends Controller
         );
 
         if (array_key_exists('error', $getRoutes)) {
-            return response()->json(responseFormatter(ROUTE_NOT_FOUND_404), 403);
+            return response()->json(responseFormatter(ROUTE_NOT_FOUND_404), 404);
         }
 
         $estimatedFare = $this->estimatedFare(
@@ -401,14 +401,11 @@ class TripRequestController extends Controller
             tripFare: $tripFare,
             beforeCreate: true
         );
-        $pickup_point = DB::raw("ST_GeomFromText('POINT({$pickupCoordinates[0]} {$pickupCoordinates[1]})', 4326)");
-        $destination_point = DB::raw("ST_GeomFromText('POINT({$destinationCoordinates[0]} {$destinationCoordinates[1]})', 4326)");
-
         $this->recentAddressService->create(data: [
             'user_id' => $user?->id,
             'zone_id' => $zone->id,
-            'pickup_coordinates' => $pickup_point,
-            'destination_coordinates' => $destination_point,
+            'pickup_coordinates' => $pickupCoordinates[0] . ',' . $pickupCoordinates[1],
+            'destination_coordinates' => $destinationCoordinates[0] . ',' . $destinationCoordinates[1],
             'pickup_address' => $request->pickup_address,
             'destination_address' => $request->destination_address,
         ]);
@@ -474,7 +471,7 @@ class TripRequestController extends Controller
         ]);
         if ($validator->fails()) {
 
-            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
         }
         $tripRequest = $this->tripRequestService->findOneBy(criteria: ['id' => $trip_request_id]);
         if ($tripRequest->current_status == PENDING) {
@@ -517,7 +514,7 @@ class TripRequestController extends Controller
             relations: ['vehicleCategory.tripFares', 'customer', 'driver', 'coupon', 'discount', 'time', 'coordinate', 'fee', 'tripStatus', 'parcelRefund']
         );
         if (!$trip) {
-            return response()->json(responseFormatter(constant: TRIP_REQUEST_404), 403);
+            return response()->json(responseFormatter(constant: TRIP_REQUEST_404), 404);
         }
         if ($trip->current_status != 'completed' && $trip->current_status != 'cancelled' && $trip->type == 'ride_request') {
             return response()->json(responseFormatter(constant: TRIP_STATUS_NOT_COMPLETED_200));
@@ -532,7 +529,7 @@ class TripRequestController extends Controller
         if ($trip->type == 'ride_request') {
             $fare = $trip->vehicleCategory->tripFares->where('zone_id', $trip->zone_id)->first();
             if (!$fare) {
-                return response()->json(responseFormatter(ZONE_404), 403);
+                return response()->json(responseFormatter(ZONE_404), 404);
             }
         } else {
             $fare = null;
@@ -642,7 +639,7 @@ class TripRequestController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
         }
 
         $trip = $this->tripRequestService->findOneBy(['id' => $request->trip_request_id], relations: ['coordinate']);
@@ -655,7 +652,7 @@ class TripRequestController extends Controller
             return response()->json(responseFormatter(constant: DRIVER_403), 403);
         }
         if (!$trip) {
-            return response()->json(responseFormatter(constant: TRIP_REQUEST_404), 403);
+            return response()->json(responseFormatter(constant: TRIP_REQUEST_404), 404);
         }
         if (!$driver->vehicle) {
             return response()->json(responseFormatter(constant: DEFAULT_404), 403);
@@ -708,8 +705,8 @@ class TripRequestController extends Controller
 
             $driver_arrival_time = getRoutes(
                 originCoordinates: [
-                    $trip->coordinate->pickup_coordinates->latitude,
-                    $trip->coordinate->pickup_coordinates->longitude
+                    explode(',', $trip->coordinate->pickup_coordinates ?? '0,0')[0],
+                    explode(',', $trip->coordinate->pickup_coordinates ?? '0,0')[1]
                 ],
                 destinationCoordinates: [
                     $driver->lastLocations->latitude,
@@ -717,7 +714,7 @@ class TripRequestController extends Controller
                 ],
             );
             if (array_key_exists('error', $driver_arrival_time)) {
-                return response()->json(responseFormatter(ROUTE_NOT_FOUND_404), 403);
+                return response()->json(responseFormatter(ROUTE_NOT_FOUND_404), 404);
             }
             if ($trip->type == 'ride_request') {
                 $attributes['driver_arrival_time'] = (double)($driver_arrival_time[0]['duration']) / 60;
@@ -764,7 +761,7 @@ class TripRequestController extends Controller
         $criteria = ['ride_request_type' => 'regular'];
         $trip = $this->tripRequestService->getIncompleteRide(criteria: $criteria);
         if (!$trip) {
-            return response()->json(responseFormatter(constant: TRIP_REQUEST_404), 403);
+            return response()->json(responseFormatter(constant: TRIP_REQUEST_404), 404);
         }
         $trip = TripRequestResource::make($trip);
 
@@ -780,7 +777,7 @@ class TripRequestController extends Controller
 
         if ($validator->fails()) {
 
-            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
         }
         $data = $this->tripRequestService->getPendingParcel(data: array_merge($validator->validated(), ['user_column' => 'customer_id']));
         $trips = TripRequestResource::collection($data);
@@ -795,13 +792,13 @@ class TripRequestController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
         }
 
         $trip = $this->tripRequestService->findOne(id: $trip_request_id, relations: ['driver', 'driver.lastLocations', 'time', 'coordinate', 'fee', 'parcelRefund']);
 
         if (!$trip) {
-            return response()->json(responseFormatter(constant: TRIP_REQUEST_404), 403);
+            return response()->json(responseFormatter(constant: TRIP_REQUEST_404), 404);
         }
 
         // TOCTOU guard: re-read the trip status under a row-level lock so two
@@ -925,24 +922,24 @@ class TripRequestController extends Controller
             if ($request->status == 'cancelled') {
                 $attributes['fee']['cancelled_by'] = 'customer';
             }
-            $attributes['coordinate']['drop_coordinates'] = new Point($trip->driver->lastLocations->latitude, $trip->driver->lastLocations->longitude);
+            $attributes['coordinate']['drop_coordinates'] = $trip->driver->lastLocations->latitude . ',' . $trip->driver->lastLocations->longitude;
             $drivingMode = $trip?->vehicleCategory?->type === 'motor_bike' ? 'TWO_WHEELER' : 'DRIVE';
             $intermediate_coordinate = [];
             if ($trip->coordinate->is_reached_1) {
                 if ($trip->coordinate->is_reached_2) {
                     $intermediate_coordinate[1] = [
-                        $trip->coordiante->int_coordinate_2->latitude,
-                        $trip->coordiante->int_coordinate_2->longitude
+                        explode(',', $trip->coordinate->int_coordinate_2)[0],
+                        explode(',', $trip->coordinate->int_coordinate_2)[1]
                     ];
                 }
                 $intermediate_coordinate[0] = [
-                    $trip->coordiante->int_coordinate_1->latitude,
-                    $trip->coordiante->int_coordinate_1->longitude
+                    explode(',', $trip->coordinate->int_coordinate_1)[0],
+                    explode(',', $trip->coordinate->int_coordinate_1)[1]
                 ];
             }
             $getRoutes = getRoutes([
-                $trip->coordinate->pickup_coordinates->latitude,
-                $trip->coordinate->pickup_coordinates->longitude
+                explode(',', $trip->coordinate->pickup_coordinates)[0],
+                explode(',', $trip->coordinate->pickup_coordinates)[1]
             ], [$trip->driver->lastLocations->latitude, $trip->driver->lastLocations->longitude], $intermediate_coordinate, [$drivingMode]);
             if (array_key_exists('error', $getRoutes)) {
                 return response()->json(responseFormatter(constant: [ 'response_code' => 'drop_off_location_not_found_404',
@@ -1066,7 +1063,7 @@ class TripRequestController extends Controller
         ]);
         if ($validator->fails()) {
 
-            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
         }
         $bidding = $this->fareBiddingService->findOneBy(criteria: ['id' => $request->bidding_id]);
         if (!$bidding) {
@@ -1101,11 +1098,11 @@ class TripRequestController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
         }
         $time = $this->tripRequestTimeService->findOneBy(criteria: ['trip_request_id' => $request->trip_request_id]);
         if (!$time) {
-            return response()->json(responseFormatter(TRIP_REQUEST_404), 403);
+            return response()->json(responseFormatter(TRIP_REQUEST_404), 404);
         }
         $this->tripRequestTimeService->update(id: $time->id, data: ['customer_arrives_at' => now()]);
 
@@ -1121,7 +1118,7 @@ class TripRequestController extends Controller
 
         if ($validator->fails()) {
 
-            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
         }
 
         $this->tripRequestService->update(id: $request->trip_request_id, data: [
@@ -1139,7 +1136,7 @@ class TripRequestController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
         }
 
         $relations = ['customer', 'driver', 'vehicleCategory', 'vehicleCategory.tripFares', 'vehicle', 'coupon', 'time',
@@ -1170,7 +1167,7 @@ class TripRequestController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
         }
 
         $trip = $this->tripRequestCoordinateService->findOneBy(criteria: ['trip_request_id' => $request->trip_request_id]);
@@ -1189,7 +1186,7 @@ class TripRequestController extends Controller
     {
         $trip = $this->tripRequestService->findOneBy(criteria: ['id' => $trip_request_id], relations: ['driver', 'driver.driverDetails', 'driver.lastLocations', 'time', 'coordinate', 'fee', 'parcelRefund', 'parcel']);
         if (!$trip) {
-            return response()->json(responseFormatter(constant: TRIP_REQUEST_404), 403);
+            return response()->json(responseFormatter(constant: TRIP_REQUEST_404), 404);
         }
         if ($trip->current_status == RETURNED) {
             return response()->json(responseFormatter(TRIP_STATUS_RETURNED_403), 403);
@@ -1241,13 +1238,13 @@ class TripRequestController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
         }
 
         $trip = $this->tripRequestService->findOneBy(criteria: ['id' => $trip_request_id]);
 
         if (!$trip || $trip->ride_request_type == 'regular' || $trip->current_status === ACCEPTED) {
-            return response()->json(responseFormatter(constant: TRIP_REQUEST_404), 403);
+            return response()->json(responseFormatter(constant: TRIP_REQUEST_404), 404);
         }
 
 

@@ -217,10 +217,9 @@ class TripRequestRepository extends BaseRepository implements TripRequestReposit
             ->when($attributes['relations'] ?? null, fn($query) => $query->with($attributes['relations']))
             ->with([
                 'fare_biddings' => fn($query) => $query->where('driver_id', auth()->id()),
-                'coordinate' => fn($query) => $query->distanceSphere('pickup_coordinates', $attributes['driver_locations'], $attributes['distance'])
+                'coordinate',
             ])
-            ->whereHas('coordinate',
-                fn($query) => $query->distanceSphere('pickup_coordinates', $attributes['driver_locations'], $attributes['distance']))
+            ->whereHas('coordinate')
             ->when($attributes['withAvgRelation'] ?? null,
                 fn($query) => $query->withAvg($attributes['withAvgRelation'], $attributes['withAvgColumn']))
             ->whereDoesntHave('ignoredRequests', fn($query) => $query->where('user_id', auth()->id()))
@@ -571,7 +570,7 @@ class TripRequestRepository extends BaseRepository implements TripRequestReposit
                 });
             });
         if ($attributes['limit']) {
-            return !empty($appends) ? $model->paginate(perPage: $attributes['limit'], page: $attributes['offset'] ?? 1)->appends($appends) : $model->paginate(perPage: $attributes['limit'], page: $attributes['offsetr'] ?? 1);
+            return !empty($appends) ? $model->paginate(perPage: $attributes['limit'], page: $attributes['offset'] ?? 1)->appends($appends) : $model->paginate(perPage: $attributes['limit'], page: $attributes['offset'] ?? 1);
         }
         return $model->get();
     }
@@ -666,7 +665,7 @@ class TripRequestRepository extends BaseRepository implements TripRequestReposit
             ->where('payment_status', 'unpaid')
         ));
         if ($limit) {
-            return !empty($appends) ? $model->paginate(perPage: $limit, page: $offset ?? 1)->appends($appends) : $model->paginate(perPage: $limit, page: $offset ?? 1);
+            return $model->paginate(perPage: $limit, page: $offset ?? 1);
         }
         return $model->get();
     }

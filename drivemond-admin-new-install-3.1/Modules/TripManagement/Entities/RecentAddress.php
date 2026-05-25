@@ -4,14 +4,12 @@ namespace Modules\TripManagement\Entities;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use MatanYadaev\EloquentSpatial\Objects\Point;
-use MatanYadaev\EloquentSpatial\Traits\HasSpatial;
 use Modules\UserManagement\Entities\User;
 use Modules\ZoneManagement\Entities\Zone;
 
 class RecentAddress extends Model
 {
-    use HasFactory, HasSpatial;
+    use HasFactory;
 
     protected $fillable = [
         'user_id',
@@ -23,9 +21,10 @@ class RecentAddress extends Model
         'created_at',
         'updated_at',
     ];
-    protected $cast = [
-        'pickup_coordinates' => Point::class,
-        'destination_coordinates' => Point::class
+
+    protected $casts = [
+        'pickup_coordinates' => 'string',
+        'destination_coordinates' => 'string',
     ];
 
     protected static function newFactory()

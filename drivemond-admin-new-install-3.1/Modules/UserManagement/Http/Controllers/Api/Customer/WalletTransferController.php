@@ -31,7 +31,7 @@ class WalletTransferController extends Controller
             ],
         ]);
         if ($validator->fails()) {
-            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
         }
         $customer = Auth::user();
         if ($customer && $customer?->userAccount?->wallet_balance < $request->amount) {

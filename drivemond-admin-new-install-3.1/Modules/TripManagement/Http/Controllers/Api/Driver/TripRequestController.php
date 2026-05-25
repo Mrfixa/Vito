@@ -78,7 +78,7 @@ class TripRequestController extends Controller
         ]);
         if ($validator->fails()) {
 
-            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
         }
 
         $relations = ['tripStatus', 'customer', 'driver', 'time', 'coordinate', 'time', 'fee', 'parcelRefund'];
@@ -113,13 +113,13 @@ class TripRequestController extends Controller
         ]);
         if ($validator->fails()) {
 
-            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
         }
 
         $time = $this->tripRequestTimeService->findOneBy(criteria: ['trip_request_id' => $request->trip_request_id]);
         $trip = $this->tripRequestService->findOneBy(criteria: ['id' => $request->trip_request_id], relations: ['customer']);
         if (!$time) {
-            return response()->json(responseFormatter(TRIP_REQUEST_404), 403);
+            return response()->json(responseFormatter(TRIP_REQUEST_404), 404);
         }
         $this->tripRequestService->rideWaiting($trip, $time);
         $rideRequestType = $trip->ride_request_type == SCHEDULED ? 'schedule_ride_' : 'trip_';
@@ -151,7 +151,7 @@ class TripRequestController extends Controller
             'offset' => 'required|numeric|min:0'
         ]);
         if ($validator->fails()) {
-            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
         }
 
         $data = $this->tripRequestService->rideList(data: $validator->validated());
@@ -168,12 +168,12 @@ class TripRequestController extends Controller
 
         if ($validator->fails()) {
 
-            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
         }
 
         $time = $this->tripRequestTimeService->findOneBy(criteria: ['trip_request_id' => $request->trip_request_id]);
         if (!$time) {
-            return response()->json(responseFormatter(TRIP_REQUEST_404), 403);
+            return response()->json(responseFormatter(TRIP_REQUEST_404), 404);
         }
         $this->tripRequestTimeService->updatedBy(criteria: ['trip_request_id' => $request->trip_request_id], data: ['driver_arrives_at' => now()]);
 
@@ -201,7 +201,7 @@ class TripRequestController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
         }
         $tripCoordinate = $this->tripRequestCoordinateService->findOneBy(criteria: ['trip_request_id' => $request->trip_request_id]);
         $data = match ($request->is_reached) {
@@ -223,7 +223,7 @@ class TripRequestController extends Controller
 
         if ($validator->fails()) {
 
-            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
         }
 
         $data = $this->tripRequestService->getPendingParcel(data: array_merge($validator->validated(), ['user_column' => 'driver_id']));
@@ -241,7 +241,7 @@ class TripRequestController extends Controller
         ]);
         if ($validator->fails()) {
 
-            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
         }
         $relations = ['customer', 'driver', 'vehicleCategory', 'vehicleCategory.tripFares', 'vehicle', 'coupon', 'time',
             'coordinate', 'fee', 'tripStatus', 'zone', 'vehicle.model', 'fare_biddings', 'parcel', 'parcelUserInfo'];
@@ -268,7 +268,7 @@ class TripRequestController extends Controller
 
         if ($validator->fails()) {
 
-            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
         }
 
         $trip = $this->tripRequestService->findOneBy(criteria: ['id' => $request->trip_request_id], relations: ['customer']);
@@ -302,11 +302,11 @@ class TripRequestController extends Controller
 
         if ($validator->fails()) {
 
-            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
         }
         $trip = $this->tripRequestService->findOneBy(criteria: ['id' => $request->trip_request_id], relations: ['customer', 'coordinate']);
         if (!$trip) {
-            return response()->json(responseFormatter(TRIP_REQUEST_404), 403);
+            return response()->json(responseFormatter(TRIP_REQUEST_404), 404);
         }
         if ($trip->driver_id != auth('api')->id()) {
             return response()->json(responseFormatter(DEFAULT_404), 403);
@@ -368,7 +368,7 @@ class TripRequestController extends Controller
         ]);
         if ($validator->fails()) {
 
-            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
         }
         $data = [
             'type' => $request->route()->getPrefix() == "api/customer/ride" ? 'customer' : 'driver',
@@ -390,7 +390,7 @@ class TripRequestController extends Controller
             $overViewCriteria = array_merge($criteria, ['current_status' => PENDING]);
             $data = $this->tripRequestService->findOneBy(criteria: $overViewCriteria, withAvgRelations: $withAvgRelations, relations: $relations);
             if (!$data) {
-                return response()->json(responseFormatter(TRIP_REQUEST_404), 403);
+                return response()->json(responseFormatter(TRIP_REQUEST_404), 404);
             }
             if (!is_null($data)) {
                 $resource = TripRequestResource::make($data);
@@ -418,7 +418,7 @@ class TripRequestController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(responseFormatter(DEFAULT_400, errors: errorProcessor($validator)), 403);
+            return response()->json(responseFormatter(DEFAULT_400, errors: errorProcessor($validator)), 400);
         }
 
         $zoneId = $request->header('zoneId');
@@ -480,12 +480,12 @@ class TripRequestController extends Controller
         $ongoingTrip = $this->tripRequestService->findOneBy(criteria: ['driver_id' => $user->id, 'type' => RIDE_REQUEST, 'current_status' => ONGOING], relations: ['coordinate', 'driver.lastLocations']);
 
         if ($ongoingTrip) {
-            $coordinates = json_decode($ongoingTrip->coordinate, true);
+            $destParts = explode(',', $ongoingTrip->coordinate->destination_coordinates ?? '0,0');
             $distance = distanceCalculator([
                 'from_longitude' => $ongoingTrip->driver->lastLocations->longitude,
                 'from_latitude' => $ongoingTrip->driver->lastLocations->latitude,
-                'to_longitude' => $coordinates['destination_coordinates']['coordinates'][0],
-                'to_latitude' => $coordinates['destination_coordinates']['coordinates'][1],
+                'to_longitude' => (float)($destParts[1] ?? 0),
+                'to_latitude' => (float)($destParts[0] ?? 0),
             ]);
 
             $data = ($distance * 1.5) > 1
@@ -508,13 +508,13 @@ class TripRequestController extends Controller
 
         if ($validator->fails()) {
 
-            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
         }
 
         $trip = $this->tripRequestService->findOneBy(criteria: ['id' => $request->trip_request_id, 'type' => PARCEL], relations: ['driver', 'driver.driverDetails', 'driver.lastLocations', 'time', 'coordinate', 'fee', 'parcelRefund']);
 
         if (!$trip) {
-            return response()->json(responseFormatter(constant: TRIP_REQUEST_404), 403);
+            return response()->json(responseFormatter(constant: TRIP_REQUEST_404), 404);
         }
         if ($trip->driver_id != auth('api')->id()) {
             return response()->json(responseFormatter(DEFAULT_404), 403);
@@ -573,7 +573,7 @@ class TripRequestController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
         }
 
         return $this->tripRequestService->tripOverview(data: $validator->validated());
@@ -586,7 +586,7 @@ class TripRequestController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
         }
         $this->tempTripNotificationService->deleteBy(criteria: ['trip_request_id' => $request->trip_request_id, 'user_id' => auth('api')->id()]);
 
@@ -602,15 +602,15 @@ class TripRequestController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
         }
         $trip = $this->tripRequestService->findOneBy(criteria: ['id' => $request->trip_request_id], relations: ['customer']);
 
         if (!$trip) {
-            return response()->json(responseFormatter(constant: TRIP_REQUEST_404), 403);
+            return response()->json(responseFormatter(constant: TRIP_REQUEST_404), 404);
         }
         if ($trip->driver_id != auth('api')->id()) {
-            return response()->json(responseFormatter(DEFAULT_400), 403);
+            return response()->json(responseFormatter(DEFAULT_400), 400);
         }
         if ($trip->current_status == 'cancelled') {
             return response()->json(responseFormatter(TRIP_STATUS_CANCELLED_403), 403);
@@ -683,7 +683,7 @@ class TripRequestController extends Controller
         ]);
         if ($validator->fails()) {
 
-            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
         }
         $user = auth('api')->user()->load(['driverDetails', 'lastLocations', 'userAccount']);
         if ($user->driverDetails->is_suspended)
@@ -704,7 +704,7 @@ class TripRequestController extends Controller
             return response()->json(responseFormatter(DEFAULT_UPDATE_200));
         }
         if (!$trip) {
-            return response()->json(responseFormatter(constant: TRIP_REQUEST_404), 403);
+            return response()->json(responseFormatter(constant: TRIP_REQUEST_404), 404);
         }
         if ($trip->driver_id && $trip->driver_id != $user->id) {
             return response()->json(responseFormatter(TRIP_REQUEST_DRIVER_403), 403);
@@ -797,8 +797,8 @@ class TripRequestController extends Controller
         Cache::put($trip->id, ACCEPTED, now()->addHour());
         $driverArrivalTime = getRoutes(
             originCoordinates: [
-                $trip->coordinate->pickup_coordinates->latitude,
-                $trip->coordinate->pickup_coordinates->longitude
+                explode(',', $trip->coordinate->pickup_coordinates ?? '0,0')[0],
+                explode(',', $trip->coordinate->pickup_coordinates ?? '0,0')[1]
             ],
             destinationCoordinates: [
                 $user->lastLocations->latitude,
@@ -842,7 +842,7 @@ class TripRequestController extends Controller
             $lockedTrip = $this->tripRequestService->getLockedTrip(data: ['id' => $request->trip_request_id]);
 
             if (!$lockedTrip) {
-                return response()->json(responseFormatter(constant: TRIP_REQUEST_404), 403);
+                return response()->json(responseFormatter(constant: TRIP_REQUEST_404), 404);
             }
 
             if ($lockedTrip->driver_id) {
@@ -910,12 +910,12 @@ class TripRequestController extends Controller
         ]);
         if ($validator->fails()) {
 
-            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
         }
 
         $trip = $this->tripRequestService->findOneBy(criteria: ['id' => $request->trip_request_id], relations: ['customer']);
         if (!$trip) {
-            return response()->json(responseFormatter(constant: TRIP_REQUEST_404), 403);
+            return response()->json(responseFormatter(constant: TRIP_REQUEST_404), 404);
         }
         if ($trip->driver_id) {
 
@@ -978,7 +978,7 @@ class TripRequestController extends Controller
 
         if ($validator->fails()) {
 
-            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
         }
 
         $this->tripRequestService->storeScreenshot($request->all());
@@ -990,7 +990,7 @@ class TripRequestController extends Controller
     {
         $trip = $this->tripRequestService->findOneBy(criteria: ['id' => $tripId, 'type' => RIDE_REQUEST, 'current_status' => ACCEPTED, 'ride_request_type' => SCHEDULED]);
         if (!$trip) {
-            return response()->json(responseFormatter(constant: TRIP_REQUEST_404), 403);
+            return response()->json(responseFormatter(constant: TRIP_REQUEST_404), 404);
         }
         $driverOngoingTrip = $this->tripRequestService->findOneBy(criteria: ['driver_id' => auth('api')->id(), 'type' => RIDE_REQUEST, 'current_status' => ONGOING]);
         if ($driverOngoingTrip) {

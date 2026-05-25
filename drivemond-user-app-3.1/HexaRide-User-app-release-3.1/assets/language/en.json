@@ -996,5 +996,6 @@
   "confirm_booking": "Confirm Booking",
   "confirm_booking_message": "Are you sure you want to book this ride?",
   "too_many_requests": "Too many requests. Please try again later.",
-  "server_error": "Server error. Please try again."
+  "server_error": "Server error. Please try again.",
+  "order_not_found": "Order not found or cannot be cancelled"
 }

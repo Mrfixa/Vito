@@ -97,7 +97,19 @@ class VitoMartController extends Controller
                 $subtotal = 0;
                 $orderItems = [];
 
+                // Merge duplicate product_id entries to prevent double stock-decrement
+                $merged = [];
                 foreach ($request->items as $item) {
+                    $pid = $item['product_id'];
+                    if (isset($merged[$pid])) {
+                        $merged[$pid]['quantity'] += (int) $item['quantity'];
+                    } else {
+                        $merged[$pid] = ['product_id' => $pid, 'quantity' => (int) $item['quantity']];
+                    }
+                }
+                $items = array_values($merged);
+
+                foreach ($items as $item) {
                     $product = MartProduct::where('id', $item['product_id'])
                         ->where('is_active', true)
                         ->lockForUpdate()
@@ -219,13 +231,14 @@ class VitoMartController extends Controller
             }
 
             foreach ($order->items as $item) {
-                if ($item->product) {
-                    $item->product->increment('stock', $item->quantity);
+                $lockedProduct = $item->product()->withTrashed()->lockForUpdate()->first();
+                if ($lockedProduct) {
+                    $lockedProduct->increment('stock', $item->quantity);
                 }
             }
 
             if ($order->promo_code) {
-                $promo = MartPromoCode::where('code', $order->promo_code)
+                $promo = MartPromoCode::where('code', strtoupper($order->promo_code))
                     ->lockForUpdate()
                     ->first();
                 if ($promo && $promo->used_count > 0) {

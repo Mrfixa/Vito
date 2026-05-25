@@ -4,12 +4,10 @@ namespace Modules\TripManagement\Entities;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use MatanYadaev\EloquentSpatial\Objects\Point;
-use MatanYadaev\EloquentSpatial\Traits\HasSpatial;
 
 class TripRequestCoordinate extends Model
 {
-    use HasFactory, HasSpatial;
+    use HasFactory;
 
     protected $fillable = [
         'trip_request_id',
@@ -33,14 +31,14 @@ class TripRequestCoordinate extends Model
     ];
 
     protected $casts = [
-        'pickup_coordinates' => Point::class,
-        'destination_coordinates' => Point::class,
-        'start_coordinates' => Point::class,
-        'drop_coordinates' => Point::class,
-        'driver_accept_coordinates' => Point::class,
-        'customer_request_coordinates' => Point::class,
-        'int_coordinate_1' => Point::class,
-        'int_coordinate_2' => Point::class,
+        'pickup_coordinates' => 'string',
+        'destination_coordinates' => 'string',
+        'start_coordinates' => 'string',
+        'drop_coordinates' => 'string',
+        'driver_accept_coordinates' => 'string',
+        'customer_request_coordinates' => 'string',
+        'int_coordinate_1' => 'string',
+        'int_coordinate_2' => 'string',
         'intermediate_coordinates' => 'array',
         'intermediate_addresses' => 'array',
         'is_reached_destination' => 'boolean',
@@ -51,11 +49,6 @@ class TripRequestCoordinate extends Model
     public function tripRequest()
     {
         return $this->belongsTo(TripRequest::class, 'trip_request_id');
-    }
-
-    public function scopeDistanceSphere($query, $column, $location, $distance)
-    {
-        return $query->whereRaw("ST_Distance_Sphere($column, POINT($location->longitude, $location->latitude)) < $distance");
     }
 
     protected static function newFactory()

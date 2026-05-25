@@ -68,12 +68,12 @@ Route::controller(\Modules\AuthManagement\Http\Controllers\Api\AuthController::c
 |--------------------------------------------------------------------------
 */
 Route::controller(\Modules\AuthManagement\Http\Controllers\Api\VitoAuthController::class)->group(function () {
-    Route::group(['prefix' => 'customer/auth'], function () {
+    Route::group(['prefix' => 'customer/auth', 'middleware' => 'throttle:20,1'], function () {
         Route::post('pin-login', 'pinLogin');
         Route::post('pin-register', 'pinRegister');
     });
 
-    Route::group(['prefix' => 'driver/auth'], function () {
+    Route::group(['prefix' => 'driver/auth', 'middleware' => 'throttle:20,1'], function () {
         Route::post('pin-login', 'pinLogin');
         Route::post('pin-register', 'pinRegister');
     });

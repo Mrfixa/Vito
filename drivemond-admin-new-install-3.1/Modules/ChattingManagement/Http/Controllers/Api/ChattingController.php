@@ -172,7 +172,7 @@ class ChattingController extends Controller
         ];
         $trip = $this->tripRequestService->findOneBy(criteria: $attributes, whereInCriteria: $whereInCriteria, relations: $relations);
         if (!$trip) {
-            return response()->json(responseFormatter(constant: TRIP_REQUEST_404), 403);
+            return response()->json(responseFormatter(constant: TRIP_REQUEST_404), 404);
         }
         $user = auth()->user();
         DB::beginTransaction();
@@ -241,7 +241,7 @@ class ChattingController extends Controller
             ->find($orderId);
 
         if (!$order) {
-            return response()->json(responseFormatter(constant: TRIP_REQUEST_404), 403);
+            return response()->json(responseFormatter(constant: TRIP_REQUEST_404), 404);
         }
 
         DB::beginTransaction();
@@ -372,13 +372,13 @@ class ChattingController extends Controller
         $channel = $this->channelListService->findOneBy(criteria: ['id' => $request['channel_id']]);
 
         if (!$channel) {
-            return response()->json(responseFormatter(constant: CHANNEL_NOT_FOUND_404), 403);
+            return response()->json(responseFormatter(constant: CHANNEL_NOT_FOUND_404), 404);
         }
 
         $channelUser = $this->channelUserService->findOneBy(criteria: ['channel_id' => $request['channel_id'], 'user_id' => $user->id]);
 
         if (!$channelUser) {
-            return response()->json(responseFormatter(constant: CHANNEL_NOT_FOUND_404), 403);
+            return response()->json(responseFormatter(constant: CHANNEL_NOT_FOUND_404), 404);
         }
 
         DB::beginTransaction();
@@ -415,13 +415,13 @@ class ChattingController extends Controller
         $channel = $this->channelListService->findOneBy(criteria: ['id' => $request['channel_id']]);
 
         if (!$channel) {
-            return response()->json(responseFormatter(constant: CHANNEL_NOT_FOUND_404), 403);
+            return response()->json(responseFormatter(constant: CHANNEL_NOT_FOUND_404), 404);
         }
 
         $channelUser = $this->channelUserService->findOneBy(criteria: ['channel_id' => $request['channel_id'], 'user_id' => $user->id]);
 
         if (!$channelUser) {
-            return response()->json(responseFormatter(constant: CHANNEL_NOT_FOUND_404), 403);
+            return response()->json(responseFormatter(constant: CHANNEL_NOT_FOUND_404), 404);
         }
         $channelUserAnother = $this->channelUserService->findOneBy(criteria: ['channel_id' => $request['channel_id'], ['user_id', '!=', $user->id]]);
 

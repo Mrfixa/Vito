@@ -39,6 +39,7 @@ import 'package:ride_sharing_user_app/features/ride/controllers/ride_controller.
 import 'package:ride_sharing_user_app/features/splash/controllers/splash_controller.dart';
 import 'package:ride_sharing_user_app/features/trip/screens/payment_received_screen.dart';
 import 'package:ride_sharing_user_app/features/trip/screens/review_this_customer_screen.dart';
+import 'package:ride_sharing_user_app/features/mart/screens/mart_pending_orders_screen.dart';
 
 class NotificationHelper {
   static Future<void> initialize(FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin) async {
@@ -582,6 +583,13 @@ class NotificationHelper {
     }
     else if(data['action'] == 'parcel_return_penalty'){
       _toRoute(formSplash, TripDetails(tripId: data['ride_request_id']));
+    }
+    else if(data['action'] == 'new_mart_order'){
+      _toRoute(formSplash, const MartPendingOrdersScreen());
+    }
+    else if(data['action'] == 'mart_order_accepted' || data['action'] == 'mart_order_picked_up' ||
+            data['action'] == 'mart_order_delivered' || data['action'] == 'mart_order_cancelled'){
+      Get.offAll(() => const DashboardScreen());
     }
     else {
       Get.offAll(() => const DashboardScreen());

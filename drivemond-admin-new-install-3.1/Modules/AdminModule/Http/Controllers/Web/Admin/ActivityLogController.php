@@ -15,8 +15,9 @@ class ActivityLogController extends BaseController
         $this->activityLogService = $activityLogService;
     }
 
-    public function log($request)
+    public function log(\Illuminate\Http\Request $request)
     {
-        return $this->activityLogService->log(data: $request->all());
+        $logs = $this->activityLogService->log(data: $request->all());
+        return view('adminmodule::activity-log', compact('logs'));
     }
 }

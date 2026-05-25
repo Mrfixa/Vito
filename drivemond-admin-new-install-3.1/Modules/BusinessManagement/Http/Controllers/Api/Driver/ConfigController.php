@@ -241,7 +241,7 @@ class ConfigController extends Controller
             return response()->json(responseFormatter(DEFAULT_200, $zone), 200);
         }
 
-        return response()->json(responseFormatter(ZONE_RESOURCE_404), 403);
+        return response()->json(responseFormatter(ZONE_RESOURCE_404), 404);
     }
 
     /**
@@ -323,12 +323,12 @@ class ConfigController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
         }
         $trip = $this->tripRequestService->findOne(id: $request->trip_request_id, relations: ['coordinate', 'vehicleCategory']);
         if (!$trip) {
 
-            return response()->json(responseFormatter(constant: TRIP_REQUEST_404, errors: errorProcessor($validator)), 403);
+            return response()->json(responseFormatter(constant: TRIP_REQUEST_404, errors: errorProcessor($validator)), 404);
         }
 
         $pickupCoordinates = [
@@ -339,14 +339,14 @@ class ConfigController extends Controller
         $intermediateCoordinates = [];
         if ($trip->current_status == ONGOING) {
             $destinationCoordinates = [
-                $trip->coordinate->destination_coordinates->latitude,
-                $trip->coordinate->destination_coordinates->longitude,
+                explode(',', $trip->coordinate->destination_coordinates ?? '0,0')[0],
+                explode(',', $trip->coordinate->destination_coordinates ?? '0,0')[1],
             ];
             $intermediateCoordinates = $trip->coordinate->intermediate_coordinates ? json_decode($trip->coordinate->intermediate_coordinates, true) : [];
         } else {
             $destinationCoordinates = [
-                $trip->coordinate->pickup_coordinates->latitude,
-                $trip->coordinate->pickup_coordinates->longitude,
+                explode(',', $trip->coordinate->pickup_coordinates ?? '0,0')[0],
+                explode(',', $trip->coordinate->pickup_coordinates ?? '0,0')[1],
             ];
         }
 

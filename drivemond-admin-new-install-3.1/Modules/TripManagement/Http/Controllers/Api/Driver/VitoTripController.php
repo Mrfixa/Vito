@@ -18,7 +18,7 @@ class VitoTripController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
         }
 
         $result = DB::transaction(function () use ($request) {
@@ -40,7 +40,7 @@ class VitoTripController extends Controller
         });
 
         if (!$result) {
-            return response()->json(responseFormatter(constant: TRIP_REQUEST_404), 403);
+            return response()->json(responseFormatter(constant: TRIP_REQUEST_404), 404);
         }
 
         return response()->json(responseFormatter(DEFAULT_200, $result));

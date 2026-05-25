@@ -17,9 +17,9 @@ class CreateRecentAddressesTable extends Migration
             $table->id();
             $table->foreignUuid('user_id')->nullable();
             $table->foreignUuid('zone_id')->nullable();
-            $table->point('pickup_coordinates')->nullable();
+            $table->string('pickup_coordinates')->nullable();
             $table->string('pickup_address')->nullable();
-            $table->point('destination_coordinates')->nullable();
+            $table->string('destination_coordinates')->nullable();
             $table->string('destination_address')->nullable();
             $table->timestamps();
         });

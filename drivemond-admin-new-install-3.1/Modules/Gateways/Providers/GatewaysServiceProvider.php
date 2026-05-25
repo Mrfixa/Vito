@@ -15,7 +15,7 @@ class GatewaysServiceProvider extends ServiceProvider
     /**
      * @var string $moduleNameLower
      */
-    protected $moduleNameLower = 'Gateways';
+    protected $moduleNameLower = 'gateways';
 
     /**
      * Boot the application events.

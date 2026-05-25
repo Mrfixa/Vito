@@ -6,6 +6,7 @@ use Brian2694\Toastr\Facades\Toastr;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 use Modules\TripManagement\Entities\MartProduct;
@@ -33,7 +34,7 @@ class VitoMartAdminController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'category' => 'required|string|max:100',
-            'price' => 'required|numeric|min:0',
+            'price' => 'required|numeric|min:0.01|max:999999.99',
             'stock' => 'required|integer|min:0',
             'description' => 'nullable|string|max:1000',
             'image' => 'nullable|image|max:2048',
@@ -64,7 +65,7 @@ class VitoMartAdminController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'category' => 'required|string|max:100',
-            'price' => 'required|numeric|min:0',
+            'price' => 'required|numeric|min:0.01|max:999999.99',
             'stock' => 'required|integer|min:0',
             'description' => 'nullable|string|max:1000',
             'image' => 'nullable|image|max:2048',
@@ -74,6 +75,9 @@ class VitoMartAdminController extends Controller
         $data = $request->only(['name', 'category', 'price', 'stock', 'description']);
 
         if ($request->hasFile('image')) {
+            if ($product->image) {
+                Storage::disk('public')->delete($product->image);
+            }
             $data['image'] = $request->file('image')->store('mart/products', 'public');
         }
 

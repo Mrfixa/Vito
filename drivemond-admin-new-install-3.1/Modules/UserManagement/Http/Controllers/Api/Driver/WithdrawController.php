@@ -42,7 +42,7 @@ class WithdrawController extends Controller
         ]);
         if ($validator->fails()) {
 
-            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
         }
         $method = $this->withdrawMethodService->getBy(criteria: ['is_active' => 1], limit: $request->limit, offset: $request->offset);
         $method = WithdrawMethodResource::collection($method);
@@ -64,7 +64,7 @@ class WithdrawController extends Controller
         ]);
         if ($validator->fails()) {
 
-            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
         }
         if (auth()->user()->user_type != 'driver') {
 
@@ -116,7 +116,7 @@ class WithdrawController extends Controller
         ]);
         if ($validator->fails()) {
 
-            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
         }
         $criteria = [
             'user_id' => auth()->id()
@@ -138,7 +138,7 @@ class WithdrawController extends Controller
         ]);
         if ($validator->fails()) {
 
-            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
         }
         $criteria = [
             'user_id' => auth()->id(),

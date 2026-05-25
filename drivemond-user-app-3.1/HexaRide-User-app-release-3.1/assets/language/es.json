@@ -993,5 +993,6 @@
   "confirm_booking": "Confirmar Reserva",
   "confirm_booking_message": "¿Está seguro de que desea reservar este viaje?",
   "too_many_requests": "Demasiadas solicitudes. Inténtelo más tarde.",
-  "server_error": "Error del servidor. Inténtelo de nuevo."
+  "server_error": "Error del servidor. Inténtelo de nuevo.",
+  "order_not_found": "Pedido no encontrado o no se puede cancelar"
 }

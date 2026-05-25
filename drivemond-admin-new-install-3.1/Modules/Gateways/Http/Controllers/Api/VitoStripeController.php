@@ -19,12 +19,22 @@ class VitoStripeController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
         }
 
-        $stripeSecret = businessConfig('stripe_secret_key')?->value;
+        $stripeConfig = DB::table('settings')
+            ->where('key_name', 'stripe')
+            ->where('settings_type', PAYMENT_CONFIG)
+            ->first();
+        if (!$stripeConfig) {
+            return response()->json(responseFormatter(constant: DEFAULT_404), 500);
+        }
+        $stripeValues = $stripeConfig->mode === 'live'
+            ? json_decode($stripeConfig->live_values, true)
+            : json_decode($stripeConfig->test_values, true);
+        $stripeSecret = $stripeValues['api_key'] ?? null;
         if (!$stripeSecret) {
-            return response()->json(responseFormatter(constant: DEFAULT_404), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_404), 500);
         }
 
         try {
@@ -63,13 +73,13 @@ class VitoStripeController extends Controller
             ]));
 
         } catch (\Exception $e) {
-            return response()->json(responseFormatter(constant: DEFAULT_400), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_400), 400);
         }
     }
 
     public function webhook(Request $request): JsonResponse
     {
-        $stripeWebhookSecret = businessConfig('stripe_webhook_secret')?->value;
+        $stripeWebhookSecret = env('STRIPE_WEBHOOK_SECRET');
         $payload = $request->getContent();
         $sigHeader = $request->header('Stripe-Signature');
 
@@ -105,13 +115,29 @@ class VitoStripeController extends Controller
             $userId = is_object($data) && isset($data->metadata->user_id)
                 ? $data->metadata->user_id
                 : ($data['metadata']['user_id'] ?? null);
+            $amount = is_object($data) ? $data->amount / 100 : (($data['amount'] ?? 0) / 100);
+            $currency = is_object($data) ? ($data->currency ?? 'usd') : ($data['currency'] ?? 'usd');
 
-            DB::transaction(function () use ($paymentIntentId, $stripeEventId, $userId, $data) {
+            DB::transaction(function () use ($paymentIntentId, $stripeEventId, $userId, $amount, $currency) {
                 $stripeEvent = StripeEvent::where('payment_intent_id', $paymentIntentId)
                     ->lockForUpdate()
                     ->first();
 
-                if (!$stripeEvent || $stripeEvent->status === 'succeeded') {
+                if (!$stripeEvent) {
+                    // Webhook arrived before createPaymentIntent stored the record.
+                    // Create it now so we can proceed and ensure idempotency on retries.
+                    $stripeEvent = StripeEvent::create([
+                        'stripe_event_id' => $stripeEventId,
+                        'type' => 'payment_intent.succeeded',
+                        'user_id' => $userId,
+                        'amount' => $amount,
+                        'currency' => $currency,
+                        'status' => 'pending',
+                        'payment_intent_id' => $paymentIntentId,
+                    ]);
+                }
+
+                if ($stripeEvent->status === 'succeeded') {
                     return;
                 }
 
@@ -125,7 +151,6 @@ class VitoStripeController extends Controller
                 if ($userId) {
                     $user = \Modules\UserManagement\Entities\User::find($userId);
                     if ($user && $user->userAccount) {
-                        $amount = is_object($data) ? $data->amount / 100 : (($data['amount'] ?? 0) / 100);
                         $user->userAccount()->increment('wallet_balance', $amount);
                     }
                 }

@@ -31,7 +31,7 @@ class SafetyAlertController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['error' => $validator->errors()], 403);
+            return response()->json(['error' => $validator->errors()], 400);
         }
         $whereHasRelations = [
             'sentBy' => [
@@ -54,7 +54,7 @@ class SafetyAlertController extends Controller
             $safetyAlertData = new SafetyAlertResource($data);
             return response()->json(responseFormatter(SAFETY_ALERT_STORE_200, $safetyAlertData));
         }
-        return response()->json(responseFormatter(SAFETY_ALERT_ALREADY_EXIST_400), 403);
+        return response()->json(responseFormatter(SAFETY_ALERT_ALREADY_EXIST_400), 400);
     }
 
     public function resendSafetyAlert($tripRequestId)
@@ -67,7 +67,7 @@ class SafetyAlertController extends Controller
 
         $safetyAlert = $this->safetyAlertService->findOneBy(criteria: ['trip_request_id' => $tripRequestId, 'status' => PENDING], relations: ['trip'], whereHasRelations: $whereHasRelations);
         if (!$safetyAlert) {
-            return response()->json(responseFormatter(SAFETY_ALERT_NOT_FOUND_404), 403);
+            return response()->json(responseFormatter(SAFETY_ALERT_NOT_FOUND_404), 404);
         }
         $safetyAlert->increment('number_of_alert');
         $safetyAlertData = new SafetyAlertResource($safetyAlert);
@@ -93,7 +93,7 @@ class SafetyAlertController extends Controller
         ];
         $safetyAlert = $this->safetyAlertService->findOneBy(criteria: ['trip_request_id' => $tripRequestId, 'status' => PENDING], whereHasRelations: $whereHasRelations);
         if (!$safetyAlert) {
-            return response()->json(responseFormatter(SAFETY_ALERT_NOT_FOUND_404), 403);
+            return response()->json(responseFormatter(SAFETY_ALERT_NOT_FOUND_404), 404);
         }
         $attributes = ['resolved_by' => auth('api')->user()?->id];
         $this->safetyAlertService->updatedBy(criteria: ['trip_request_id' => $tripRequestId, 'sent_by' => $safetyAlert->sent_by], data: $attributes);
@@ -113,7 +113,7 @@ class SafetyAlertController extends Controller
         $safetyAlert = $this->safetyAlertService->findOneBy(criteria: ['trip_request_id' => $tripRequestId], whereHasRelations: $whereHasRelations);
 
         if (!$safetyAlert) {
-            return response()->json(responseFormatter(SAFETY_ALERT_NOT_FOUND_404), 403);
+            return response()->json(responseFormatter(SAFETY_ALERT_NOT_FOUND_404), 404);
         }
 
         $safetyAlertData = new SafetyAlertResource($safetyAlert);
@@ -130,7 +130,7 @@ class SafetyAlertController extends Controller
         ];
         $safetyAlert = $this->safetyAlertService->findOneBy(criteria: ['trip_request_id' => $tripRequestId], whereHasRelations: $whereHasRelations);
         if (!$safetyAlert) {
-            return response()->json(responseFormatter(SAFETY_ALERT_NOT_FOUND_404), 403);
+            return response()->json(responseFormatter(SAFETY_ALERT_NOT_FOUND_404), 404);
         }
         $safetyAlert->delete();
         return response()->json(responseFormatter(SAFETY_ALERT_UNDO_200));

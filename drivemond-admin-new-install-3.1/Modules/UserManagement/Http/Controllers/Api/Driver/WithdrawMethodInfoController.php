@@ -33,7 +33,7 @@ class WithdrawMethodInfoController extends Controller
         ]);
         if ($validator->fails()) {
 
-            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
         }
         $user = auth()->user();
         $withdrawMethodInfos = $this->driverWithdrawMethodInfoService->getBy(criteria: ['user_id' => $user->id, 'is_active' => 1], limit: $request->limit, offset: $request->offset);
@@ -50,7 +50,7 @@ class WithdrawMethodInfoController extends Controller
         ]);
         if ($validator->fails()) {
 
-            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
         }
         if ($user?->user_type != 'driver') {
 
@@ -96,7 +96,7 @@ class WithdrawMethodInfoController extends Controller
         ]);
         if ($validator->fails()) {
 
-            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
         }
         if ($user?->user_type != 'driver') {
 
@@ -105,7 +105,7 @@ class WithdrawMethodInfoController extends Controller
 
         $withdrawMethodInfo = $this->driverWithdrawMethodInfoService->findOne(id: $id);
         if (!$withdrawMethodInfo) {
-            return response()->json(responseFormatter(DEFAULT_400), 403);
+            return response()->json(responseFormatter(DEFAULT_400), 400);
         }
         $method = $this->withdrawMethodService->findOne(id: $withdrawMethodInfo->withdraw_method_id);
         $fields = array_column($method->method_fields, 'input_name');

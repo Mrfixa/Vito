@@ -5,7 +5,6 @@ namespace Modules\TripManagement\Entities;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Modules\Gateways\Traits\HasUuid;
-use MatanYadaev\EloquentSpatial\Objects\Point;
 use Modules\UserManagement\Entities\User;
 use Modules\UserManagement\Entities\UserLastLocation;
 

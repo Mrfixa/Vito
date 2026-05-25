@@ -780,9 +780,9 @@ class TripRequestService extends BaseService implements TripRequestServiceInterf
             if (!is_null($int_coordinates)) {
                 foreach ($int_coordinates as $key => $ic) {
                     if ($key == 0) {
-                        $coordinates['int_coordinate_1'] = new Point($ic[0], $ic[1]);
+                        $coordinates['int_coordinate_1'] = $ic[0] . ',' . $ic[1];
                     } elseif ($key == 1) {
-                        $coordinates['int_coordinate_2'] = new Point($ic[0], $ic[1]);
+                        $coordinates['int_coordinate_2'] = $ic[0] . ',' . $ic[1];
                     }
                 }
             }
@@ -1011,7 +1011,7 @@ class TripRequestService extends BaseService implements TripRequestServiceInterf
         if ($request->status == 'cancelled') {
             $attributes['fee']['cancelled_by'] = 'customer';
         }
-        $attributes['coordinate']['drop_coordinates'] = new Point($trip->driver->lastLocations->latitude, $trip->driver->lastLocations->longitude);
+        $attributes['coordinate']['drop_coordinates'] = $trip->driver->lastLocations->latitude . ',' . $trip->driver->lastLocations->longitude;
 
         $this->driverDetailService->updatedBy(criteria: ['user_id' => $trip->driver_id], data: ['availability_status' => 'available']);
         //Get status wise notification message
@@ -1119,7 +1119,7 @@ class TripRequestService extends BaseService implements TripRequestServiceInterf
             if ($request->status == 'cancelled') {
                 $attributes['fee']['cancelled_by'] = 'driver';
             }
-            $attributes['coordinate']['drop_coordinates'] = new Point($trip->driver->lastLocations->latitude, $trip->driver->lastLocations->longitude);
+            $attributes['coordinate']['drop_coordinates'] = $trip->driver->lastLocations->latitude . ',' . $trip->driver->lastLocations->longitude;
 
             $this->driverDetailService->updatedBy(criteria: ['user_id' => auth('api')->id()], data: ['availability_status' => 'available']);
         }
@@ -1163,10 +1163,11 @@ class TripRequestService extends BaseService implements TripRequestServiceInterf
     {
         DB::beginTransaction();
         Cache::put($trip->id, ACCEPTED, now()->addHour());
+        $pickupParts = explode(',', $trip->coordinate->pickup_coordinates ?? '0,0');
         $driverArrivalTime = getRoutes(
             originCoordinates: [
-                $trip->coordinate->pickup_coordinates->getLat(),
-                $trip->coordinate->pickup_coordinates->getLng()
+                (float)($pickupParts[0] ?? 0),
+                (float)($pickupParts[1] ?? 0)
             ],
             destinationCoordinates: [
                 $user->lastLocations->latitude,
@@ -1625,13 +1626,9 @@ class TripRequestService extends BaseService implements TripRequestServiceInterf
             'driver.driverDetails' => [], 'customer' => [], 'ignoredRequests' => [], 'time' => [], 'fee' => [],
             'parcel' => [], 'parcelRefund' => [],
             'fare_biddings' => [['driver_id', '=', auth('api')->id()]],
-            'coordinate' => fn($query) => $query->distanceSphere('pickup_coordinates', $data['driver_locations'], $data['distance'])
+            'coordinate',
         ];
         $whereHasRelations = [];
-
-        $whereHasRelations['coordinate'] = function ($query) use ($data) {
-            $query->distanceSphere('pickup_coordinates', $data['driver_locations'], $data['distance']);
-        };
         $orderBy = ['created_at' => 'desc'];
         $withAvgRelations = [['customerReceivedReviews', 'rating']];
         return $this->tripRequestRepository->getPendingRide(criteria: $criteria, relations: $relations, whereHasRelations: $whereHasRelations, withAvgRelations: $withAvgRelations, orderBy: $orderBy, attributes: $data);
@@ -1748,24 +1745,21 @@ class TripRequestService extends BaseService implements TripRequestServiceInterf
                     }
                 }
             }
-            $data['coordinate']['drop_coordinates'] = new Point($trip->driver->lastLocations->latitude, $trip->driver->lastLocations->longitude);
+            $data['coordinate']['drop_coordinates'] = $trip->driver->lastLocations->latitude . ',' . $trip->driver->lastLocations->longitude;
             $drivingMode = $trip?->vehicleCategory?->type === 'motor_bike' ? 'TWO_WHEELER' : 'DRIVE';
             $intermediate_coordinate = [];
             if ($trip->coordinate->is_reached_1) {
                 if ($trip->coordinate->is_reached_2) {
-                    $intermediate_coordinate[1] = [
-                        $trip->coordiante->int_coordinate_2->latitude,
-                        $trip->coordiante->int_coordinate_2->longitude
-                    ];
+                    $ic2 = explode(',', $trip->coordinate->int_coordinate_2 ?? '');
+                    $intermediate_coordinate[1] = [($ic2[0] ?? 0), ($ic2[1] ?? 0)];
                 }
-                $intermediate_coordinate[0] = [
-                    $trip->coordiante->int_coordinate_1->latitude,
-                    $trip->coordiante->int_coordinate_1->longitude
-                ];
+                $ic1 = explode(',', $trip->coordinate->int_coordinate_1 ?? '');
+                $intermediate_coordinate[0] = [($ic1[0] ?? 0), ($ic1[1] ?? 0)];
             }
+            $pickupParts = explode(',', $trip->coordinate->pickup_coordinates ?? '');
             $getRoutes = getRoutes([
-                $trip->coordinate->pickup_coordinates->latitude,
-                $trip->coordinate->pickup_coordinates->longitude
+                ($pickupParts[0] ?? 0),
+                ($pickupParts[1] ?? 0)
             ], [$trip->driver->lastLocations->latitude, $trip->driver->lastLocations->longitude], $intermediate_coordinate, [$drivingMode]);
             if (array_key_exists('error', $getRoutes)) {
                 DB::rollBack();
@@ -1940,13 +1934,14 @@ class TripRequestService extends BaseService implements TripRequestServiceInterf
                 if (($details->ride_count ?? 0) >= 2 || $user->getDriverAcceptedRegularTrip()) {
                     return false;
                 }
-                $destination = json_decode($user->getDriverOngoingTrip()?->coordinate, true);
-                if ($destination && isset($destination['destination_coordinates']['coordinates'])) {
+                $ongoingTrip = $user->getDriverOngoingTrip();
+                if ($ongoingTrip && $ongoingTrip->coordinate) {
+                    $destParts = explode(',', $ongoingTrip->coordinate->destination_coordinates ?? '0,0');
                     $data = [
                         'from_longitude' => (float)$driver->longitude,
                         'from_latitude' => (float)$driver->latitude,
-                        'to_longitude' => (float)$destination['destination_coordinates']['coordinates'][0],
-                        'to_latitude' => (float)$destination['destination_coordinates']['coordinates'][1],
+                        'to_longitude' => (float)($destParts[1] ?? 0),
+                        'to_latitude' => (float)($destParts[0] ?? 0),
                     ];
                     if ((distanceCalculator(data: $data) * 1.5) > 1) {
                         return false;
@@ -2039,9 +2034,9 @@ class TripRequestService extends BaseService implements TripRequestServiceInterf
             if (!is_null($int_coordinates)) {
                 foreach ($int_coordinates as $key => $ic) {
                     if ($key == 0) {
-                        $coordinates['int_coordinate_1'] = new Point($ic[0], $ic[1]);
+                        $coordinates['int_coordinate_1'] = $ic[0] . ',' . $ic[1];
                     } elseif ($key == 1) {
-                        $coordinates['int_coordinate_2'] = new Point($ic[0], $ic[1]);
+                        $coordinates['int_coordinate_2'] = $ic[0] . ',' . $ic[1];
                     }
                 }
 
@@ -2134,9 +2129,18 @@ class TripRequestService extends BaseService implements TripRequestServiceInterf
     private function buildSegment($from, $to): array
     {
         return [
-            'from' => ['longitude' => (float)$from->longitude, 'latitude' => (float)$from->latitude],
-            'to' => ['longitude' => (float)$to->longitude, 'latitude' => (float)$to->latitude],
+            'from' => $this->coordsToArray($from),
+            'to' => $this->coordsToArray($to),
         ];
+    }
+
+    private function coordsToArray($point): array
+    {
+        if (is_string($point)) {
+            $parts = explode(',', $point);
+            return ['latitude' => (float)($parts[0] ?? 0), 'longitude' => (float)($parts[1] ?? 0)];
+        }
+        return ['longitude' => (float)($point->longitude ?? 0), 'latitude' => (float)($point->latitude ?? 0)];
     }
 
     public function canDriverAcceptRegularTrip(User $user, Model $trip, float $estimatedDistance, float $avgKmPerMinute): bool

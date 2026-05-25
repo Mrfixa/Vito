@@ -31,8 +31,8 @@ class ProcessPushNotifications implements ShouldQueue
         $tripRequestService = app()->make(TripRequestServiceInterface::class);
         $tempTripNotificationService = app()->make(TempTripNotificationServiceInterface::class);
         $find_drivers = $tripRequestService->findNearestDrivers(
-            latitude: $this->trip->coordinate->pickup_coordinates->latitude,
-            longitude: $this->trip->coordinate->pickup_coordinates->longitude,
+            latitude: (float)(explode(',', $this->trip->coordinate->pickup_coordinates ?? '0,0')[0] ?? 0),
+            longitude: (float)(explode(',', $this->trip->coordinate->pickup_coordinates ?? '0,0')[1] ?? 0),
             zoneId: $this->trip->zone_id,
             radius: $this->radius,
             vehicleCategoryId: $this->trip->vehicle_category_id,

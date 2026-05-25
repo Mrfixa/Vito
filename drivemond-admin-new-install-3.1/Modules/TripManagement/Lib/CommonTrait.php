@@ -52,28 +52,28 @@ trait CommonTrait
 
         $drivingMode = $trip?->vehicleCategory?->type === 'motor_bike' ? 'TWO_WHEELER' : 'DRIVE';
         $drop_coordinate = [
-            $trip->coordinate->drop_coordinates->latitude,
-            $trip->coordinate->drop_coordinates->longitude
+            explode(',', $trip->coordinate->drop_coordinates ?? '0,0')[0],
+            explode(',', $trip->coordinate->drop_coordinates ?? '0,0')[1]
         ];
         $destination_coordinate = [
-            $trip->coordinate->destination_coordinates->latitude,
-            $trip->coordinate->destination_coordinates->longitude
+            explode(',', $trip->coordinate->destination_coordinates ?? '0,0')[0],
+            explode(',', $trip->coordinate->destination_coordinates ?? '0,0')[1]
         ];
         $pickup_coordinate = [
-            $trip->coordinate->pickup_coordinates->latitude,
-            $trip->coordinate->pickup_coordinates->longitude
+            explode(',', $trip->coordinate->pickup_coordinates ?? '0,0')[0],
+            explode(',', $trip->coordinate->pickup_coordinates ?? '0,0')[1]
         ];
         $intermediate_coordinate = [];
         if ($trip->coordinate->is_reached_1) {
             if ($trip->coordinate->is_reached_2) {
                 $intermediate_coordinate[1] = [
-                    $trip->coordiante->int_coordinate_2->latitude,
-                    $trip->coordiante->int_coordinate_2->longitude
+                    explode(',', $trip->coordinate->int_coordinate_2 ?? '0,0')[0],
+                    explode(',', $trip->coordinate->int_coordinate_2 ?? '0,0')[1]
                 ];
             }
             $intermediate_coordinate[0] = [
-                $trip->coordiante->int_coordinate_1->latitude,
-                $trip->coordiante->int_coordinate_1->longitude
+                explode(',', $trip->coordinate->int_coordinate_1 ?? '0,0')[0],
+                explode(',', $trip->coordinate->int_coordinate_1 ?? '0,0')[1]
             ];
         }
 

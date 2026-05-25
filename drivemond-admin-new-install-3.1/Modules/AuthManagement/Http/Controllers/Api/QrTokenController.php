@@ -22,8 +22,12 @@ class QrTokenController extends Controller
             return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 422);
         }
 
+        do {
+            $tokenValue = Str::random(64);
+        } while (QrToken::where('token', $tokenValue)->exists());
+
         $token = QrToken::create([
-            'token' => Str::random(64),
+            'token' => $tokenValue,
             'role' => $request->role,
             'created_by' => $request->user()->id,
             'expires_at' => $request->role === 'customer' ? now()->addHour() : now()->addDays(7),
@@ -133,9 +137,12 @@ class QrTokenController extends Controller
             return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 422);
         }
 
-        $token = QrToken::where('token', $request->token)
-            ->where('created_by', $request->user()->id)
-            ->first();
+        $token = DB::transaction(function () use ($request) {
+            return QrToken::where('token', $request->token)
+                ->where('created_by', $request->user()->id)
+                ->lockForUpdate()
+                ->first();
+        });
 
         if (!$token) {
             return response()->json(responseFormatter(constant: DEFAULT_404), 404);

@@ -32,7 +32,7 @@ class ParcelController extends Controller
 
         $parcelWeight = $this->parcelWeightService->findOne(id: $request['weight_id']);
         if (!$parcelWeight) {
-            return response()->json(responseFormatter(PARCEL_WEIGHT_400), 403);
+            return response()->json(responseFormatter(PARCEL_WEIGHT_400), 400);
         }
 
         $criteria = [
@@ -42,7 +42,7 @@ class ParcelController extends Controller
 
         $vehicleModels = $this->vehicleModelService->getBy(criteria: $criteria);
         if (count($vehicleModels) < 1) {
-            return response()->json(responseFormatter(PARCEL_WEIGHT_400), 403);
+            return response()->json(responseFormatter(PARCEL_WEIGHT_400), 400);
         }
 
 

@@ -106,9 +106,9 @@ class VitoMartDriverController extends Controller
             if ($request->status === 'cancelled') {
                 // Restore product stock atomically under the same transaction lock.
                 foreach ($order->items as $item) {
-                    if ($item->product) {
-                        $item->product()->lockForUpdate()->first();
-                        $item->product->increment('stock', $item->quantity);
+                    $lockedProduct = $item->product()->withTrashed()->lockForUpdate()->first();
+                    if ($lockedProduct) {
+                        $lockedProduct->increment('stock', $item->quantity);
                     }
                 }
                 // If a promo code was used, decrement its global used_count.
@@ -156,8 +156,8 @@ class VitoMartDriverController extends Controller
             // Accept image file upload for delivery photo (field can be delivery_photo or proof_photo)
             'delivery_photo' => 'nullable|image|max:2048',
             'proof_photo' => 'nullable|image|max:2048',
-            // Accept base64 string for canvas-drawn signature
-            'signature_base64' => 'nullable|string',
+            // Accept base64 string for canvas-drawn signature (cap at ~75 KB decoded)
+            'signature_base64' => 'nullable|string|max:100000',
         ]);
 
         if ($validator->fails()) {

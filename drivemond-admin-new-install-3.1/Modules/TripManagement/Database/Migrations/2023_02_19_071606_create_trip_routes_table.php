@@ -16,7 +16,7 @@ class CreateTripRoutesTable extends Migration
         Schema::create('trip_routes', function (Blueprint $table) {
             $table->id();
             $table->foreignUuid('trip_request_id');
-            $table->point('coordinates');
+            $table->text('coordinates')->nullable();
             $table->timestamps();
         });
     }

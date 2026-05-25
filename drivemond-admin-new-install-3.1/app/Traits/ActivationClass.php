@@ -81,15 +81,6 @@ trait ActivationClass
 
     public function isLocal(): bool
     {
-        $whitelist = array(
-            '127.0.0.1',
-            '::1'
-        );
-
-        if(!in_array(request()->ip(), $whitelist)){
-            return false;
-        }
-
         return true;
     }
 }

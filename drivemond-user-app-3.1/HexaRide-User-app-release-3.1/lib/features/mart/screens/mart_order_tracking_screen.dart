@@ -77,6 +77,10 @@ class _MartOrderTrackingScreenState extends State<MartOrderTrackingScreen> {
             _driverInfo = Map<String, dynamic>.from(data['driver']);
             _driverId = data['driver_id'] ?? data['driver']?['id'] ?? '';
             _driverName = '${data['driver']?['first_name'] ?? ''} ${data['driver']?['last_name'] ?? ''}'.trim();
+          } else {
+            _driverInfo = {};
+            _driverId = '';
+            _driverName = '';
           }
           _estimatedArrival = data['estimated_arrival'] ?? '';
           _isLoading = false;
@@ -444,12 +448,18 @@ class _MartOrderTrackingScreenState extends State<MartOrderTrackingScreen> {
             onPressed: () async {
               Get.back();
               try {
-                await Get.find<ApiClient>().putData(
+                final cancelResponse = await Get.find<ApiClient>().putData(
                   '${AppConstants.martCancelOrder}${widget.orderId}/cancel',
                   {},
                 );
-                Get.back();
-                Get.snackbar('success'.tr, 'order_cancelled'.tr);
+                if (cancelResponse.statusCode == 200) {
+                  Get.back();
+                  Get.snackbar('success'.tr, 'order_cancelled'.tr);
+                } else if (cancelResponse.statusCode == 404) {
+                  Get.snackbar('error'.tr, 'order_not_found'.tr);
+                } else {
+                  Get.snackbar('error'.tr, 'cancel_failed'.tr);
+                }
               } catch (e) {
                 debugPrint('Mart tracking error: $e');
                 Get.snackbar('error'.tr, 'cancel_failed'.tr);

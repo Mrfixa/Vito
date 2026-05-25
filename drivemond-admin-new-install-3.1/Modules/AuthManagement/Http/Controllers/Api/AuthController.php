@@ -99,7 +99,7 @@ class AuthController extends Controller
         ]);
         if ($validator->fails()) {
 
-            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
         }
 
         if (array_key_exists('referral_code', $request->all()) && $request->referral_code) {
@@ -109,7 +109,7 @@ class AuthController extends Controller
             }
         }
         if (!$route && !businessConfig('driver_self_registration')?->value) {
-            return response()->json(responseFormatter(SELF_REGISTRATION_400), 403);
+            return response()->json(responseFormatter(SELF_REGISTRATION_400), 400);
         }
         $firstLevel = $route ? $this->customerLevelService->findOneBy(['user_type' => CUSTOMER, 'sequence' => 1]) : $this->driverLevelService->findOneBy(['user_type' => DRIVER, 'sequence' => 1]);
         if (!$firstLevel) {
@@ -240,7 +240,7 @@ class AuthController extends Controller
         }
 
         if (!$route && !businessConfig('driver_self_registration')?->value) {
-            return response()->json(responseFormatter(SELF_REGISTRATION_400), 403);
+            return response()->json(responseFormatter(SELF_REGISTRATION_400), 400);
         }
 
         $firstLevel = $route ? $this->customerLevelService->findOneBy(['user_type' => CUSTOMER, 'sequence' => 1]) : $this->driverLevelService->findOneBy(['user_type' => DRIVER, 'sequence' => 1]);
@@ -329,7 +329,7 @@ class AuthController extends Controller
 
         $doesOTPUserExist = $this->userService->findOneBy(criteria: ['phone' => $request->phone, 'logged_in_via' => 'otp']);
         if (!$doesOTPUserExist) {
-            return response()->json(responseFormatter(USER_NOT_FOUND_404), 403);
+            return response()->json(responseFormatter(USER_NOT_FOUND_404), 404);
         }
         if (array_key_exists('referral_code', $request->all()) && $request->referral_code) {
             $referralUser = $route ? $this->customerService->findOneBy(criteria: ['ref_code' => $request->referral_code, 'user_type' => CUSTOMER]) : $this->driverService->findOneBy(criteria: ['ref_code' => $request->referral_code, 'user_type' => DRIVER]);
@@ -339,7 +339,7 @@ class AuthController extends Controller
         }
 
         if (!$route && !businessConfig('driver_self_registration')?->value) {
-            return response()->json(responseFormatter(SELF_REGISTRATION_400), 403);
+            return response()->json(responseFormatter(SELF_REGISTRATION_400), 400);
         }
 
         $user = $this->userService->mergeUserAccount($request->all(), $doesOTPUserExist->id);
@@ -507,7 +507,7 @@ class AuthController extends Controller
         ]);
         if ($validator->fails()) {
 
-            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
         }
         $user = $this->driverService->findOne(auth('api')->id());
         if (auth('api')->user() !== null) {
@@ -585,16 +585,16 @@ class AuthController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
         }
 
         $otp = $this->otpVerificationService->findOneBy(criteria: ['phone_or_email' => $request['phone_or_email']]);
         if (!$otp) {
-            return response()->json(responseFormatter(DEFAULT_404), 403);
+            return response()->json(responseFormatter(DEFAULT_404), 404);
         }
 
         if (now()->greaterThan($otp->expires_at)) {
-            return response()->json(responseFormatter(OTP_EXPIRE_404), 403);
+            return response()->json(responseFormatter(OTP_EXPIRE_404), 404);
         }
 
         $block_time = businessConfig('temporary_block_time')?->value ?? 30;
@@ -665,7 +665,7 @@ class AuthController extends Controller
 
         if ($validator->fails()) {
 
-            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
         }
 
         $webApiKey = businessConfig('firebase_otp_web_api_key')?->value ?? '';
@@ -713,7 +713,7 @@ class AuthController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
         }
 
         $client = new Client();
@@ -759,7 +759,7 @@ class AuthController extends Controller
         ]);
         if ($validator->fails()) {
 
-            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
         }
         $user = $this->authService->checkClientRoute($request);
 
@@ -779,7 +779,7 @@ class AuthController extends Controller
         $verification = businessConfig('customer_verification', BUSINESS_INFORMATION)->value ?? 0;
         if (!$verification) {
 
-            return response()->json(responseFormatter(CUSTOMER_VERIFICATION_400), 403);
+            return response()->json(responseFormatter(CUSTOMER_VERIFICATION_400), 400);
         }
         /**
          * otp login SMS_Body
@@ -801,7 +801,7 @@ class AuthController extends Controller
 
         if ($validator->fails()) {
 
-            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
         }
         $user = $this->authService->checkClientRoute($request);
 
@@ -827,11 +827,11 @@ class AuthController extends Controller
 
         if ($validator->fails()) {
 
-            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
         }
         $user = $this->authService->checkClientRoute($request);
         if (!$user) {
-            return response()->json(responseFormatter(USER_NOT_FOUND_404), 403);
+            return response()->json(responseFormatter(USER_NOT_FOUND_404), 404);
         }
         /**
          * forget password SMS_Body
@@ -857,7 +857,7 @@ class AuthController extends Controller
         ]);
         if ($validator->fails()) {
 
-            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
         }
 
         if ($user->logged_in_via === 'manual' && !Hash::check($request->password, $user->password)) {
@@ -899,7 +899,7 @@ class AuthController extends Controller
             'phone_or_email' => 'required',
         ]);
         if ($validator->fails()) {
-            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
         }
 
         $user = $this->authService->checkClientRoute($request);
@@ -976,7 +976,7 @@ class AuthController extends Controller
             'token' => 'required',
         ]);
         if ($validator->fails()) {
-            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
         }
         $customer = $this->customerService->findOneBy(criteria: ['phone' => $request->phone_or_email, 'user_type' => CUSTOMER]);
         if (checkSelfExternalConfiguration()) {

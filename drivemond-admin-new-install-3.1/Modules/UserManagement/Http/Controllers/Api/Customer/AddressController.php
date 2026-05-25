@@ -62,7 +62,7 @@ class AddressController extends Controller
         $zone = $this->zoneService->getByPoints($point)->pluck('id');
         if ($zone->count() == 0) {
 
-            return response()->json(responseFormatter(constant: ZONE_RESOURCE_404), 403);
+            return response()->json(responseFormatter(constant: ZONE_RESOURCE_404), 404);
         }
 
         $user_id = auth()->user()->id;
@@ -116,7 +116,7 @@ class AddressController extends Controller
         $zone = $this->zoneService->getByPoints($point)->pluck('id');
         if ($zone->count() == 0) {
 
-            return response()->json(responseFormatter(constant: ZONE_RESOURCE_404), 403);
+            return response()->json(responseFormatter(constant: ZONE_RESOURCE_404), 404);
         }
 
         if (!$zone->first()) {

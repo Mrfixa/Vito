@@ -47,7 +47,7 @@ class PaymentController extends Controller
         }
         $trip = $this->tripRequestservice->findOne(id: $request->trip_request_id, relations: ['customer.userAccount', 'driver.userAccount', 'fee', 'driver.driverDetails']);
         if (!$trip) {
-            return response()->json(responseFormatter(TRIP_REQUEST_404), 403);
+            return response()->json(responseFormatter(TRIP_REQUEST_404), 404);
         }
         if ($trip->payment_status == PAID) {
 
@@ -156,7 +156,7 @@ class PaymentController extends Controller
         }
         $trip = $this->tripRequestservice->findOne(id: $request->trip_request_id, relations: ['customer.userAccount', 'fee', 'time', 'driver']);
         if (!$trip) {
-            return response()->json(responseFormatter(TRIP_REQUEST_404), 403);
+            return response()->json(responseFormatter(TRIP_REQUEST_404), 404);
         }
         if ($trip->payment_status == PAID) {
 

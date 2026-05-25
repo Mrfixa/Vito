@@ -68,8 +68,8 @@ class LocationController extends Controller
                                 : [];
 
                         $destinationCoordinates = [
-                            $tripNavigation->trip->coordinate->destination_coordinates->latitude,
-                            $tripNavigation->trip->coordinate->destination_coordinates->longitude,
+                            explode(',', $tripNavigation->trip->coordinate->destination_coordinates ?? '0,0')[0],
+                            explode(',', $tripNavigation->trip->coordinate->destination_coordinates ?? '0,0')[1],
                         ];
 
                         $lat = (float) $attributes['latitude'];
@@ -120,11 +120,11 @@ class LocationController extends Controller
             'trip_request_id' => 'required',
         ]);
         if ($validator->fails()) {
-            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
         }
         $trip = $this->tripRequestService->findOne(id: $request['trip_request_id']);
         if (!$trip) {
-            return response()->json(responseFormatter(constant: TRIP_REQUEST_404), 403);
+            return response()->json(responseFormatter(constant: TRIP_REQUEST_404), 404);
         }
         $userLastLocation = $this->userLastLocationService->findOneBy(criteria: ['user_id' => $trip->driver_id]);
         $latLocation = LastLocationResource::make($userLastLocation);
