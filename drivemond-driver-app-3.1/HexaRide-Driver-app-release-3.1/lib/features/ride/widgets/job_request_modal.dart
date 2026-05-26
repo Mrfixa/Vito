@@ -20,6 +20,7 @@ class JobRequestModal extends StatefulWidget {
   final String? parcelCategory;
   final String? clientName;
   final String? payerType;
+  final int? martItemCount;
 
   const JobRequestModal({
     super.key,
@@ -36,6 +37,7 @@ class JobRequestModal extends StatefulWidget {
     this.parcelCategory,
     this.clientName,
     this.payerType,
+    this.martItemCount,
   });
 
   static Future<void> show({
@@ -52,6 +54,7 @@ class JobRequestModal extends StatefulWidget {
     String? parcelCategory,
     String? clientName,
     String? payerType,
+    int? martItemCount,
   }) {
     return Get.dialog(
       JobRequestModal(
@@ -68,6 +71,7 @@ class JobRequestModal extends StatefulWidget {
         parcelCategory: parcelCategory,
         clientName: clientName,
         payerType: payerType,
+        martItemCount: martItemCount,
       ),
       barrierDismissible: false,
     );
@@ -227,7 +231,9 @@ class _JobRequestModalState extends State<JobRequestModal>
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.25),
+                  color: widget.serviceType == 'mart'
+                      ? const Color(0xFF7C3AED)
+                      : Colors.white.withValues(alpha: 0.25),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
@@ -327,6 +333,19 @@ class _JobRequestModalState extends State<JobRequestModal>
                 style: textRegular.copyWith(fontSize: Dimensions.fontSizeSmall, color: Theme.of(context).hintColor),
               ),
             ]),
+          ),
+        ],
+        if (widget.serviceType == 'mart' && widget.martItemCount != null) ...[
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              Icon(Icons.shopping_basket_outlined, size: 14, color: Colors.grey[600]),
+              const SizedBox(width: 4),
+              Text(
+                '${widget.martItemCount} ${'items_ordered'.tr}',
+                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              ),
+            ],
           ),
         ],
       ],
