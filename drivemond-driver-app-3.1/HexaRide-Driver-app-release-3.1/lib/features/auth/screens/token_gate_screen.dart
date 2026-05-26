@@ -264,9 +264,9 @@ class _TokenGateScreenState extends State<TokenGateScreen> {
     setState(() => _isValidating = true);
 
     try {
-      final response = await Get.find<ApiClient>().postData(
-        AppConstants.qrTokenValidate,
-        {'token': token},
+      // Public, unauthenticated GET — the user is not logged in yet.
+      final response = await Get.find<ApiClient>().getData(
+        AppConstants.qrTokenValidatePublic + token,
       );
 
       if (response.statusCode == 200 && response.body['data']?['valid'] == true) {

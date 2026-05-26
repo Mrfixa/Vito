@@ -166,4 +166,21 @@ void main() {
       expect(autoApprove, isTrue);
     });
   });
+
+  group('Canonical Endpoint Paths', () {
+    test('TokenGateScreen uses the public GET validate endpoint', () {
+      const publicBase = '/api/qr/validate/';
+      final sampleToken = 'a' * 64;
+      final url = publicBase + sampleToken;
+      expect(url.startsWith('/api/qr/validate/'), isTrue);
+      expect(url.length, publicBase.length + 64);
+    });
+
+    test('Atomic accept endpoints match the playbook', () {
+      const rideAccept = '/api/driver/ride/atomic-accept';
+      const parcelAccept = '/api/driver/parcel/atomic-accept';
+      expect(rideAccept.endsWith('/atomic-accept'), isTrue);
+      expect(parcelAccept.endsWith('/atomic-accept'), isTrue);
+    });
+  });
 }

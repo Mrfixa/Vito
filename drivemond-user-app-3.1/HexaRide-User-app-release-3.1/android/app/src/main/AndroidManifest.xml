@@ -80,5 +80,15 @@
        <meta-data
            android:name="com.google.firebase.messaging.default_notification_channel_id"
            android:value="vito" />
+
+       <!-- Play Store install-referrer broadcast (Vito QR-token capture). -->
+       <receiver
+           android:name="com.android.installreferrer.InstallReferrerReceiver"
+           android:exported="true"
+           android:permission="android.permission.INSTALL_PACKAGES">
+           <intent-filter>
+               <action android:name="com.android.vending.INSTALL_REFERRER" />
+           </intent-filter>
+       </receiver>
     </application>
 </manifest>

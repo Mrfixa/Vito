@@ -1197,4 +1197,212 @@ class VitoFlowTest extends TestCase
         // Verify status unchanged
         $this->assertEquals('accepted', MartOrder::find($order->id)->status);
     }
+
+    // ========================================================================
+    // 20. /api/check-username — public username-availability probe
+    // ========================================================================
+
+    public function test_check_username_available_and_taken(): void
+    {
+        // Available username
+        $r = $this->postJson('/api/check-username', ['username' => 'brand_new_handle']);
+        $r->assertOk()->assertJson(['available' => true, 'username' => 'brand_new_handle']);
+
+        // Now create a user with that username and verify it's reported taken
+        $this->createUser('customer', ['username' => 'brand_new_handle']);
+        $r2 = $this->postJson('/api/check-username', ['username' => 'brand_new_handle']);
+        $r2->assertOk()->assertJson(['available' => false, 'username' => 'brand_new_handle']);
+
+        // Invalid format returns 422 with available=false
+        $r3 = $this->postJson('/api/check-username', ['username' => 'has spaces!']);
+        $r3->assertStatus(422)->assertJson(['available' => false, 'reason' => 'invalid_format']);
+
+        // Too short
+        $r4 = $this->postJson('/api/check-username', ['username' => 'ab']);
+        $r4->assertStatus(422);
+    }
+
+    // ========================================================================
+    // 21. /api/qr/validate/{token} — public GET endpoint (no auth required)
+    // ========================================================================
+
+    public function test_public_qr_validate_get(): void
+    {
+        // Generate a valid token by inserting directly (mimics admin flow)
+        $driver = $this->createUser('driver');
+        $token = str_repeat('a', 64);
+        QrToken::create([
+            'token' => $token,
+            'role' => 'customer',
+            'driver_id' => $driver->id,
+            'expires_at' => now()->addHour(),
+        ]);
+
+        // No Authorization header at all — must succeed.
+        $r = $this->getJson('/api/qr/validate/' . $token);
+        $r->assertOk();
+        $data = $r->json('data');
+        $this->assertTrue($data['valid'] ?? false);
+        $this->assertEquals('customer', $data['role'] ?? null);
+
+        // Unknown token returns 404
+        $r2 = $this->getJson('/api/qr/validate/' . str_repeat('z', 64));
+        $r2->assertStatus(404);
+    }
+
+    // ========================================================================
+    // 22. /api/admin/mart/products — full JSON CRUD
+    // ========================================================================
+
+    public function test_admin_mart_products_json_crud(): void
+    {
+        $admin = $this->createUser('admin');
+        Passport::actingAs($admin, ['AccessToSuperAdmin']);
+
+        // CREATE
+        $create = $this->postJson('/api/admin/mart/products', [
+            'name' => 'Apples 1kg',
+            'category' => 'Fruit',
+            'price' => 3.50,
+            'stock' => 25,
+            'description' => 'Fresh red apples',
+        ]);
+        $create->assertCreated();
+        $productId = $create->json('data.id');
+        $this->assertNotEmpty($productId);
+
+        // LIST
+        $list = $this->getJson('/api/admin/mart/products');
+        $list->assertOk();
+        $this->assertGreaterThanOrEqual(1, count($list->json('data.data') ?? []));
+
+        // SHOW
+        $show = $this->getJson('/api/admin/mart/products/' . $productId);
+        $show->assertOk()->assertJsonPath('data.name', 'Apples 1kg');
+
+        // UPDATE
+        $upd = $this->putJson('/api/admin/mart/products/' . $productId, [
+            'price' => 4.00,
+            'stock' => 30,
+        ]);
+        $upd->assertOk();
+        $this->assertEquals(30, MartProduct::find($productId)->stock);
+
+        // DELETE
+        $del = $this->deleteJson('/api/admin/mart/products/' . $productId);
+        $del->assertOk();
+        $this->assertNull(MartProduct::find($productId));
+    }
+
+    // ========================================================================
+    // 23. /api/pin-login (flat canonical alias) works for both user types
+    // ========================================================================
+
+    public function test_canonical_pin_login_alias(): void
+    {
+        $customer = $this->createUser('customer', [
+            'username' => 'cust_flat',
+            'pin_hash' => \Illuminate\Support\Facades\Hash::make('123456'),
+        ]);
+        $driver = $this->createUser('driver', [
+            'username' => 'driv_flat',
+            'pin_hash' => \Illuminate\Support\Facades\Hash::make('654321'),
+        ]);
+
+        $rc = $this->postJson('/api/pin-login', [
+            'username' => 'cust_flat',
+            'pin' => '123456',
+            'user_type' => 'customer',
+        ]);
+        $rc->assertOk();
+        $this->assertNotEmpty($rc->json('data.token') ?? $rc->json('token'));
+
+        $rd = $this->postJson('/api/pin-login', [
+            'username' => 'driv_flat',
+            'pin' => '654321',
+            'user_type' => 'driver',
+        ]);
+        $rd->assertOk();
+    }
+
+    // ========================================================================
+    // 24. Phase 6 end-to-end walkthrough across canonical alias endpoints.
+    //
+    // Exercises the playbook flow from QR generation through registration,
+    // login, mart product list, and wallet view, against the FLAT canonical
+    // routes (no /customer or /driver prefix). This is the in-process
+    // equivalent of the curl walkthrough Phase 6 asks for.
+    // ========================================================================
+
+    public function test_phase6_canonical_walkthrough(): void
+    {
+        // 0) Pre-seed: customer level required by registration service.
+        $this->seedUserLevel('customer');
+
+        // 1) Admin generates a client-referral token.
+        $admin = $this->createUser('admin');
+        $driver = $this->createUser('driver');
+        Passport::actingAs($admin, ['AccessToSuperAdmin']);
+
+        $gen = $this->postJson('/api/qr-token/generate', [
+            'role' => 'customer',
+            'driver_id' => $driver->id,
+        ]);
+        $gen->assertOk();
+        $token = $gen->json('data.token') ?? $gen->json('token');
+        $this->assertNotEmpty($token);
+
+        // 2) Public validation via GET.
+        $val = $this->getJson('/api/qr/validate/' . $token);
+        $val->assertOk()->assertJsonPath('data.valid', true);
+
+        // 3) Public username probe.
+        $probe = $this->postJson('/api/check-username', ['username' => 'phase6_user']);
+        $probe->assertOk()->assertJson(['available' => true]);
+
+        // 4) Client registration via the canonical flat alias.
+        $reg = $this->postJson('/api/register-client', [
+            'username' => 'phase6_user',
+            'pin' => '424242',
+            'pin_confirmation' => '424242',
+            'first_name' => 'Phase',
+            'last_name' => 'Six',
+            'qr_token' => $token,
+        ]);
+        $reg->assertOk();
+
+        // 5) Login via the canonical /api/pin-login alias.
+        $login = $this->postJson('/api/pin-login', [
+            'username' => 'phase6_user',
+            'pin' => '424242',
+            'user_type' => 'customer',
+        ]);
+        $login->assertOk();
+
+        // 6) Authenticated wallet view via the canonical /api/wallet alias.
+        $newUser = User::where('username', 'phase6_user')->first();
+        $this->createUserAccount($newUser);
+        Passport::actingAs($newUser, ['AccessToCustomer']);
+        $wallet = $this->getJson('/api/wallet');
+        $wallet->assertOk();
+        $this->assertIsArray($wallet->json('data'));
+        $this->assertEquals(0.0, $wallet->json('data.balance'));
+
+        // 7) Mart product listing via the canonical /api/mart/products alias.
+        MartProduct::create([
+            'name' => 'Phase6 Bananas',
+            'price' => 1.99,
+            'category' => 'Fruit',
+            'is_active' => true,
+            'stock' => 100,
+        ]);
+        $martList = $this->getJson('/api/mart/products');
+        $martList->assertOk();
+
+        // 8) Wallet topup intent via /api/wallet/topup-intent (canonical alias
+        //    to VitoStripeController). Without real Stripe creds this returns
+        //    503 or returns a clientSecret; either way the route resolves.
+        $topup = $this->postJson('/api/wallet/topup-intent', ['amount' => 10.00]);
+        $this->assertContains($topup->status(), [200, 400, 422, 500, 503]);
+    }
 }

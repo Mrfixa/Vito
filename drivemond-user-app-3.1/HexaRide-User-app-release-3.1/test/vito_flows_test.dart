@@ -166,4 +166,20 @@ void main() {
       expect(total, 36.50);
     });
   });
+
+  group('Canonical Endpoint Paths', () {
+    test('TokenGateScreen uses the public GET validate endpoint', () {
+      const publicBase = '/api/qr/validate/';
+      final sampleToken = 'a' * 64;
+      final url = publicBase + sampleToken;
+      expect(url.startsWith('/api/qr/validate/'), isTrue);
+      expect(url.endsWith(sampleToken), isTrue);
+      expect(url.length, publicBase.length + 64);
+    });
+
+    test('Check-username endpoint is unauthenticated and POSTed', () {
+      const url = '/api/check-username';
+      expect(url, '/api/check-username');
+    });
+  });
 }

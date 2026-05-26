@@ -14,7 +14,7 @@ Vito/
 │   │   ├── TripManagement/            # Rides, parcels, VitoMart
 │   │   ├── Gateways/                  # Stripe PaymentIntent, webhooks
 │   │   └── ...                        # 13+ modules
-│   └── tests/Feature/VitoFlowTest.php # 8 PHPUnit tests covering all VITO flows
+│   └── tests/Feature/VitoFlowTest.php # 25 PHPUnit tests covering all VITO flows
 ├── drivemond-user-app-3.1/            # Flutter user app (GetX state management)
 ├── drivemond-driver-app-3.1/          # Flutter driver app
 ├── landing/                           # Standalone landing page (vanilla HTML)
@@ -37,7 +37,7 @@ Vito/
 ### Prerequisites
 
 - PHP 8.2+, Composer 2
-- Flutter 3.24+ (Dart 3.5+)
+- Flutter 3.44+ (Dart 3.12+)
 - MySQL 8 (or SQLite for testing)
 - Android SDK (for APK builds)
 
@@ -70,17 +70,17 @@ flutter run
 ### Running Tests
 
 ```bash
-# Laravel (8 VITO flow tests)
+# Laravel (25 VITO flow tests)
 cd drivemond-admin-new-install-3.1
 php artisan test --filter=VitoFlowTest
 
-# Flutter user app
+# Flutter user app (21 tests)
 cd drivemond-user-app-3.1/HexaRide-User-app-release-3.1
-flutter test test/vito_flows_test.dart
+flutter test
 
-# Flutter driver app
+# Flutter driver app (22 tests)
 cd drivemond-driver-app-3.1/HexaRide-Driver-app-release-3.1
-flutter test test/vito_flows_test.dart
+flutter test
 ```
 
 ## CI/CD
@@ -88,7 +88,7 @@ flutter test test/vito_flows_test.dart
 The GitHub Actions workflow (`.github/workflows/vito-ci.yml`) runs on every push/PR to `master`:
 
 - PHPStan static analysis on VITO-specific controllers
-- PHPUnit tests (8 VITO flow tests)
+- PHPUnit tests (25 VITO flow tests)
 - Flutter analyze on both apps
 - Flutter tests on both apps
 - Debug APK builds (uploaded as artifacts)

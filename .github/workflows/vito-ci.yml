@@ -44,7 +44,7 @@ jobs:
         run: |
           sed -i 's|^APP_URL=.*|APP_URL=http://localhost|' .env
 
-      - name: Run PHPStan (level 0)
+      - name: Run PHPStan (level 0) on Vito controllers
         run: |
           ./vendor/bin/phpstan analyse \
             Modules/AuthManagement/Http/Controllers/Api/VitoAuthController.php \
@@ -52,8 +52,10 @@ jobs:
             Modules/TripManagement/Http/Controllers/Api/Driver/VitoTripController.php \
             Modules/TripManagement/Http/Controllers/Api/Driver/VitoParcelController.php \
             Modules/TripManagement/Http/Controllers/Api/Driver/VitoMartDriverController.php \
+            Modules/TripManagement/Http/Controllers/Api/Admin/VitoMartAdminApiController.php \
             Modules/TripManagement/Http/Controllers/Web/VitoMartAdminController.php \
             Modules/Gateways/Http/Controllers/Api/VitoStripeController.php \
+            Modules/UserManagement/Http/Controllers/Api/Customer/VitoWalletController.php \
             --level=0 --no-progress || true
 
       - name: Run PHPUnit Tests
@@ -86,7 +88,7 @@ jobs:
         run: flutter analyze --no-fatal-infos || true
 
       - name: Run tests
-        run: flutter test test/vito_flows_test.dart
+        run: flutter test
 
       - name: Build debug APK
         run: |
@@ -126,7 +128,7 @@ jobs:
         run: flutter analyze --no-fatal-infos || true
 
       - name: Run tests
-        run: flutter test test/vito_flows_test.dart
+        run: flutter test
 
       - name: Build debug APK
         run: |
