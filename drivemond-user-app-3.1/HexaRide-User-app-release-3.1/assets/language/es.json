@@ -1044,5 +1044,14 @@
   "tracking": "Seguimiento",
   "track_parcel": "Rastrear Paquete",
   "rate_your_driver": "Califica Tu Conductor",
-  "trip_completed_title": "Viaje Completado"
+  "trip_completed_title": "Viaje Completado",
+  "out_of_stock": "Sin stock",
+  "checkout_error": "No se pudo realizar el pedido. Intente de nuevo.",
+  "order_confirmed": "Pedido Confirmado",
+  "out_for_delivery": "En camino",
+  "delivery_proof": "Prueba de entrega",
+  "customer_signature": "Firma del cliente",
+  "something_went_wrong": "Algo salió mal",
+  "cash_on_delivery": "Pago en efectivo",
+  "card": "Tarjeta"
 }

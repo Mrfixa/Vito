@@ -1044,5 +1044,14 @@
   "tracking": "Tracking",
   "track_parcel": "Track Parcel",
   "rate_your_driver": "Rate Your Driver",
-  "trip_completed_title": "Trip Completed"
+  "trip_completed_title": "Trip Completed",
+  "out_of_stock": "Out of Stock",
+  "checkout_error": "Could not place order. Please try again.",
+  "order_confirmed": "Order Confirmed",
+  "out_for_delivery": "Out for Delivery",
+  "delivery_proof": "Delivery Proof",
+  "customer_signature": "Customer Signature",
+  "something_went_wrong": "Something went wrong",
+  "cash_on_delivery": "Cash on Delivery",
+  "card": "Card"
 }
