@@ -103,4 +103,16 @@ class VitoMartAdminController extends Controller
 
         return redirect()->route('admin.mart.products.index');
     }
+
+    public function stockAdjust(Request $request, $id)
+    {
+        $product = MartProduct::findOrFail($id);
+        $action = $request->input('action');
+        if ($action === 'increment') {
+            $product->increment('stock');
+        } elseif ($action === 'decrement' && $product->stock > 0) {
+            $product->decrement('stock');
+        }
+        return response()->json(['stock' => $product->fresh()->stock]);
+    }
 }

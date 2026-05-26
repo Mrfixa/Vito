@@ -25,7 +25,14 @@
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label">{{translate('category')}} *</label>
-                                        <input type="text" name="category" class="form-control" required value="{{old('category')}}">
+                                        <select name="category" class="form-control" required>
+                                            <option value="">{{ translate('select_category') }}</option>
+                                            @foreach(['Food','Drinks','Snacks','Essentials','Personal Care','Household','Electronics','Other'] as $cat)
+                                                <option value="{{ $cat }}"
+                                                    @if(isset($product) && $product->category === $cat) selected @endif
+                                                >{{ $cat }}</option>
+                                            @endforeach
+                                        </select>
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label">{{translate('price')}} *</label>
@@ -42,6 +49,27 @@
                                     <div class="col-md-6">
                                         <label class="form-label">{{translate('product_image')}}</label>
                                         <input type="file" name="image" class="form-control" accept="image/*">
+                                        <div id="imagePreviewWrap" style="display:none;margin-top:8px">
+                                            <img id="imagePreview" src="#" alt="Preview"
+                                                 style="max-width:120px;max-height:120px;border-radius:6px;border:1px solid #dee2e6">
+                                        </div>
+                                        <script>
+                                        (function(){
+                                            var input = document.querySelector('input[name="image"]');
+                                            if(input) {
+                                                input.addEventListener('change', function(){
+                                                    if(this.files && this.files[0]){
+                                                        var reader = new FileReader();
+                                                        reader.onload = function(e){
+                                                            document.getElementById('imagePreview').src = e.target.result;
+                                                            document.getElementById('imagePreviewWrap').style.display = 'block';
+                                                        };
+                                                        reader.readAsDataURL(this.files[0]);
+                                                    }
+                                                });
+                                            }
+                                        })();
+                                        </script>
                                     </div>
                                     <div class="col-12">
                                         <button type="submit" class="btn btn-primary">{{translate('save_product')}}</button>

@@ -56,6 +56,7 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => 'admin'], f
             Route::put('{id}', 'update')->name('update');
             Route::delete('{id}', 'destroy')->name('destroy');
             Route::post('{id}/toggle-status', 'toggleStatus')->name('toggle-status');
+            Route::post('{id}/stock-adjust', 'stockAdjust')->name('stock-adjust');
         });
     });
 
