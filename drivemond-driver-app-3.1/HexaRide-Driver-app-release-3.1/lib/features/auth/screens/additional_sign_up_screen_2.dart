@@ -412,6 +412,7 @@ class AdditionalSignUpScreen2 extends StatelessWidget {
                       }
                       String? deviceToken = await FirebaseMessaging.instance.getToken();
                       SignUpBody signUpBody = SignUpBody(
+                          username: authController.usernameController.text.trim(),
                           email: email,
                           address: address,
                           identityNumber: identityNumber,

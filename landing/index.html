@@ -59,19 +59,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
     return d.innerHTML;
   }
 
-  // Fix 3 — device-aware download buttons
-  function showDownloadButtons(){
+  // Device-aware download buttons — appends token as referrer so the app can redeem on first launch
+  function showDownloadButtons(tok){
     var isIOS     = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
     var isAndroid = /Android/.test(navigator.userAgent);
+    var playUrl = tok ? storeUrlWithToken(PLAY_STORE_URL, tok) : PLAY_STORE_URL;
+    var appUrl  = tok ? storeUrlWithToken(APP_STORE_URL, tok)  : APP_STORE_URL;
     if(isIOS){
-      return '<a href="' + APP_STORE_URL + '" class="btn">Download on the App Store</a>';
+      return '<a href="' + appUrl + '" class="btn">Download on the App Store</a>';
     } else if(isAndroid){
-      return '<a href="' + PLAY_STORE_URL + '" class="btn">Get it on Google Play</a>';
+      return '<a href="' + playUrl + '" class="btn">Get it on Google Play</a>';
     } else {
-      // Fix 5 — desktop: clear messaging instead of a mobile button
       return '<p class="desktop-msg">Vito is a mobile app. Please open this link on your iPhone or Android device.</p>' +
-             '<a href="' + PLAY_STORE_URL + '" class="btn">Android</a>' +
-             '<a href="' + APP_STORE_URL + '" class="btn">iOS</a>';
+             '<a href="' + playUrl + '" class="btn">Android</a>' +
+             '<a href="' + appUrl + '" class="btn">iOS</a>';
     }
   }
 
@@ -92,9 +93,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
     var fallbackTimer = setTimeout(function(){
       document.body.removeChild(iframe);
       if(isIOS){
-        window.location.href = APP_STORE_URL;
+        window.location.href = storeUrlWithToken(APP_STORE_URL, tok);
       } else if(isAndroid){
-        window.location.href = PLAY_STORE_URL;
+        window.location.href = storeUrlWithToken(PLAY_STORE_URL, tok);
       }
     }, 1500);
 
@@ -107,13 +108,27 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
     });
   }
 
-  var baseUrl = 'https://dacatlon.store';
+  // Configure your backend URL here (no trailing slash)
+  var baseUrl = window.VITO_API_BASE_URL || 'https://dacatlon.store';
+
+  // Append ?token= to store download URLs so the app can read it on first launch
+  function storeUrlWithToken(storeUrl, tok){
+    return storeUrl + (storeUrl.indexOf('?') === -1 ? '?' : '&') + 'referrer=' + encodeURIComponent('token=' + tok);
+  }
+
   fetch(baseUrl + '/api/qr/validate/' + encodeURIComponent(token))
     .then(function(r){ return r.json(); })
     .then(function(data){
       if(data.data && data.data.valid){
+        var inviterName = (data.data.driver_name || data.data.inviter_name || '');
+        var inviteText = inviterName
+          ? 'You\'ve been invited by <strong>' + escapeHtml(inviterName) + '</strong> to join Vito!'
+          : 'You\'ve been invited to join Vito!';
+        var playUrlWithToken = storeUrlWithToken(PLAY_STORE_URL, token);
+        var appUrlWithToken  = storeUrlWithToken(APP_STORE_URL, token);
+
         var html = '<div class="icon">&#9989;</div>';
-        html += '<div class="status">You\'ve been invited to join Vito!</div>';
+        html += '<div class="status">' + inviteText + '</div>';
         html += '<div class="detail">Your invitation is valid. Tap below to get started.</div>';
 
         // Fix 4 — prominent "Open in App" button with safely escaped token
@@ -121,9 +136,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
         html += '<button class="btn-primary" onclick="window.location.href=\'' + APP_SCHEME + encodeURIComponent(token) + '\'">Open in Vito App</button>';
         html += '</div>';
 
-        // Fix 3/5 — device-aware store buttons (or desktop message)
+        // Device-aware store buttons (or desktop message) — token embedded in URL
         html += '<div class="btn-group">';
-        html += showDownloadButtons();
+        html += showDownloadButtons(token);
         html += '</div>';
 
         card.innerHTML = html;

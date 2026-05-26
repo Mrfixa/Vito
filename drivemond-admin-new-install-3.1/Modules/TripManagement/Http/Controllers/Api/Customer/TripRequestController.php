@@ -457,7 +457,7 @@ class TripRequestController extends Controller
 
         $data = $this->tripRequestService->findOneWithAvg(criteria: $criteria, relations: $relations, withAvgRelation: $withAvgRelation);
         if (!$data) {
-            return response()->json(responseFormatter(DEFAULT_404), 403);
+            return response()->json(responseFormatter(DEFAULT_404), 404);
         }
         $resource = TripRequestResource::make($data->append('distance_wise_fare'));
         return response()->json(responseFormatter(DEFAULT_200, $resource));
@@ -520,7 +520,7 @@ class TripRequestController extends Controller
             return response()->json(responseFormatter(constant: TRIP_STATUS_NOT_COMPLETED_200));
         }
         if ($trip->customer_id != auth('api')->id() && $trip->driver_id != auth('api')->id()) {
-            return response()->json(responseFormatter(constant: DEFAULT_404), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_404), 404);
         }
         if (($trip->discount_amount != null && $trip->discount_amount > 0 && $trip->actual_fare == $trip->discount_amount) || $trip->paid_fare != 0) {
             $tripData = new TripRequestResource($trip->append('distance_wise_fare'));
@@ -655,7 +655,7 @@ class TripRequestController extends Controller
             return response()->json(responseFormatter(constant: TRIP_REQUEST_404), 404);
         }
         if (!$driver->vehicle) {
-            return response()->json(responseFormatter(constant: DEFAULT_404), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_404), 404);
         }
         if (get_cache('bid_on_fare') ?? 0) {
             $checkBid = $this->fareBiddingService->findOneBy(criteria: ['trip_request_id' => $request->trip_request_id, 'driver_id' => $request->driver_id]);
@@ -723,13 +723,15 @@ class TripRequestController extends Controller
             $trip->refresh();
             $this->tripRequestService->update(id: $trip->id, data: ['discount_id' => null, 'discount_amount' => null]);
             $trip->tripStatus()->update([$attributes['current_status'] => now()]);
-            $trip->time()->update(['driver_arrival_time' => $attributes['driver_arrival_time']]);
+            if ($trip->type == 'ride_request' && isset($attributes['driver_arrival_time'])) {
+                $trip->time()->update(['driver_arrival_time' => $attributes['driver_arrival_time']]);
+            }
             DB::commit();
             if (get_cache('bid_on_fare') ?? 0) {
                 $acceptDriverBid = $this->fareBiddingService->findOneBy(criteria: ['trip_request_id' => $request['trip_request_id'], 'driver_id' => $request['driver_id']]);
                 $all_bidding = $this->fareBiddingService->getBy(criteria: ['trip_request_id' => $request['trip_request_id'], ['id', '!=', $acceptDriverBid->id]]);
                 if ($all_bidding->isNotEmpty()) {
-                    $this->fareBiddingService->deleteBy(criteria: ['trip_request_id' => $request['trip_request_id'], ['id' => $all_bidding->id]]);
+                    $this->fareBiddingService->deleteBy(criteria: ['trip_request_id' => $request['trip_request_id'], ['id', '!=', $acceptDriverBid->id]]);
                 }
             }
             $push = getNotification('bid_accepted');
@@ -747,7 +749,7 @@ class TripRequestController extends Controller
                 $all_bidding = $this->fareBiddingService->getBy(criteria: ['trip_request_id' => $request['trip_request_id']]);
 
                 if (count($all_bidding) > 0) {
-                    $this->fareBiddingService->deleteBy(criteria: ['trip_request_id' => $request['trip_request_id'], ['id' => $all_bidding->id]]);
+                    $this->fareBiddingService->deleteBy(criteria: ['trip_request_id' => $request['trip_request_id']]);
                 }
 
             }
@@ -1049,7 +1051,7 @@ class TripRequestController extends Controller
                 'trip_request_id' => $trip_request_id,
                 'attributes' => $attributes
             ]);
-            return $response()->json(responseFormatter(constant: DEFAULT_FAIL_200), 403);
+            return response()->json(responseFormatter(constant: DEFAULT_FAIL_200), 403);
         }
 
 

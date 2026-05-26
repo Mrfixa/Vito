@@ -786,18 +786,16 @@ if (!function_exists('onErrorImage')) {
 if (!function_exists('checkReverbConnection')) {
     function checkReverbConnection(): bool
     {
-        $host = env('REVERB_HOST') ?? '127.0.0.1';
-        $port = env('REVERB_PORT') ?? 6001;
-        $timeout = 2;
-
-        $connection = @fsockopen($host, $port, $errno, $errstr, $timeout);
-
-        if (is_resource($connection)) {
-            fclose($connection);
-            return true;
-        }
-
-        return false;
+        return \Illuminate\Support\Facades\Cache::remember('reverb_up', 30, function () {
+            $host = env('REVERB_HOST') ?? '127.0.0.1';
+            $port = (int)(env('REVERB_PORT') ?? 6001);
+            $connection = @fsockopen($host, $port, $errno, $errstr, 2);
+            if (is_resource($connection)) {
+                fclose($connection);
+                return true;
+            }
+            return false;
+        });
     }
 }
 if (!function_exists('spellOutNumber')) {

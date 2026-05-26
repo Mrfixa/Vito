@@ -13,6 +13,7 @@ import 'package:ride_sharing_user_app/features/home/widgets/visit_to_mart_widget
 import 'package:ride_sharing_user_app/features/my_offer/controller/offer_controller.dart';
 import 'package:ride_sharing_user_app/features/parcel/controllers/parcel_controller.dart';
 import 'package:ride_sharing_user_app/features/parcel/screens/parcel_list_view_screen.dart';
+import 'package:ride_sharing_user_app/features/parcel/screens/parcel_screen.dart';
 import 'package:ride_sharing_user_app/features/parcel/widgets/driver_request_dialog.dart';
 import 'package:ride_sharing_user_app/features/ride/screens/ride_list_view_screen.dart';
 import 'package:ride_sharing_user_app/features/splash/controllers/config_controller.dart';
@@ -29,6 +30,8 @@ import 'package:ride_sharing_user_app/features/home/widgets/home_my_address.dart
 import 'package:ride_sharing_user_app/features/location/controllers/location_controller.dart';
 import 'package:ride_sharing_user_app/features/profile/controllers/profile_controller.dart';
 import 'package:ride_sharing_user_app/features/ride/controllers/ride_controller.dart';
+import 'package:ride_sharing_user_app/features/map/screens/map_screen.dart';
+import 'package:ride_sharing_user_app/features/mart/screens/mart_store_screen.dart';
 import 'package:ride_sharing_user_app/common_widgets/app_bar_widget.dart';
 import 'package:ride_sharing_user_app/common_widgets/body_widget.dart';
 import 'package:ride_sharing_user_app/helper/display_helper.dart';
@@ -176,6 +179,11 @@ class _HomeScreenState extends State<HomeScreen> {
                           const Padding(
                             padding: EdgeInsets.only(top:Dimensions.paddingSize),
                             child: CategoryView(),
+                          ),
+
+                          const Padding(
+                            padding: EdgeInsets.only(top: Dimensions.paddingSize),
+                            child: _ServiceCardsRow(),
                           ),
 
                           if((config?.externalSystem ?? false) && Get.find<AuthController>().isLoggedIn())...[
@@ -423,6 +431,117 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+}
+
+class _ServiceCardsRow extends StatelessWidget {
+  const _ServiceCardsRow();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        _ServiceCard(
+          icon: Icons.directions_car_outlined,
+          label: 'vito_ride'.tr,
+          subtitle: 'book_ride'.tr,
+          color: Theme.of(context).primaryColor,
+          onTap: () => Get.to(() => const MapScreen(fromScreen: MapScreenType.ride)),
+        ),
+        const SizedBox(width: Dimensions.paddingSizeSmall),
+        _ServiceCard(
+          icon: Icons.inventory_2_outlined,
+          label: 'vito_send'.tr,
+          subtitle: 'send_package'.tr,
+          color: Colors.orange,
+          onTap: () => Get.to(() => const ParcelScreen()),
+        ),
+        const SizedBox(width: Dimensions.paddingSizeSmall),
+        _ServiceCard(
+          icon: Icons.storefront_outlined,
+          label: 'vito_mart'.tr,
+          subtitle: 'shop_mart'.tr,
+          color: Colors.green,
+          onTap: () => Get.to(() => const MartStoreScreen()),
+        ),
+      ],
+    );
+  }
+}
+
+class _ServiceCard extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String subtitle;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _ServiceCard({
+    required this.icon,
+    required this.label,
+    required this.subtitle,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(Dimensions.radiusDefault),
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            vertical: Dimensions.paddingSizeDefault,
+            horizontal: Dimensions.paddingSizeSmall,
+          ),
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardColor,
+            borderRadius: BorderRadius.circular(Dimensions.radiusDefault),
+            border: Border.all(color: color.withValues(alpha: 0.25)),
+            boxShadow: [
+              BoxShadow(
+                color: color.withValues(alpha: 0.08),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: color, size: 22),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                label,
+                style: textBold.copyWith(
+                  fontSize: Dimensions.fontSizeSmall,
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              Text(
+                subtitle,
+                style: textRegular.copyWith(
+                  fontSize: 10,
+                  color: Theme.of(context).hintColor,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 

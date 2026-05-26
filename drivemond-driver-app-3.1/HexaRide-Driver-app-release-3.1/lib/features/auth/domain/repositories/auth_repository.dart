@@ -26,10 +26,7 @@ class AuthRepository implements AuthRepositoryInterface {
 
   @override
   Future<Response> registration({required SignUpBody signUpBody, XFile? profileImage, List<MultipartBody>? identityImage, List<MultipartDocument>? documents}) async {
-    return await apiClient.postMultipartData(AppConstants.registration,
-      signUpBody.toJson(),
-      identityImage!,
-      MultipartBody('profile_image', profileImage), documents ?? []);
+    return await apiClient.postData(AppConstants.pinRegister, signUpBody.toJson());
   }
 
   @override

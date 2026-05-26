@@ -34,7 +34,7 @@ class AuthRepository implements AuthRepositoryInterface{
 
   @override
   Future<Response?> registration({required SignUpBody signUpBody}) async {
-    return await apiClient.postData(AppConstants.registration, signUpBody.toJson());
+    return await apiClient.postData(AppConstants.pinRegister, signUpBody.toJson());
   }
 
 

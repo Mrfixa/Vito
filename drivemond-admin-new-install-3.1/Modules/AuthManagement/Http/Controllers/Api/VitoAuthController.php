@@ -95,7 +95,6 @@ class VitoAuthController extends Controller
 
             $user->pin_attempts = 0;
             $user->is_temp_blocked = 0;
-            $user->blocked_at = null;
             $user->pin_blocked_at = null;
             $user->save();
         }
@@ -111,6 +110,7 @@ class VitoAuthController extends Controller
         }
 
         if (!$user->is_active) {
+            $user->update(['pin_attempts' => 0]);
             if ($user->user_type === 'driver') {
                 return response()->json(responseFormatter(DEFAULT_USER_UNDER_REVIEW_DISABLED_401), 403);
             }
@@ -120,7 +120,6 @@ class VitoAuthController extends Controller
         $userData = [
             'pin_attempts' => 0,
             'is_temp_blocked' => 0,
-            'blocked_at' => null,
             'pin_blocked_at' => null,
         ];
         $user = $this->authService->update(id: $user->id, data: $userData);

@@ -110,6 +110,10 @@ class VitoMartController extends Controller
                 $items = array_values($merged);
 
                 foreach ($items as $item) {
+                    if ($item['quantity'] > 100) {
+                        throw new \RuntimeException('Quantity exceeds maximum (100) for product: ' . ($item['product_id'] ?? ''));
+                    }
+
                     $product = MartProduct::where('id', $item['product_id'])
                         ->where('is_active', true)
                         ->lockForUpdate()
@@ -150,6 +154,7 @@ class VitoMartController extends Controller
                         $perUserLimit = $promo->per_user_limit ?? 1;
                         $userUsageCount = MartOrder::where('customer_id', $request->user()->id)
                             ->where('promo_code', $promo->code)
+                            ->whereNotIn('status', ['cancelled'])
                             ->count();
 
                         if ($userUsageCount < $perUserLimit) {
@@ -219,16 +224,18 @@ class VitoMartController extends Controller
 
     public function cancelOrder(Request $request, string $id): JsonResponse
     {
-        $order = DB::transaction(function () use ($request, $id) {
+        $result = DB::transaction(function () use ($request, $id) {
             $order = MartOrder::where('id', $id)
                 ->where('customer_id', $request->user()->id)
-                ->where('status', 'pending')
+                ->whereIn('status', ['pending', 'accepted'])
                 ->lockForUpdate()
                 ->first();
 
             if (!$order) {
                 return null;
             }
+
+            $previousDriverId = $order->driver_id;
 
             foreach ($order->items as $item) {
                 $lockedProduct = $item->product()->withTrashed()->lockForUpdate()->first();
@@ -246,12 +253,33 @@ class VitoMartController extends Controller
                 }
             }
 
-            $order->update(['status' => 'cancelled']);
-            return $order;
+            $order->update(['status' => 'cancelled', 'driver_id' => null]);
+            return ['order' => $order, 'driver_id' => $previousDriverId];
         });
 
-        if (!$order) {
+        if (!$result) {
             return response()->json(responseFormatter(DEFAULT_404), 404);
+        }
+
+        // Notify driver if the order was already accepted before cancellation
+        if ($result['driver_id']) {
+            try {
+                $driver = User::find($result['driver_id']);
+                if ($driver && $driver->fcm_token) {
+                    sendDeviceNotification(
+                        fcm_token: $driver->fcm_token,
+                        title: 'Order Cancelled',
+                        description: "Mart order #{$result['order']->ref_id} was cancelled by the customer.",
+                        status: 'cancelled',
+                        type: 'mart',
+                        notification_type: 'mart',
+                        action: 'mart_order_cancelled',
+                        user_id: $driver->id,
+                    );
+                }
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('Mart driver cancel notify failed: ' . $e->getMessage());
+            }
         }
 
         return response()->json(responseFormatter(DEFAULT_200));

@@ -14,7 +14,7 @@ class BlogTitleSuggestionPromptService implements BlogTitleSuggestionPromptServi
         if (is_array($context)) {
             $keywordsText = implode(' ', $context);
         }
-        $businessName = businessConfig(key: 'business_name', settingsType: BUSINESS_INFORMATION)?->value ?? 'Drivemond';
+        $businessName = businessConfig(key: 'business_name', settingsType: BUSINESS_INFORMATION)?->value ?? 'Vito';
 
         return <<<PROMPT
             You are a professional SEO content strategist specialized in generating high-quality blog title suggestions for ride-sharing and mobility platforms.

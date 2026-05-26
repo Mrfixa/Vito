@@ -32,6 +32,8 @@ class VitoFlowTest extends TestCase
 
     protected function tearDown(): void
     {
+        Schema::dropIfExists('reviews');
+        Schema::dropIfExists('transactions');
         Schema::dropIfExists('stripe_events');
         Schema::dropIfExists('mart_order_items');
         Schema::dropIfExists('mart_orders');
@@ -42,6 +44,7 @@ class VitoFlowTest extends TestCase
         Schema::dropIfExists('time_tracks');
         Schema::dropIfExists('activity_logs');
         Schema::dropIfExists('driver_details');
+        Schema::dropIfExists('temp_trip_notifications');
         Schema::dropIfExists('trip_requests');
         Schema::dropIfExists('user_levels');
         Schema::dropIfExists('business_settings');
@@ -304,6 +307,14 @@ class VitoFlowTest extends TestCase
             });
         }
 
+        if (!Schema::hasTable('temp_trip_notifications')) {
+            Schema::create('temp_trip_notifications', function (Blueprint $table) {
+                $table->id();
+                $table->uuid('trip_request_id')->nullable();
+                $table->uuid('user_id')->nullable();
+            });
+        }
+
         // Passport tables for token creation
         if (!Schema::hasTable('oauth_clients')) {
             Schema::create('oauth_clients', function (Blueprint $table) {
@@ -560,8 +571,10 @@ class VitoFlowTest extends TestCase
         $this->assertTrue(Hash::check('111222', $user->pin_hash));
         $this->assertEquals('driver', $user->user_type);
 
-        // Token redeemed
+        // Token redeemed with redeemed_by set
         $this->assertNotNull(DB::table('qr_tokens')->where('token', $driverToken)->value('redeemed_at'));
+        $driverUser = User::where('username', 'johndriver')->first();
+        $this->assertDatabaseHas('qr_tokens', ['token' => $driverToken, 'redeemed_by' => $driverUser->id]);
     }
 
     // ========================================================================
@@ -1192,7 +1205,8 @@ class VitoFlowTest extends TestCase
             'order_id' => $order->id,
             'status' => 'delivered',
         ]);
-        $r->assertStatus(404);
+        $r->assertStatus(400);
+        $this->assertStringContainsString('Cannot transition', $r->json('errors.0.message'));
 
         // Verify status unchanged
         $this->assertEquals('accepted', MartOrder::find($order->id)->status);
@@ -1404,5 +1418,153 @@ class VitoFlowTest extends TestCase
         //    503 or returns a clientSecret; either way the route resolves.
         $topup = $this->postJson('/api/wallet/topup-intent', ['amount' => 10.00]);
         $this->assertContains($topup->status(), [200, 400, 422, 500, 503]);
+    }
+
+    // ========================================================================
+    // 25. Mart cancel from accepted status (restores stock)
+    // ========================================================================
+
+    public function test_customer_can_cancel_accepted_mart_order(): void
+    {
+        $customer = $this->createUser('customer');
+        $driver = $this->createUser('driver');
+
+        // Simulate post-order state: stock was decremented when the order was
+        // placed, so we start the fixture at 9 with an order item of qty 1.
+        $product = MartProduct::create([
+            'name' => 'Cancel Test Item',
+            'price' => 5.00,
+            'stock' => 9,
+            'is_active' => true,
+        ]);
+
+        $order = MartOrder::create([
+            'ref_id' => 'VM-CANCEL01',
+            'customer_id' => $customer->id,
+            'driver_id' => $driver->id,
+            'status' => 'accepted',
+            'total_amount' => 5.00,
+            'delivery_address' => 'Cancel St',
+        ]);
+
+        MartOrderItem::create([
+            'order_id' => $order->id,
+            'product_id' => $product->id,
+            'quantity' => 1,
+            'unit_price' => 5.00,
+            'total_price' => 5.00,
+        ]);
+
+        Passport::actingAs($customer, ['AccessToCustomer']);
+        $r = $this->putJson("/api/customer/mart/orders/{$order->id}/cancel");
+        $r->assertOk();
+
+        $this->assertEquals('cancelled', MartOrder::find($order->id)->status);
+        // Stock should be restored from 9 → 10.
+        $this->assertEquals(10, MartProduct::find($product->id)->stock);
+    }
+
+    // ========================================================================
+    // 26. Wallet balance endpoint (nested DriveMond path)
+    // ========================================================================
+
+    public function test_wallet_balance_endpoint(): void
+    {
+        if (!Schema::hasTable('transactions')) {
+            Schema::create('transactions', function (\Illuminate\Database\Schema\Blueprint $table) {
+                $table->uuid('id')->primary();
+                $table->string('attribute_id')->nullable();
+                $table->string('attribute')->nullable();
+                $table->decimal('debit', 23, 2)->default(0);
+                $table->decimal('credit', 23, 2)->default(0);
+                $table->decimal('balance', 23, 2)->default(0);
+                $table->decimal('added_bonus', 23, 2)->default(0);
+                $table->uuid('user_id');
+                $table->string('account')->nullable();
+                $table->string('transaction_type')->nullable();
+                $table->string('trx_ref_id')->nullable();
+                $table->string('trx_type')->nullable();
+                $table->string('reference')->nullable();
+                $table->timestamps();
+            });
+        }
+
+        $customer = $this->createUser('customer');
+        $this->createUserAccount($customer);
+
+        DB::table('user_accounts')->where('user_id', $customer->id)->update(['wallet_balance' => 42.50]);
+
+        Passport::actingAs($customer, ['AccessToCustomer']);
+        $r = $this->getJson('/api/customer/wallet/balance');
+        $r->assertOk();
+        $this->assertEquals(42.50, $r->json('data.balance'));
+
+        Schema::dropIfExists('transactions');
+    }
+
+    // ========================================================================
+    // 27. Review requires completed trip
+    // ========================================================================
+
+    public function test_review_blocked_on_non_completed_trip(): void
+    {
+        if (!Schema::hasTable('reviews')) {
+            Schema::create('reviews', function (\Illuminate\Database\Schema\Blueprint $table) {
+                $table->uuid('id')->primary();
+                $table->uuid('trip_request_id');
+                $table->uuid('given_by');
+                $table->uuid('received_by');
+                $table->unsignedTinyInteger('rating')->default(5);
+                $table->text('review_comment')->nullable();
+                $table->boolean('is_saved')->default(false);
+                $table->timestamps();
+            });
+        }
+        if (!Schema::hasTable('business_settings')) {
+            Schema::create('business_settings', function (\Illuminate\Database\Schema\Blueprint $table) {
+                $table->uuid('id')->primary();
+                $table->string('key_name');
+                $table->text('value')->nullable();
+                $table->string('settings_type')->nullable();
+                $table->timestamps();
+            });
+        }
+
+        DB::table('business_settings')->insertOrIgnore([
+            'id' => \Illuminate\Support\Str::uuid(),
+            'key_name' => 'customer_review',
+            'value' => '1',
+            'settings_type' => 'customer_review',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $customer = $this->createUser('customer');
+        $driver = $this->createUser('driver');
+
+        $rideId = \Illuminate\Support\Str::uuid()->toString();
+        DB::table('trip_requests')->insert([
+            'id' => $rideId,
+            'customer_id' => $customer->id,
+            'driver_id' => $driver->id,
+            'current_status' => 'ongoing',  // not completed
+            'type' => 'ride_request',
+            'payment_method' => 'cash',
+            'estimated_fare' => 10,
+            'actual_fare' => 0,
+            'estimated_distance' => 2,
+            'paid_fare' => 0,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        Passport::actingAs($customer, ['AccessToCustomer']);
+        $r = $this->postJson('/api/customer/review/store', [
+            'ride_request_id' => $rideId,
+            'rating' => 5,
+        ]);
+        $r->assertStatus(403);
+
+        Schema::dropIfExists('reviews');
     }
 }

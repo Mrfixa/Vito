@@ -1,4 +1,5 @@
 class SignUpBody {
+  String? username;
   String? fName;
   String? lName;
   String? phone;
@@ -13,15 +14,16 @@ class SignUpBody {
 
 
 
-  SignUpBody({this.fName, this.lName, this.phone, this.email='',
+  SignUpBody({this.username, this.fName, this.lName, this.phone, this.email='',
     this.password, this.confirmPassword, this.referralCode, this.qrToken});
 
   SignUpBody.fromJson(Map<String, dynamic> json) {
+    username = json['username'];
     fName = json['first_name'];
     lName = json['last_name'];
     phone = json['phone'];
-    password = json['password'];
-    confirmPassword = json['confirm_password'];
+    password = json['pin'];
+    confirmPassword = json['pin_confirmation'];
     referralCode = json['referral_code'];
 
 
@@ -29,11 +31,11 @@ class SignUpBody {
 
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = <String, dynamic>{};
+    data['username'] = username;
     data['first_name'] = fName;
     data['last_name'] = lName;
-    data['phone'] = phone;
-    data['password'] = password;
-    data['confirm_password'] = confirmPassword;
+    data['pin'] = password;
+    data['pin_confirmation'] = confirmPassword;
     data['referral_code'] = referralCode;
     if (qrToken != null) data['qr_token'] = qrToken;
     return data;

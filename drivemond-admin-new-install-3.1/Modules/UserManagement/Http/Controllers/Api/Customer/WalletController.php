@@ -4,6 +4,7 @@ namespace Modules\UserManagement\Http\Controllers\Api\Customer;
 
 use App\Http\Controllers\Controller;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Modules\BusinessManagement\Service\Interfaces\SettingServiceInterface;
@@ -11,6 +12,8 @@ use Modules\Gateways\Library\Payer;
 use Modules\Gateways\Library\Payment as PaymentInfo;
 use Modules\Gateways\Library\Receiver;
 use Modules\Gateways\Traits\Payment;
+use Modules\TransactionManagement\Entities\Transaction;
+use Modules\UserManagement\Entities\UserAccount;
 use Modules\UserManagement\Service\Interfaces\UserServiceInterface;
 use Modules\UserManagement\Service\Interfaces\WalletBonusServiceInterface;
 use Modules\UserManagement\Transformers\WalletBonusResource;
@@ -31,6 +34,26 @@ class WalletController extends Controller
         $this->customerService = $customerService;
         $this->settingsService = $settingsService;
     }
+    public function balance(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $account = UserAccount::where('user_id', $user->id)->first();
+        $limit = min($request->input('limit', 20), 100);
+        $offset = (int) ($request->input('offset', 0));
+
+        $transactions = Transaction::where('user_id', $user->id)
+            ->where('account', 'wallet')
+            ->orderByDesc('created_at')
+            ->skip($offset)
+            ->take($limit)
+            ->get();
+
+        return response()->json(responseFormatter(constant: DEFAULT_200, content: [
+            'balance'      => (float) ($account?->wallet_balance ?? 0),
+            'transactions' => $transactions,
+        ]));
+    }
+
     /**
      * Display a listing of the resource.
      */

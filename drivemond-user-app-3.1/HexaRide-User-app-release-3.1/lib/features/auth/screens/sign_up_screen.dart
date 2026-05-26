@@ -1,10 +1,9 @@
-import 'package:country_code_picker/country_code_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
-import 'package:phone_numbers_parser/phone_numbers_parser.dart';
 import 'package:ride_sharing_user_app/features/auth/widgets/test_field_title.dart';
+import 'package:ride_sharing_user_app/features/splash/controllers/config_controller.dart';
 import 'package:ride_sharing_user_app/helper/display_helper.dart';
 import 'package:ride_sharing_user_app/helper/svg_image_helper.dart';
 import 'package:ride_sharing_user_app/util/dimensions.dart';
@@ -12,7 +11,6 @@ import 'package:ride_sharing_user_app/util/images.dart';
 import 'package:ride_sharing_user_app/util/styles.dart';
 import 'package:ride_sharing_user_app/features/auth/controllers/auth_controller.dart';
 import 'package:ride_sharing_user_app/features/auth/domain/models/sign_up_body.dart';
-import 'package:ride_sharing_user_app/features/splash/controllers/config_controller.dart';
 import 'package:ride_sharing_user_app/common_widgets/button_widget.dart';
 import 'package:ride_sharing_user_app/common_widgets/custom_text_field.dart';
 
@@ -25,9 +23,9 @@ class SignUpScreen extends StatefulWidget {
 }
 
 class _SignUpScreenState extends State<SignUpScreen> {
+  FocusNode usernameNode = FocusNode();
   FocusNode fNameNode = FocusNode();
   FocusNode lNameNode = FocusNode();
-  FocusNode phoneNode = FocusNode();
   FocusNode confirmPasswordNode = FocusNode();
   FocusNode passwordNode = FocusNode();
   FocusNode referralNode = FocusNode();
@@ -36,9 +34,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
   @override
   void initState() {
     super.initState();
-
-    final countryCode = Get.find<ConfigController>().config?.countryCode ?? '';
-    Get.find<AuthController>().countryDialCode = CountryCode.fromCountryCode(countryCode).dialCode ?? '';
   }
 
   @override
@@ -80,6 +75,20 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 ),
                 const SizedBox(height: Dimensions.paddingSizeExtraLarge),
 
+                TextFieldTitle(title: 'username'.tr, isRequired: true),
+
+                CustomTextField(
+                  hintText: 'username'.tr,
+                  inputType: TextInputType.text,
+                  prefixIcon: Images.person,
+                  controller: authController.usernameController,
+                  focusNode: usernameNode,
+                  nextFocus: fNameNode,
+                  inputAction: TextInputAction.next,
+                  autoFocus: authController.usernameController.text.isEmpty,
+                ),
+                const SizedBox(width: Dimensions.paddingSizeDefault),
+
                 TextFieldTitle(title: 'first_name'.tr, isRequired: true),
 
                 CustomTextField(
@@ -91,7 +100,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   focusNode: fNameNode,
                   nextFocus: lNameNode,
                   inputAction: TextInputAction.next,
-                  autoFocus: authController.fNameController.text.isEmpty,
                 ),
                 const SizedBox(width: Dimensions.paddingSizeDefault),
 
@@ -104,26 +112,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   prefixIcon: Images.person,
                   controller: authController.lNameController,
                   focusNode: lNameNode,
-                  nextFocus: phoneNode,
-                  inputAction: TextInputAction.next,
-                ),
-
-                  TextFieldTitle(title: 'phone'.tr, isRequired: true),
-
-                CustomTextField(
-                  isCodePicker: true,
-                  hintText: 'phone'.tr,
-                  inputType: TextInputType.number,
-                  countryDialCode: authController.countryDialCode,
-                  controller: authController.phoneController,
-                  focusNode: phoneNode,
                   nextFocus: passwordNode,
                   inputAction: TextInputAction.next,
-                  onCountryChanged: (CountryCode countryCode){
-                    authController.countryDialCode = countryCode.dialCode!;
-                    authController.setCountryCode(countryCode.dialCode!);
-                    FocusScope.of(context).requestFocus(phoneNode);
-                  },
                 ),
 
                 if(Get.find<ConfigController>().config?.referralEarningStatus ?? false)...[
@@ -139,11 +129,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   ),
                 ],
 
-                TextFieldTitle(title: 'password'.tr, isRequired: true),
+                TextFieldTitle(title: 'pin'.tr, isRequired: true),
 
                 CustomTextField(
-                  hintText: 'password'.tr,
-                  inputType: TextInputType.text,
+                  hintText: 'pin'.tr,
+                  inputType: TextInputType.number,
                   prefixIcon: Images.password,
                   isPassword: true,
                   controller: authController.passwordController,
@@ -156,7 +146,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                 CustomTextField(
                   hintText: 'confirm_password'.tr,
-                  inputType: TextInputType.text,
+                  inputType: TextInputType.number,
                   prefixIcon: Images.password,
                   controller: authController.confirmPasswordController,
                   focusNode: confirmPasswordNode,
@@ -173,26 +163,26 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   buttonText: 'submit'.tr,
                   radius: 50,
                   onPressed: () {
+                    String username = authController.usernameController.text.trim();
                     String fName = authController.fNameController.text.trim();
                     String lName = authController.lNameController.text.trim();
-                    String phone = authController.phoneController.text.trim();
                     String password = authController.passwordController.text.trim();
                     String confirmPassword = authController.confirmPasswordController.text.trim();
 
-                    if(fName.isEmpty) {
+                    if(username.isEmpty) {
+                      showCustomSnackBar('username_is_required'.tr);
+                      FocusScope.of(context).requestFocus(usernameNode);
+                    }else if(username.length < 3) {
+                      showCustomSnackBar('username_min_3_characters'.tr);
+                      FocusScope.of(context).requestFocus(usernameNode);
+                    }else if(fName.isEmpty) {
                       showCustomSnackBar('first_name_is_required'.tr);
                       FocusScope.of(context).requestFocus(fNameNode);
-                    }else if(phone.isEmpty) {
-                      showCustomSnackBar('phone_is_required'.tr);
-                      FocusScope.of(context).requestFocus(phoneNode);
-                    }else if(!PhoneNumber.parse(authController.countryDialCode + phone).isValid(type: PhoneNumberType.mobile)) {
-                      showCustomSnackBar('phone_number_is_not_valid'.tr);
-                      FocusScope.of(context).requestFocus(phoneNode);
                     }else if(password.isEmpty) {
-                      showCustomSnackBar('password_is_required'.tr);
+                      showCustomSnackBar('pin_is_required'.tr);
                       FocusScope.of(context).requestFocus(passwordNode);
-                    }else if(password.length < 8) {
-                      showCustomSnackBar('minimum_password_length_is_8'.tr);
+                    }else if(!RegExp(r'^\d{6}$').hasMatch(password)) {
+                      showCustomSnackBar('pin_must_be_6_digits'.tr);
                       FocusScope.of(context).requestFocus(passwordNode);
                     }else if(confirmPassword.isEmpty) {
                       showCustomSnackBar('confirm_password_is_required'.tr);
@@ -202,9 +192,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       FocusScope.of(context).requestFocus(confirmPasswordNode);
                     } else{
                       authController.register(SignUpBody(
+                          username: username,
                           fName: fName,
                           lName: lName,
-                          phone: authController.countryDialCode + phone,
                           password: password,
                           confirmPassword: confirmPassword,
                           referralCode: authController.referralCodeController.text.trim(),

@@ -441,31 +441,33 @@ class CustomerService extends BaseService implements Interfaces\CustomerServiceI
     #handshake mart
     public function walletTransfer($customer, array $data = [])
     {
-        if (array_key_exists('type', $data) && $data['type'] == 'debit') {
-            $customer->userAccount()->decrement('wallet_balance', $data['amount']);
-            //customer transaction (debit)
-            $transferData = [
-                'attribute' => 'wallet_transfer_vito_to_mart',
-                'debit' => $data['amount'],
-                'balance' => $customer->userAccount->wallet_balance,
-                'user_id' => $customer->id,
-                'account' => 'wallet_balance',
-            ];
+        \Illuminate\Support\Facades\DB::transaction(function () use ($customer, $data) {
+            $account = $customer->userAccount()->lockForUpdate()->first();
+            if (array_key_exists('type', $data) && $data['type'] == 'debit') {
+                if ($account->wallet_balance < $data['amount']) {
+                    throw new \RuntimeException('insufficient_fund');
+                }
+                $account->decrement('wallet_balance', $data['amount']);
+                $account->refresh();
+                $transferData = [
+                    'attribute' => 'wallet_transfer_vito_to_mart',
+                    'debit' => $data['amount'],
+                    'balance' => $account->wallet_balance,
+                    'user_id' => $customer->id,
+                    'account' => 'wallet_balance',
+                ];
+            } else {
+                $account->increment('wallet_balance', $data['amount']);
+                $account->refresh();
+                $transferData = [
+                    'attribute' => 'wallet_transfer_vito_from_mart',
+                    'credit' => $data['amount'],
+                    'balance' => $account->wallet_balance,
+                    'user_id' => $customer->id,
+                    'account' => 'wallet_balance',
+                ];
+            }
             $this->transactionRepository->create($transferData);
-        } else {
-            //customer account debit
-            $customer->userAccount()->increment('wallet_balance', $data['amount']);
-            //customer transaction (debit)
-
-            $transferData = [
-                'attribute' => 'wallet_transfer_vito_from_mart',
-                'credit' => $data['amount'],
-                'balance' => $customer->userAccount->wallet_balance,
-                'user_id' => $customer->id,
-                'account' => 'wallet_balance',
-            ];
-            $this->transactionRepository->create($transferData);
-        }
-
+        });
     }
 }

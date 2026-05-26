@@ -1,6 +1,5 @@
-import 'dart:convert';
-
 class SignUpBody {
+  String? username;
   String? fName;
   String? lName;
   String? phone;
@@ -15,12 +14,13 @@ class SignUpBody {
   String? fcmToken;
   String? qrToken;
 
-  SignUpBody({this.fName,
+  SignUpBody({this.username,
+    this.fName,
     this.lName,
     this.phone,
     this.email,
     this.password,
-    this.confirmPassword ,
+    this.confirmPassword,
     this.address,
     this.identificationType,
     this.identityNumber,
@@ -31,11 +31,12 @@ class SignUpBody {
   });
 
   SignUpBody.fromJson(Map<String, dynamic> json) {
+    username = json['username'];
     fName = json['first_name'];
     lName = json['last_name'];
     phone = json['phone'];
-    password = json['password'];
-    confirmPassword = json['confirm_password'];
+    password = json['pin'];
+    confirmPassword = json['pin_confirmation'];
     email = json['email'];
     address = json['address'];
     identificationType = json['identification_type'];
@@ -44,20 +45,15 @@ class SignUpBody {
     fcmToken = json['fcm_token'];
   }
 
-  Map<String, String> toJson() {
-    final Map<String, String> data = <String, String>{};
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['username'] = username ?? '';
     data['first_name'] = fName ?? '';
     data['last_name'] = lName ?? '';
-    data['phone'] = phone ?? '';
-    data['password'] = password ?? '';
-    data['confirm_password'] = confirmPassword ?? '';
+    data['pin'] = password ?? '';
+    data['pin_confirmation'] = confirmPassword ?? '';
     data['email'] = email ?? '';
-    data['address'] = address ?? '';
-    data['identification_type'] = identificationType ?? '';
-    data['identification_number'] = identityNumber ?? '';
-    data['service'] = jsonEncode(services);
     data['referral_code'] = referralCode ?? '';
-    data['fcm_token'] = fcmToken ?? '';
     if (qrToken != null && qrToken!.isNotEmpty) {
       data['qr_token'] = qrToken!;
     }

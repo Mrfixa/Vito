@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Modules\TripManagement\Entities\TempTripNotification;
 use Modules\TripManagement\Entities\TripRequest;
 
 class VitoTripController extends Controller
@@ -42,6 +43,10 @@ class VitoTripController extends Controller
         if (!$result) {
             return response()->json(responseFormatter(constant: TRIP_REQUEST_404), 404);
         }
+
+        // Release all pending notification records for this trip so other drivers
+        // stop seeing it in their queue.
+        TempTripNotification::where('trip_request_id', $result->id)->delete();
 
         return response()->json(responseFormatter(DEFAULT_200, $result));
     }

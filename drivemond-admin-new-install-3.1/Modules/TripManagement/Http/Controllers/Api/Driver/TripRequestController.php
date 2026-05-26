@@ -7,6 +7,7 @@ use App\Events\DriverTripAcceptedEvent;
 use App\Events\DriverTripCancelledEvent;
 use App\Events\DriverTripCompletedEvent;
 use App\Events\DriverTripStartedEvent;
+use App\Events\StoreDriverLastLocationEvent;
 use App\Jobs\SendPushNotificationJob;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -377,6 +378,14 @@ class TripRequestController extends Controller
             'zone_id' => $request->zoneId
         ];
         $this->userLastLocationService->updatedBy(criteria: ['user_id' => auth('api')->id()], data: $data);
+
+        if (checkReverbConnection()) {
+            try {
+                StoreDriverLastLocationEvent::broadcast($data);
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('Location broadcast failed: ' . $e->getMessage());
+            }
+        }
 
         return response()->json(responseFormatter(DEFAULT_STORE_200));
     }

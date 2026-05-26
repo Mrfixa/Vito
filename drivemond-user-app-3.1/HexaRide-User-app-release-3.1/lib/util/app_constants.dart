@@ -77,7 +77,6 @@ class AppConstants {
   static const String getProfileLevel = '/api/customer/level';
   static const String externalLoginUri = '/api/customer/auth/external-login';
   static const String transferMoneyFromVitoToMart = '/api/customer/wallet/transfer-vito-to-mart';
-  static const String transferMoneyFromDrivemondToMart = transferMoneyFromVitoToMart; // kept for backward compat
   static const String referralDetails = '/api/customer/referral-details';
   static const String referralEarningList = '/api/customer/transaction/referral-earning-list?limit=10&offset=';
   static const String parcelCancellationReasonList = '/api/customer/config/parcel-cancellation-reason-list';

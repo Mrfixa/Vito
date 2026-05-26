@@ -3,18 +3,14 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
+use Modules\BusinessManagement\Database\Seeders\BusinessManagementDatabaseSeeder;
 
 class DatabaseSeeder extends Seeder
 {
-    /**
-     * Seed the application's database.
-     *
-     * @return void
-     */
-    public function run()
+    public function run(): void
     {
         $this->call(AdminUserSeeder::class);
         $this->call(AdminUserWalletSeeder::class);
-        // \App\Models\User::factory(10)->create();
+        $this->call(BusinessManagementDatabaseSeeder::class);
     }
 }

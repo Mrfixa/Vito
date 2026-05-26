@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Modules\TripManagement\Entities\TempTripNotification;
 use Modules\TripManagement\Entities\TripRequest;
 
 class VitoParcelController extends Controller
@@ -43,6 +44,8 @@ class VitoParcelController extends Controller
         if (!$result) {
             return response()->json(responseFormatter(constant: TRIP_REQUEST_404), 404);
         }
+
+        TempTripNotification::where('trip_request_id', $result->id)->delete();
 
         return response()->json(responseFormatter(DEFAULT_200, $result));
     }

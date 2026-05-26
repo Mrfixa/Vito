@@ -71,8 +71,9 @@ class PusherHelper{
         driverTripSubscribe.bind("customer-trip-request.$id").listen((event) {
           Get.find<RideController>().ongoingTripList().then((value){
             if((Get.find<RideController>().ongoingTrip ?? []).isEmpty){
-              AudioPlayer audio = AudioPlayer();
-              audio.play(AssetSource('notification.wav'));
+              try {
+                AudioPlayer().play(AssetSource('notification.wav'));
+              } catch (_) {}
               Get.find<RideController>().getPendingRideRequestList(1);
               Get.find<RideController>().setRideId(jsonDecode(event.data!)['trip_id']);
               Get.find<RideController>().getRideDetailBeforeAccept(jsonDecode(event.data!)['trip_id']).then((value){

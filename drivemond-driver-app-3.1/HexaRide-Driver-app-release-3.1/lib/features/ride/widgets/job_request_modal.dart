@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -12,7 +13,9 @@ class JobRequestModal extends StatefulWidget {
   final String estimatedFare;
   final String distance;
   final VoidCallback onAccept;
+  final VoidCallback? onDecline;
   final VoidCallback? onTimeout;
+  final String? serviceType;
 
   const JobRequestModal({
     super.key,
@@ -22,8 +25,37 @@ class JobRequestModal extends StatefulWidget {
     required this.estimatedFare,
     required this.distance,
     required this.onAccept,
+    this.onDecline,
     this.onTimeout,
+    this.serviceType,
   });
+
+  static Future<void> show({
+    required String tripId,
+    required String pickupAddress,
+    required String destinationAddress,
+    required String estimatedFare,
+    required String distance,
+    required VoidCallback onAccept,
+    VoidCallback? onDecline,
+    VoidCallback? onTimeout,
+    String? serviceType,
+  }) {
+    return Get.dialog(
+      JobRequestModal(
+        tripId: tripId,
+        pickupAddress: pickupAddress,
+        destinationAddress: destinationAddress,
+        estimatedFare: estimatedFare,
+        distance: distance,
+        onAccept: onAccept,
+        onDecline: onDecline,
+        onTimeout: onTimeout,
+        serviceType: serviceType,
+      ),
+      barrierDismissible: false,
+    );
+  }
 
   @override
   State<JobRequestModal> createState() => _JobRequestModalState();
@@ -42,6 +74,9 @@ class _JobRequestModalState extends State<JobRequestModal>
   void initState() {
     super.initState();
     HapticFeedback.heavyImpact();
+    try {
+      AudioPlayer().play(AssetSource('notification.wav'));
+    } catch (_) {}
 
     _pulseController = AnimationController(
       vsync: this,
@@ -125,7 +160,7 @@ class _JobRequestModalState extends State<JobRequestModal>
                       address: widget.destinationAddress,
                     ),
                     const SizedBox(height: Dimensions.paddingSizeLarge),
-                    _buildAcceptButton(context),
+                    _buildActionButtons(context),
                   ],
                 ),
               ),
@@ -136,8 +171,20 @@ class _JobRequestModalState extends State<JobRequestModal>
     );
   }
 
+  Color _ringColor() {
+    final progress = _remainingSeconds / _countdownSeconds;
+    if (progress > 0.5) return Colors.white;
+    if (progress > 0.25) return Colors.yellow;
+    return Colors.red.shade300;
+  }
+
   Widget _buildCountdownHeader(BuildContext context) {
     final progress = _remainingSeconds / _countdownSeconds;
+    final serviceLabel = widget.serviceType == 'parcel'
+        ? 'send_service'.tr
+        : widget.serviceType == 'mart'
+            ? 'mart_service'.tr
+            : 'ride_service'.tr;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(Dimensions.paddingSizeLarge),
@@ -150,12 +197,32 @@ class _JobRequestModalState extends State<JobRequestModal>
       ),
       child: Column(
         children: [
-          Text(
-            'new_ride_request'.tr,
-            style: textBold.copyWith(
-              fontSize: Dimensions.fontSizeLarge,
-              color: Colors.white,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'new_ride_request'.tr,
+                style: textBold.copyWith(
+                  fontSize: Dimensions.fontSizeLarge,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.25),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  serviceLabel,
+                  style: textMedium.copyWith(
+                    fontSize: Dimensions.fontSizeSmall,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: Dimensions.paddingSizeSmall),
           SizedBox(
@@ -168,7 +235,7 @@ class _JobRequestModalState extends State<JobRequestModal>
                   value: progress,
                   strokeWidth: 4,
                   backgroundColor: Colors.white.withValues(alpha: 0.3),
-                  valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                  valueColor: AlwaysStoppedAnimation<Color>(_ringColor()),
                 ),
                 Center(
                   child: Text(
@@ -277,42 +344,78 @@ class _JobRequestModalState extends State<JobRequestModal>
     );
   }
 
-  Widget _buildAcceptButton(BuildContext context) {
-    return ScaleTransition(
-      scale: _pulseAnimation,
-      child: SizedBox(
-        width: double.infinity,
-        height: 50,
-        child: ElevatedButton(
-          onPressed: _isAccepting ? null : () {
-            setState(() => _isAccepting = true);
-            HapticFeedback.heavyImpact();
-            _timer.cancel();
-            widget.onAccept();
-          },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Theme.of(context).primaryColor,
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(Dimensions.radiusDefault),
+  Widget _buildActionButtons(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: SizedBox(
+            height: 50,
+            child: OutlinedButton(
+              onPressed: _isAccepting ? null : () {
+                HapticFeedback.mediumImpact();
+                _timer.cancel();
+                if (Navigator.of(context).canPop()) {
+                  Navigator.of(context).pop();
+                }
+                widget.onDecline?.call();
+              },
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Theme.of(context).colorScheme.error,
+                side: BorderSide(color: Theme.of(context).colorScheme.error),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(Dimensions.radiusDefault),
+                ),
+              ),
+              child: Text(
+                'decline'.tr,
+                style: textBold.copyWith(
+                  fontSize: Dimensions.fontSizeDefault,
+                  color: Theme.of(context).colorScheme.error,
+                ),
+              ),
             ),
           ),
-          child: _isAccepting
-              ? const SizedBox(
-                  width: 24, height: 24,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2, color: Colors.white,
-                  ),
-                )
-              : Text(
-                  'accept'.tr,
-                  style: textBold.copyWith(
-                    fontSize: Dimensions.fontSizeLarge,
-                    color: Colors.white,
+        ),
+        const SizedBox(width: Dimensions.paddingSizeDefault),
+        Expanded(
+          flex: 2,
+          child: ScaleTransition(
+            scale: _pulseAnimation,
+            child: SizedBox(
+              height: 50,
+              child: ElevatedButton(
+                onPressed: _isAccepting ? null : () {
+                  setState(() => _isAccepting = true);
+                  HapticFeedback.heavyImpact();
+                  _timer.cancel();
+                  widget.onAccept();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Theme.of(context).primaryColor,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(Dimensions.radiusDefault),
                   ),
                 ),
+                child: _isAccepting
+                    ? const SizedBox(
+                        width: 24, height: 24,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white,
+                        ),
+                      )
+                    : Text(
+                        'accept'.tr,
+                        style: textBold.copyWith(
+                          fontSize: Dimensions.fontSizeLarge,
+                          color: Colors.white,
+                        ),
+                      ),
+              ),
+            ),
+          ),
         ),
-      ),
+      ],
     );
   }
 }

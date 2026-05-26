@@ -69,7 +69,9 @@ class _TokenGateScreenState extends State<TokenGateScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
+    return PopScope(
+      canPop: false,
+      child: SafeArea(
       child: Scaffold(
         body: Center(
           child: SingleChildScrollView(
@@ -198,6 +200,7 @@ class _TokenGateScreenState extends State<TokenGateScreen> {
           ),
         ),
       ),
+    ),
     );
   }
 

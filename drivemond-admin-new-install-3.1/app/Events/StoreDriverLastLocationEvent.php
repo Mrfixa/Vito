@@ -37,11 +37,9 @@ class StoreDriverLastLocationEvent implements ShouldBroadcast
             new PrivateChannel("store-driver-last-location"),
         ];
     }
-    public function broadcastAs(): array
+    public function broadcastAs(): string
     {
-        return [
-            new PrivateChannel("client-store-driver-last-location"),
-        ];
+        return 'client-store-driver-last-location';
     }
 
     public function broadcastWith()

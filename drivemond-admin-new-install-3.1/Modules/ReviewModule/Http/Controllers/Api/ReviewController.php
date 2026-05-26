@@ -58,6 +58,9 @@ class ReviewController extends Controller
 
         $tripRequest = $this->tripService->findOne($request['ride_request_id']);
         $user = auth('api')->user();
+        if ($tripRequest && $tripRequest->current_status !== 'completed') {
+            return response()->json(responseFormatter(DEFAULT_403), 403);
+        }
         if ($tripRequest && ($tripRequest->customer_id == $user->id || $tripRequest->driver_id == $user->id)) {
             $review = $this->reviewService->findOneBy(criteria: [['trip_request_id', $tripRequest->id], ['given_by', $request->user()->id]]);
             if (!$review) {

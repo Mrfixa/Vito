@@ -11,7 +11,7 @@ class BlogDescriptionPromptService implements BlogDescriptionPromptServiceInterf
     {
         $langCode = strtoupper($langCode);
         $contextSafe = addslashes($context ?? '');
-        $businessName = businessConfig(key: 'business_name', settingsType: BUSINESS_INFORMATION)?->value ?? 'Drivemond';
+        $businessName = businessConfig(key: 'business_name', settingsType: BUSINESS_INFORMATION)?->value ?? 'Vito';
         return <<<PROMPT
                         You are a professional content writer and SEO strategist specialized in creating high-quality blog content for ride-sharing, mobility, and transportation platforms.
 

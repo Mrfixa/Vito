@@ -359,8 +359,9 @@ class RideController extends GetxController implements GetxService{
       if(tripDetail != null && tripDetail!.currentStatus == 'ongoing' && !tripDetail!.isPaused! && matchedMode != null &&  Get.find<RiderMapController>().isInside && matchedMode!.isPicked!){
         arrivalDestination(tripId, "destination");
         getRideDetails(tripId);
-        AudioPlayer audio = AudioPlayer();
-        audio.play(AssetSource('notification.wav'));
+        try {
+          await AudioPlayer().play(AssetSource('notification.wav'));
+        } catch (_) {}
 
       }
 

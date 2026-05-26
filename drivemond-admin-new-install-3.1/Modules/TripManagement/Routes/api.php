@@ -105,7 +105,7 @@ Route::group(['prefix' => 'driver', 'middleware' => ['auth:api', 'maintenance_mo
     });
 });
 
-Route::post('ride/store-screenshot', [NewDriverTripController::class, 'storeScreenshot'])->middleware('auth:api');
+Route::post('ride/store-screenshot', [NewDriverTripController::class, 'storeScreenshot'])->middleware(['auth:api', 'scope:AccessToDriver']);
 
 /*
 |--------------------------------------------------------------------------

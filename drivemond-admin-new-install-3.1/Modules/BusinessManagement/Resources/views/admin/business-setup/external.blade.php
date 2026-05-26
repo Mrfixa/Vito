@@ -38,7 +38,7 @@
                                     <div class="w-160px flex-grow-1">
                                         <h5>{{translate('Activation Mode')}}</h5>
                                         <p class="fs-12 m-0">
-                                            {{translate('Enable the switch to activate the purchased Software- 6amMart in the Drivemond system. You must input the correct information to make sure the functionality works properly.')}}
+                                            {{translate('Enable the switch to activate the purchased Software- 6amMart in the Vito system. You must input the correct information to make sure the functionality works properly.')}}
                                         </p>
                                     </div>
                                     <label class="switcher ml-auto mb-0">

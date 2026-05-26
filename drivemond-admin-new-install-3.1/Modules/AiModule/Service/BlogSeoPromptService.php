@@ -12,7 +12,7 @@ class BlogSeoPromptService implements BlogTitlePromptServiceInterface
         $langCode = strtoupper($langCode);
         $contextSafe = addslashes($context ?? '');
         $descriptionSafe = addslashes($description ?? '');
-        $businessName = businessConfig(key: 'business_name', settingsType: BUSINESS_INFORMATION)?->value ?? 'Drivemond';
+        $businessName = businessConfig(key: 'business_name', settingsType: BUSINESS_INFORMATION)?->value ?? 'Vito';
         return <<<PROMPT
             You are a professional SEO copywriter specialized in writing high-converting metadata for blogs in the ride-sharing and mobility industry.
 

@@ -636,8 +636,9 @@ Future<dynamic> myBackgroundMessageReceiver(NotificationResponse response) async
    Get.find<RideController>().ongoingTripList().then((value){
      if((Get.find<RideController>().ongoingTrip ?? []).isEmpty){
        Get.find<RideController>().getPendingRideRequestList(1);
-       AudioPlayer audio = AudioPlayer();
-       audio.play(AssetSource('notification.wav'));
+       try {
+         AudioPlayer().play(AssetSource('notification.wav'));
+       } catch (_) {}
        Get.find<RideController>().setRideId(message.data['ride_request_id']);
        Get.find<RideController>().getRideDetailBeforeAccept(message.data['ride_request_id']).then((value) {
          if (value.statusCode == 200) {

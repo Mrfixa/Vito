@@ -15,7 +15,6 @@ import 'package:ride_sharing_user_app/features/parcel/controllers/parcel_control
 import 'package:ride_sharing_user_app/features/ride/controllers/ride_controller.dart';
 import 'package:ride_sharing_user_app/features/safety_setup/controllers/safety_alert_controller.dart';
 import 'package:ride_sharing_user_app/features/splash/controllers/config_controller.dart';
-import 'package:ride_sharing_user_app/helper/country_code_helper.dart';
 import 'package:ride_sharing_user_app/helper/display_helper.dart';
 import 'package:ride_sharing_user_app/features/profile/controllers/profile_controller.dart';
 import 'package:ride_sharing_user_app/helper/login_helper.dart';
@@ -37,6 +36,7 @@ class AuthController extends GetxController implements GetxService {
   bool get isActiveRememberMe => _isActiveRememberMe;
   bool showNavigationBar = true;
 
+  TextEditingController usernameController = TextEditingController();
   TextEditingController fNameController = TextEditingController();
   TextEditingController lNameController = TextEditingController();
   TextEditingController phoneController = TextEditingController();
@@ -65,7 +65,7 @@ class AuthController extends GetxController implements GetxService {
 
     if (response?.statusCode == 200) {
 
-      saveUserNumberAndPassword(countryCode, phone, password, true);
+      saveUserNumberAndPassword(countryCode, phone, password, false);
       setUserToken(response!.body['data']['token']);
       PusherHelper.initializePusher();
       updateToken();
@@ -121,14 +121,11 @@ class AuthController extends GetxController implements GetxService {
     _isLoading = true;
     update();
 
-    String countryCode = CountryCodeHelper.getCountryCode(signUpBody.phone!)!;
-    String phoneWithoutCountryCode = signUpBody.phone!.substring(countryCode.length);
-
     Response? response = await authServiceInterface.registration(signUpBody: signUpBody);
     if(response!.statusCode == 200){
-      login(countryCode, phoneWithoutCountryCode, signUpBody.password!);
+      login('', signUpBody.username ?? '', signUpBody.password!);
     } else if(response.statusCode == 407){
-      Get.bottomSheet(ManualAuthWaringBottomSheetWidget(phoneNumber: phoneWithoutCountryCode, from: VerificationForm.verifyUser));
+      Get.bottomSheet(ManualAuthWaringBottomSheetWidget(phoneNumber: '', from: VerificationForm.verifyUser));
     }else {
       ApiChecker.checkApi(response);
     }

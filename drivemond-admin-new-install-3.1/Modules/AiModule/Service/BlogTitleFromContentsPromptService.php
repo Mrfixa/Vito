@@ -11,7 +11,7 @@ class BlogTitleFromContentsPromptService implements BlogTitlePromptServiceInterf
     {
         $langCode = strtoupper($langCode);
         $descriptionSafe = addslashes($description ?? '');
-        $businessName = businessConfig(key: 'business_name', settingsType: BUSINESS_INFORMATION)?->value ?? 'Drivemond';
+        $businessName = businessConfig(key: 'business_name', settingsType: BUSINESS_INFORMATION)?->value ?? 'Vito';
         return <<<PROMPT
                 You are a professional SEO content writer specialized in generating clear and high-performing blog titles from visual context for ride-sharing and mobility platforms.
 

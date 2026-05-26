@@ -10,7 +10,7 @@ class BlogTitlePromptService implements BlogTitlePromptServiceInterface
     public function build(?string $context = null, ?string $langCode = null, ?string $description = null): string
     {
         $langCode = strtoupper($langCode);
-        $businessName = businessConfig(key: 'business_name', settingsType: BUSINESS_INFORMATION)?->value ?? 'Drivemond';
+        $businessName = businessConfig(key: 'business_name', settingsType: BUSINESS_INFORMATION)?->value ?? 'Vito';
         return <<<PROMPT
             You are a professional content marketing copywriter specialized in creating high-performing blog titles for mobile apps and digital platforms, particularly in the ride-sharing and mobility industry.
 

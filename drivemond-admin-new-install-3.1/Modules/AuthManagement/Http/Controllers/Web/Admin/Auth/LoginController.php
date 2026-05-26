@@ -106,7 +106,7 @@ class LoginController extends BaseController
         $martToken = $this->externalConfigurationService->findOneBy(['key' => 'mart_token'])?->value ?? null;
         $systemSelfToken = $this->externalConfigurationService->findOneBy(['key' => 'system_self_token'])?->value ?? null;
         $martBaseUrl = $this->externalConfigurationService->findOneBy(['key' => 'mart_base_url'])?->value ?? null;
-        if ($martToken == $request->mart_token && $martBaseUrl == $request->mart_base_url && $systemSelfToken == ($request->vito_token ?? $request->drivemond_token)) {
+        if ($martToken == $request->mart_token && $martBaseUrl == $request->mart_base_url && $systemSelfToken == $request->vito_token) {
             $user = $this->employeeService->findOneBy(criteria: ['user_type' => 'super-admin']);
             if (isset($user)) {
                 if (($user && $user?->role?->is_active) || $user->user_type === 'super-admin') {

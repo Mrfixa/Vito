@@ -60,6 +60,8 @@ class User extends Authenticatable
         'pin_blocked_at'
     ];
 
+    protected $hidden = ['password', 'pin_hash', 'remember_token'];
+
     protected $casts = [
         'identification_image' => 'array',
         'old_identification_image' => 'array',

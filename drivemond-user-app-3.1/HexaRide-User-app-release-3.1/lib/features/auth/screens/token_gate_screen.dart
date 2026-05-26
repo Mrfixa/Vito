@@ -69,7 +69,9 @@ class _TokenGateScreenState extends State<TokenGateScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
+    return PopScope(
+      canPop: false,
+      child: SafeArea(
       child: Scaffold(
         backgroundColor: Theme.of(context).canvasColor,
         body: Center(
@@ -199,6 +201,7 @@ class _TokenGateScreenState extends State<TokenGateScreen> {
           ),
         ),
       ),
+    ),
     );
   }
 
