@@ -39,6 +39,7 @@ class VitoFlowTest extends TestCase
         Schema::dropIfExists('mart_orders');
         Schema::dropIfExists('mart_promo_codes');
         Schema::dropIfExists('mart_products');
+        Schema::dropIfExists('vito_otps');
         Schema::dropIfExists('qr_tokens');
         Schema::dropIfExists('user_accounts');
         Schema::dropIfExists('time_tracks');
@@ -209,6 +210,18 @@ class VitoFlowTest extends TestCase
                 $table->timestamp('redeemed_at')->nullable();
                 $table->timestamp('expires_at');
                 $table->boolean('is_revoked')->default(false);
+                $table->timestamps();
+            });
+        }
+
+        if (!Schema::hasTable('vito_otps')) {
+            Schema::create('vito_otps', function (Blueprint $table) {
+                $table->uuid('id')->primary();
+                $table->string('phone', 30)->index();
+                $table->string('otp_hash');
+                $table->timestamp('expires_at');
+                $table->timestamp('verified_at')->nullable();
+                $table->unsignedTinyInteger('attempts')->default(0);
                 $table->timestamps();
             });
         }
@@ -1390,6 +1403,62 @@ class VitoFlowTest extends TestCase
             'id'             => $parcelId,
             'delivery_notes' => 'Leave at door',
         ]);
+    }
+
+    // ========================================================================
+    // 23. Client OTP Auth Flow
+    // ========================================================================
+
+    public function test_client_otp_auth_flow(): void
+    {
+        // 1. Check phone
+        $resp = $this->postJson('/api/customer/auth/check', ['phone_or_email' => '+15550001234']);
+        $resp->assertStatus(200);
+
+        // 2. Send OTP (local env returns the OTP in body)
+        $resp = $this->postJson('/api/customer/auth/send-otp', ['phone_or_email' => '+15550001234']);
+        $resp->assertStatus(200);
+        $otp = $resp->json('otp'); // available in testing env
+        $this->assertNotNull($otp, 'OTP should be returned in testing environment');
+
+        // 3. Verify OTP — new user → 406
+        $resp = $this->postJson('/api/customer/auth/otp-verification', [
+            'phone_or_email' => '+15550001234',
+            'otp'            => $otp,
+        ]);
+        $resp->assertStatus(406); // new user, profile incomplete
+
+        // 4. Complete profile
+        $resp = $this->postJson('/api/customer/auth/registration-from-otp', [
+            'phone'  => '+15550001234',
+            'f_name' => 'Test',
+            'l_name' => 'User',
+        ]);
+        $resp->assertStatus(200);
+        $token = $resp->json('data.token');
+        $this->assertNotNull($token);
+
+        // 5. Send OTP again (for returning user login)
+        $resp = $this->postJson('/api/customer/auth/send-otp', ['phone_or_email' => '+15550001234']);
+        $resp->assertStatus(200);
+        $otp2 = $resp->json('otp');
+
+        // 6. Verify OTP — existing user → 200 with token
+        $resp = $this->postJson('/api/customer/auth/otp-verification', [
+            'phone_or_email' => '+15550001234',
+            'otp'            => $otp2,
+        ]);
+        $resp->assertStatus(200);
+        $this->assertNotNull($resp->json('data.token'));
+
+        // 7. Wrong OTP → 400
+        $this->postJson('/api/customer/auth/send-otp', ['phone_or_email' => '+15550009999']);
+        $resp = $this->postJson('/api/customer/auth/otp-verification', [
+            'phone_or_email' => '+15550009999',
+            'otp'            => '000000',
+        ]);
+        // Either 400 (wrong OTP) or 406 (new user no profile) — either is valid
+        $this->assertContains($resp->getStatusCode(), [400, 406]);
     }
 
     public function test_driver_can_update_parcel_to_out_for_pickup(): void

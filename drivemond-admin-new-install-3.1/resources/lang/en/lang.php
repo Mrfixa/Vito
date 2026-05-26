@@ -4406,4 +4406,6 @@
   'The pin field is required.' => 'The pin field is required.',
   'The amount must be at least 1.' => 'The amount must be at least 1.',
   'please_try_again_after_' => 'Please try again after ',
+  'Your access has been denied' => 'Your access has been denied',
+  'The status field is required.' => 'The status field is required.',
 );

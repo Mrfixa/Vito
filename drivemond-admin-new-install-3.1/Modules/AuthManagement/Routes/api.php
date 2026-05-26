@@ -6,20 +6,15 @@ Route::controller(\Modules\AuthManagement\Http\Controllers\Api\AuthController::c
     Route::group(['prefix' => 'customer'], function () {
         Route::group(['prefix' => 'auth'], function () {
             Route::post('registration', 'register')->name('customer-registration');
-            Route::post('registration-from-otp', 'registrationFromOtp');
             Route::post('login', 'login')->name('customer-login');
             Route::post('social-login', 'customerSocialLogin');
             Route::post('update-data', 'updateData');
             //login
             Route::post('otp-login', 'otpLogin');
-            Route::post('check', 'userExistOrNotChecking');
             // reset or forget password
             Route::post('forget-password', 'forgetPassword');
             Route::post('reset-password', 'resetPassword');
-            Route::post('otp-verification', 'otpVerification');
             Route::post('firebase-otp-verification', 'firebaseOtpVerification');
-            //send otp for otp login or reset
-            Route::post('send-otp', 'sendOtp');
             Route::post('external-registration', 'customerRegistrationFromMart');
             Route::post('external-login', 'customerLoginFromMart');
 
@@ -98,4 +93,16 @@ Route::controller(\Modules\AuthManagement\Http\Controllers\Api\QrTokenController
         Route::post('qr-token/generate', 'generateToken');
         Route::post('qr-token/revoke', 'revokeToken');
     });
+});
+
+/*
+|--------------------------------------------------------------------------
+| Vito Client OTP Authentication Routes
+|--------------------------------------------------------------------------
+*/
+Route::group(['prefix' => 'customer/auth', 'middleware' => ['throttle:20,1']], function () {
+    Route::post('check', [\Modules\AuthManagement\Http\Controllers\Api\ClientOtpAuthController::class, 'checkUser']);
+    Route::post('send-otp', [\Modules\AuthManagement\Http\Controllers\Api\ClientOtpAuthController::class, 'sendOtp'])->middleware('throttle:5,1');
+    Route::post('otp-verification', [\Modules\AuthManagement\Http\Controllers\Api\ClientOtpAuthController::class, 'verifyOtp']);
+    Route::post('registration-from-otp', [\Modules\AuthManagement\Http\Controllers\Api\ClientOtpAuthController::class, 'registrationFromOtp']);
 });
