@@ -15,8 +15,7 @@ import 'package:ride_sharing_user_app/common_widgets/button_widget.dart';
 import 'package:ride_sharing_user_app/common_widgets/custom_text_field.dart';
 
 class SignUpScreen extends StatefulWidget {
-  final String? qrToken;
-  const SignUpScreen({super.key, this.qrToken});
+  const SignUpScreen({super.key});
 
   @override
   State<SignUpScreen> createState() => _SignUpScreenState();
@@ -198,7 +197,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           password: password,
                           confirmPassword: confirmPassword,
                           referralCode: authController.referralCodeController.text.trim(),
-                          qrToken: widget.qrToken,
                       ));
                     }
                   },

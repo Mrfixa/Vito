@@ -8,7 +8,8 @@ import 'package:ride_sharing_user_app/util/dimensions.dart';
 import 'package:ride_sharing_user_app/util/images.dart';
 import 'package:ride_sharing_user_app/util/styles.dart';
 import 'package:ride_sharing_user_app/features/auth/controllers/auth_controller.dart';
-import 'package:ride_sharing_user_app/features/auth/screens/sign_up_screen.dart';
+import 'package:ride_sharing_user_app/features/auth/domain/enums/verification_from_enum.dart';
+import 'package:ride_sharing_user_app/features/auth/screens/otp_log_in_screen.dart';
 import 'package:ride_sharing_user_app/features/settings/screens/policy_screen.dart';
 import 'package:ride_sharing_user_app/features/splash/controllers/config_controller.dart';
 import 'package:ride_sharing_user_app/common_widgets/button_widget.dart';
@@ -165,7 +166,7 @@ class _SignInScreenState extends State<SignInScreen> {
 
                   TextButton(
                     onPressed: () {
-                      Get.to(() => const SignUpScreen());
+                      Get.to(() => OtpLoginScreen(from: VerificationForm.signUp));
                     },
                     style: TextButton.styleFrom(
                       padding: EdgeInsets.zero,
