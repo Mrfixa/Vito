@@ -49,6 +49,7 @@ class VitoFlowTest extends TestCase
         Schema::dropIfExists('user_levels');
         Schema::dropIfExists('business_settings');
         Schema::dropIfExists('admin_notifications');
+        Schema::dropIfExists('vito_audit_log');
         Schema::dropIfExists('oauth_access_tokens');
         Schema::dropIfExists('oauth_personal_access_clients');
         Schema::dropIfExists('oauth_clients');

@@ -135,6 +135,16 @@ class VitoMartDriverController extends Controller
             ]), 400);
         }
 
+        try {
+            broadcast(new \App\Events\MartOrderStatusUpdatedEvent(
+                $order->id,
+                $request->status,
+                $order->customer_id,
+            ))->toOthers();
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Mart status broadcast failed: '.$e->getMessage());
+        }
+
         $messages = [
             'picked_up' => ['title' => 'Order Picked Up', 'description' => "Your mart order #{$order->ref_id} has been picked up and is on the way.", 'action' => 'mart_order_picked_up'],
             'delivered' => ['title' => 'Order Delivered', 'description' => "Your mart order #{$order->ref_id} has been delivered. Enjoy!", 'action' => 'mart_order_delivered'],
@@ -153,6 +163,9 @@ class VitoMartDriverController extends Controller
 
     public function uploadDeliveryProof(Request $request): JsonResponse
     {
+        // Accept order ID from route param (alias routes) or request body
+        $request->merge(['order_id' => $request->route('id') ?? $request->input('order_id')]);
+
         $validator = Validator::make($request->all(), [
             'order_id' => 'required|string',
             // Accept image file upload for delivery photo (field can be delivery_photo or proof_photo)

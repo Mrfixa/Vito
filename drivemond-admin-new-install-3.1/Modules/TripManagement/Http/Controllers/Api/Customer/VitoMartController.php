@@ -261,6 +261,16 @@ class VitoMartController extends Controller
             return response()->json(responseFormatter(DEFAULT_404), 404);
         }
 
+        try {
+            broadcast(new \App\Events\MartOrderStatusUpdatedEvent(
+                $result['order']->id,
+                'cancelled',
+                $result['order']->customer_id,
+            ))->toOthers();
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Mart status broadcast failed: '.$e->getMessage());
+        }
+
         // Notify driver if the order was already accepted before cancellation
         if ($result['driver_id']) {
             try {
