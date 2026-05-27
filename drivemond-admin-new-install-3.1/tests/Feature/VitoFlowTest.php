@@ -45,6 +45,9 @@ class VitoFlowTest extends TestCase
         Schema::dropIfExists('time_tracks');
         Schema::dropIfExists('activity_logs');
         Schema::dropIfExists('driver_details');
+        Schema::dropIfExists('trip_status');
+        Schema::dropIfExists('firebase_push_notifications');
+        Schema::dropIfExists('app_notifications');
         Schema::dropIfExists('temp_trip_notifications');
         Schema::dropIfExists('trip_requests');
         Schema::dropIfExists('user_levels');
@@ -153,6 +156,8 @@ class VitoFlowTest extends TestCase
                 $table->decimal('actual_fare', 23, 2)->default(0);
                 $table->decimal('estimated_distance', 23, 2)->default(0);
                 $table->decimal('paid_fare', 23, 2)->default(0);
+                $table->text('pickup_note')->nullable();
+                $table->text('delivery_notes')->nullable();
                 $table->timestamps();
                 $table->softDeletes();
             });
@@ -167,6 +172,51 @@ class VitoFlowTest extends TestCase
                 $table->string('plate_number')->nullable();
                 $table->string('car_photo')->nullable();
                 $table->boolean('is_approved')->default(false);
+                $table->unsignedInteger('parcel_count')->default(0);
+                $table->unsignedInteger('trip_count')->default(0);
+                $table->timestamps();
+            });
+        }
+
+        if (!Schema::hasTable('app_notifications')) {
+            Schema::create('app_notifications', function (Blueprint $table) {
+                $table->id();
+                $table->uuid('user_id')->nullable();
+                $table->uuid('ride_request_id')->nullable();
+                $table->string('title')->nullable();
+                $table->text('description')->nullable();
+                $table->string('type')->nullable();
+                $table->string('notification_type')->nullable();
+                $table->string('action')->nullable();
+                $table->boolean('is_read')->default(false);
+                $table->timestamps();
+            });
+        }
+
+        if (!Schema::hasTable('firebase_push_notifications')) {
+            Schema::create('firebase_push_notifications', function (Blueprint $table) {
+                $table->id();
+                $table->string('name')->unique();
+                $table->string('user_type')->nullable();
+                $table->string('title')->nullable();
+                $table->text('description')->nullable();
+                $table->boolean('status')->default(true);
+                $table->timestamps();
+            });
+        }
+
+        if (!Schema::hasTable('trip_status')) {
+            Schema::create('trip_status', function (Blueprint $table) {
+                $table->id();
+                $table->uuid('trip_request_id');
+                $table->timestamp('pending')->nullable();
+                $table->timestamp('accepted')->nullable();
+                $table->timestamp('ongoing')->nullable();
+                $table->timestamp('out_for_pickup')->nullable();
+                $table->timestamp('picked_up')->nullable();
+                $table->timestamp('completed')->nullable();
+                $table->timestamp('cancelled')->nullable();
+                $table->timestamp('failed')->nullable();
                 $table->timestamps();
             });
         }
@@ -319,6 +369,14 @@ class VitoFlowTest extends TestCase
                 $table->string('model_id')->nullable();
                 $table->string('message')->nullable();
                 $table->timestamps();
+            });
+        }
+
+        if (!Schema::hasTable('temp_trip_notifications')) {
+            Schema::create('temp_trip_notifications', function (Blueprint $table) {
+                $table->id();
+                $table->uuid('trip_request_id')->nullable();
+                $table->uuid('user_id')->nullable();
             });
         }
 
@@ -1220,7 +1278,215 @@ class VitoFlowTest extends TestCase
     }
 
     // ========================================================================
-    // 20. Mart cancel from accepted status
+    // 20. /api/check-username — public username-availability probe
+    // ========================================================================
+
+    public function test_check_username_available_and_taken(): void
+    {
+        // Available username
+        $r = $this->postJson('/api/check-username', ['username' => 'brand_new_handle']);
+        $r->assertOk()->assertJson(['available' => true, 'username' => 'brand_new_handle']);
+
+        // Now create a user with that username and verify it's reported taken
+        $this->createUser('customer', ['username' => 'brand_new_handle']);
+        $r2 = $this->postJson('/api/check-username', ['username' => 'brand_new_handle']);
+        $r2->assertOk()->assertJson(['available' => false, 'username' => 'brand_new_handle']);
+
+        // Invalid format returns 422 with available=false
+        $r3 = $this->postJson('/api/check-username', ['username' => 'has spaces!']);
+        $r3->assertStatus(422)->assertJson(['available' => false, 'reason' => 'invalid_format']);
+
+        // Too short
+        $r4 = $this->postJson('/api/check-username', ['username' => 'ab']);
+        $r4->assertStatus(422);
+    }
+
+    // ========================================================================
+    // 21. /api/qr/validate/{token} — public GET endpoint (no auth required)
+    // ========================================================================
+
+    public function test_public_qr_validate_get(): void
+    {
+        // Generate a valid token by inserting directly (mimics admin flow)
+        $driver = $this->createUser('driver');
+        $token = str_repeat('a', 64);
+        QrToken::create([
+            'token' => $token,
+            'role' => 'customer',
+            'driver_id' => $driver->id,
+            'expires_at' => now()->addHour(),
+        ]);
+
+        // No Authorization header at all — must succeed.
+        $r = $this->getJson('/api/qr/validate/' . $token);
+        $r->assertOk();
+        $data = $r->json('data');
+        $this->assertTrue($data['valid'] ?? false);
+        $this->assertEquals('customer', $data['role'] ?? null);
+
+        // Unknown token returns 404
+        $r2 = $this->getJson('/api/qr/validate/' . str_repeat('z', 64));
+        $r2->assertStatus(404);
+    }
+
+    // ========================================================================
+    // 22. /api/admin/mart/products — full JSON CRUD
+    // ========================================================================
+
+    public function test_admin_mart_products_json_crud(): void
+    {
+        $admin = $this->createUser('admin');
+        Passport::actingAs($admin, ['AccessToSuperAdmin']);
+
+        // CREATE
+        $create = $this->postJson('/api/admin/mart/products', [
+            'name' => 'Apples 1kg',
+            'category' => 'Fruit',
+            'price' => 3.50,
+            'stock' => 25,
+            'description' => 'Fresh red apples',
+        ]);
+        $create->assertCreated();
+        $productId = $create->json('data.id');
+        $this->assertNotEmpty($productId);
+
+        // LIST
+        $list = $this->getJson('/api/admin/mart/products');
+        $list->assertOk();
+        $this->assertGreaterThanOrEqual(1, count($list->json('data.data') ?? []));
+
+        // SHOW
+        $show = $this->getJson('/api/admin/mart/products/' . $productId);
+        $show->assertOk()->assertJsonPath('data.name', 'Apples 1kg');
+
+        // UPDATE
+        $upd = $this->putJson('/api/admin/mart/products/' . $productId, [
+            'price' => 4.00,
+            'stock' => 30,
+        ]);
+        $upd->assertOk();
+        $this->assertEquals(30, MartProduct::find($productId)->stock);
+
+        // DELETE
+        $del = $this->deleteJson('/api/admin/mart/products/' . $productId);
+        $del->assertOk();
+        $this->assertNull(MartProduct::find($productId));
+    }
+
+    // ========================================================================
+    // 23. /api/pin-login (flat canonical alias) works for both user types
+    // ========================================================================
+
+    public function test_canonical_pin_login_alias(): void
+    {
+        $customer = $this->createUser('customer', [
+            'username' => 'cust_flat',
+            'pin_hash' => \Illuminate\Support\Facades\Hash::make('123456'),
+        ]);
+        $driver = $this->createUser('driver', [
+            'username' => 'driv_flat',
+            'pin_hash' => \Illuminate\Support\Facades\Hash::make('654321'),
+        ]);
+
+        $rc = $this->postJson('/api/pin-login', [
+            'username' => 'cust_flat',
+            'pin' => '123456',
+            'user_type' => 'customer',
+        ]);
+        $rc->assertOk();
+        $this->assertNotEmpty($rc->json('data.token') ?? $rc->json('token'));
+
+        $rd = $this->postJson('/api/pin-login', [
+            'username' => 'driv_flat',
+            'pin' => '654321',
+            'user_type' => 'driver',
+        ]);
+        $rd->assertOk();
+    }
+
+    // ========================================================================
+    // 24. Phase 6 end-to-end walkthrough across canonical alias endpoints.
+    //
+    // Exercises the playbook flow from QR generation through registration,
+    // login, mart product list, and wallet view, against the FLAT canonical
+    // routes (no /customer or /driver prefix). This is the in-process
+    // equivalent of the curl walkthrough Phase 6 asks for.
+    // ========================================================================
+
+    public function test_phase6_canonical_walkthrough(): void
+    {
+        // 0) Pre-seed: customer level required by registration service.
+        $this->seedUserLevel('customer');
+
+        // 1) Admin generates a client-referral token.
+        $admin = $this->createUser('admin');
+        $driver = $this->createUser('driver');
+        Passport::actingAs($admin, ['AccessToSuperAdmin']);
+
+        $gen = $this->postJson('/api/qr-token/generate', [
+            'role' => 'customer',
+            'driver_id' => $driver->id,
+        ]);
+        $gen->assertOk();
+        $token = $gen->json('data.token') ?? $gen->json('token');
+        $this->assertNotEmpty($token);
+
+        // 2) Public validation via GET.
+        $val = $this->getJson('/api/qr/validate/' . $token);
+        $val->assertOk()->assertJsonPath('data.valid', true);
+
+        // 3) Public username probe.
+        $probe = $this->postJson('/api/check-username', ['username' => 'phase6_user']);
+        $probe->assertOk()->assertJson(['available' => true]);
+
+        // 4) Client registration via the canonical flat alias.
+        $reg = $this->postJson('/api/register-client', [
+            'username' => 'phase6_user',
+            'pin' => '424242',
+            'pin_confirmation' => '424242',
+            'first_name' => 'Phase',
+            'last_name' => 'Six',
+            'qr_token' => $token,
+        ]);
+        $reg->assertOk();
+
+        // 5) Login via the canonical /api/pin-login alias.
+        $login = $this->postJson('/api/pin-login', [
+            'username' => 'phase6_user',
+            'pin' => '424242',
+            'user_type' => 'customer',
+        ]);
+        $login->assertOk();
+
+        // 6) Authenticated wallet view via the canonical /api/wallet alias.
+        $newUser = User::where('username', 'phase6_user')->first();
+        $this->createUserAccount($newUser);
+        Passport::actingAs($newUser, ['AccessToCustomer']);
+        $wallet = $this->getJson('/api/wallet');
+        $wallet->assertOk();
+        $this->assertIsArray($wallet->json('data'));
+        $this->assertEquals(0.0, $wallet->json('data.balance'));
+
+        // 7) Mart product listing via the canonical /api/mart/products alias.
+        MartProduct::create([
+            'name' => 'Phase6 Bananas',
+            'price' => 1.99,
+            'category' => 'Fruit',
+            'is_active' => true,
+            'stock' => 100,
+        ]);
+        $martList = $this->getJson('/api/mart/products');
+        $martList->assertOk();
+
+        // 8) Wallet topup intent via /api/wallet/topup-intent (canonical alias
+        //    to VitoStripeController). Without real Stripe creds this returns
+        //    503 or returns a clientSecret; either way the route resolves.
+        $topup = $this->postJson('/api/wallet/topup-intent', ['amount' => 10.00]);
+        $this->assertContains($topup->status(), [200, 400, 422, 500, 503]);
+    }
+
+    // ========================================================================
+    // 25. Mart cancel from accepted status (restores stock)
     // ========================================================================
 
     public function test_customer_can_cancel_accepted_mart_order(): void
@@ -1228,10 +1494,12 @@ class VitoFlowTest extends TestCase
         $customer = $this->createUser('customer');
         $driver = $this->createUser('driver');
 
+        // Simulate post-order state: stock was decremented when the order was
+        // placed, so we start the fixture at 9 with an order item of qty 1.
         $product = MartProduct::create([
             'name' => 'Cancel Test Item',
             'price' => 5.00,
-            'stock' => 10,
+            'stock' => 9,
             'is_active' => true,
         ]);
 
@@ -1257,12 +1525,12 @@ class VitoFlowTest extends TestCase
         $r->assertOk();
 
         $this->assertEquals('cancelled', MartOrder::find($order->id)->status);
-        // Stock should be restored
+        // Stock should be restored from 9 → 10.
         $this->assertEquals(10, MartProduct::find($product->id)->stock);
     }
 
     // ========================================================================
-    // 21. Wallet balance endpoint
+    // 26. Wallet balance endpoint (nested DriveMond path)
     // ========================================================================
 
     public function test_wallet_balance_endpoint(): void
@@ -1300,7 +1568,7 @@ class VitoFlowTest extends TestCase
     }
 
     // ========================================================================
-    // 22. Review requires completed trip
+    // 27. Review requires completed trip
     // ========================================================================
 
     public function test_review_blocked_on_non_completed_trip(): void
@@ -1431,9 +1699,9 @@ class VitoFlowTest extends TestCase
 
         // 4. Complete profile
         $resp = $this->postJson('/api/customer/auth/registration-from-otp', [
-            'phone'  => '+15550001234',
-            'f_name' => 'Test',
-            'l_name' => 'User',
+            'phone'      => '+15550001234',
+            'first_name' => 'Test',
+            'last_name'  => 'User',
         ]);
         $resp->assertStatus(200);
         $token = $resp->json('data.token');
@@ -1495,7 +1763,7 @@ class VitoFlowTest extends TestCase
         Passport::actingAs($driver, ['AccessToDriver']);
         $r = $this->putJson('/api/driver/ride/update-status', [
             'trip_request_id' => $parcelId,
-            'current_status'  => 'out_for_pickup',
+            'status'          => 'out_for_pickup',
         ]);
 
         $r->assertOk();

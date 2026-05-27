@@ -6,6 +6,7 @@ use App\Service\BaseService;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\LengthAwarePaginator;
+use MatanYadaev\EloquentSpatial\Objects\Point;
 use Modules\ZoneManagement\Entities\Zone;
 use Modules\ZoneManagement\Repository\ZoneRepositoryInterface;
 use Modules\ZoneManagement\Service\Interfaces\ZoneServiceInterface;

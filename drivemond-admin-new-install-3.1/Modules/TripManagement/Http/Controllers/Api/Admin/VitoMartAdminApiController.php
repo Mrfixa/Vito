@@ -21,6 +21,12 @@ class VitoMartAdminApiController extends Controller
         return response()->json(['data' => $products]);
     }
 
+    public function show(string $id)
+    {
+        $product = MartProduct::findOrFail($id);
+        return response()->json(['data' => $product]);
+    }
+
     public function store(Request $request)
     {
         $data = $request->validate([

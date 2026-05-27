@@ -51,7 +51,7 @@ class WalletController extends Controller
         return response()->json(responseFormatter(constant: DEFAULT_200, content: [
             'balance'      => (float) ($account?->wallet_balance ?? 0),
             'transactions' => $transactions,
-        ], limit: $limit, offset: $offset));
+        ]));
     }
 
     /**

@@ -4406,6 +4406,12 @@
   'The pin field is required.' => 'The pin field is required.',
   'The amount must be at least 1.' => 'The amount must be at least 1.',
   'please_try_again_after_' => 'Please try again after ',
+  'The username format is invalid.' => 'The username format is invalid.',
+  'The username must be at least 3 characters.' => 'The username must be at least 3 characters.',
+  'Successfully deleted information' => 'Successfully deleted information',
+  'Create a level first' => 'Create a level first',
   'Your access has been denied' => 'Your access has been denied',
   'The status field is required.' => 'The status field is required.',
+  'User credential does not match' => 'User credential does not match',
+  ' ' => ' ',
 );

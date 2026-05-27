@@ -114,6 +114,7 @@ class AppConstants {
   static const String pinRegister = '/api/driver/auth/pin-register';
   static const String qrTokenGenerate = '/api/qr-token/generate';
   static const String qrTokenValidate = '/api/qr-token/validate';
+  static const String qrTokenValidatePublic = '/api/qr/validate/'; // GET, public — append token
   static const String qrTokenRevoke = '/api/qr-token/revoke';
   static const String atomicAcceptRide = '/api/driver/ride/atomic-accept';
   static const String atomicAcceptParcel = '/api/driver/parcel/atomic-accept';

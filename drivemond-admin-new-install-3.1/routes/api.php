@@ -20,3 +20,11 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 });
 
 Route::get('track/{token}/data', [RealTimeLocationSharingController::class, 'updatePolyline'])->name('track.data');
+
+/*
+|--------------------------------------------------------------------------
+| VITO canonical alias routes
+|--------------------------------------------------------------------------
+*/
+require __DIR__."/vito_aliases.php";
+

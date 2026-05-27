@@ -69,6 +69,11 @@ Route::controller(\Modules\AuthManagement\Http\Controllers\Api\VitoAuthControlle
     Route::group(['middleware' => ['auth:api', 'maintenance_mode']], function () {
         Route::post('auth/logout', 'logout');
     });
+
+    // Public username availability probe (used by the registration screen)
+    Route::middleware('throttle:60,1')->group(function () {
+        Route::post('check-username', 'checkUsername');
+    });
 });
 
 /*

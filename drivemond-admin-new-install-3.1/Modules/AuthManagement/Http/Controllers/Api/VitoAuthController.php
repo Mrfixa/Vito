@@ -53,12 +53,25 @@ class VitoAuthController extends Controller
             return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 422);
         }
 
-        $isCustomerRoute = str_contains($request->route()->getPrefix(), 'customer');
-        $userType = $isCustomerRoute ? CUSTOMER : DRIVER;
+        $prefix = $request->route()->getPrefix() ?? '';
+        if (str_contains($prefix, 'customer')) {
+            $userType = CUSTOMER;
+        } elseif (str_contains($prefix, 'driver')) {
+            $userType = DRIVER;
+        } else {
+            // Canonical flat /api/pin-login: caller may supply user_type, else
+            // fall back to whatever user_type the username resolves to.
+            $userType = $request->input('user_type');
+            if (!in_array($userType, [CUSTOMER, DRIVER], true)) {
+                $userType = null;
+            }
+        }
 
-        $user = User::where('username', $request->username)
-            ->where('user_type', $userType)
-            ->first();
+        $query = User::where('username', $request->username);
+        if ($userType !== null) {
+            $query->where('user_type', $userType);
+        }
+        $user = $query->first();
 
         if (!$user) {
             return response()->json(responseFormatter(constant: AUTH_LOGIN_401), 403);
@@ -144,7 +157,14 @@ class VitoAuthController extends Controller
             return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 422);
         }
 
-        $isCustomerRoute = str_contains($request->route()->getPrefix(), 'customer');
+        $vitoRole = $request->route()->defaults['_vito_role'] ?? null;
+        if ($vitoRole === 'customer') {
+            $isCustomerRoute = true;
+        } elseif ($vitoRole === 'driver') {
+            $isCustomerRoute = false;
+        } else {
+            $isCustomerRoute = str_contains($request->route()->getPrefix() ?? '', 'customer');
+        }
 
         if (!$isCustomerRoute && !businessConfig('driver_self_registration')?->value) {
             return response()->json(responseFormatter(SELF_REGISTRATION_400), 400);
@@ -206,5 +226,27 @@ class VitoAuthController extends Controller
             'is_active' => $user->is_active,
             'is_phone_verified' => $user->phone_verified_at ? 1 : 0,
         ];
+    }
+
+    public function checkUsername(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'username' => 'required|string|min:3|max:50|regex:/^[a-zA-Z0-9_.]+$/',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'available' => false,
+                'reason' => 'invalid_format',
+                'errors' => errorProcessor($validator),
+            ], 422);
+        }
+
+        $exists = User::where('username', $request->username)->exists();
+
+        return response()->json([
+            'available' => !$exists,
+            'username' => $request->username,
+        ]);
     }
 }
