@@ -1,126 +1,97 @@
 <?php
-
 namespace Modules\TripManagement\Http\Controllers\Api\Admin;
 
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Validator;
 use Modules\TripManagement\Entities\MartProduct;
 
-/**
- * JSON CRUD API for VitoMart products, used by the admin panel and
- * future external integrations. Web/blade equivalents live in
- * Modules\TripManagement\Http\Controllers\Web\VitoMartAdminController.
- */
 class VitoMartAdminApiController extends Controller
 {
-    public function index(Request $request): JsonResponse
+    public function index(Request $request)
     {
-        $search = substr((string)($request->search ?? ''), 0, 100);
-        $limit = min((int)$request->input('limit', 20), 100);
-
-        $products = MartProduct::query()
-            ->when($search, function ($q, $s) {
-                $q->where(function ($w) use ($s) {
-                    $w->where('name', 'like', "%{$s}%")
-                      ->orWhere('category', 'like', "%{$s}%");
-                });
-            })
-            ->orderByDesc('created_at')
-            ->paginate($limit);
-
-        return response()->json(responseFormatter(DEFAULT_200, $products));
-    }
-
-    public function show(string $id): JsonResponse
-    {
-        $product = MartProduct::find($id);
-        if (!$product) {
-            return response()->json(responseFormatter(DEFAULT_404), 404);
+        $query = MartProduct::query();
+        if ($request->filled('search')) {
+            $query->where('name', 'like', '%'.$request->search.'%');
         }
-        return response()->json(responseFormatter(DEFAULT_200, $product));
+        if ($request->filled('category')) {
+            $query->where('category', $request->category);
+        }
+        $products = $query->orderBy('created_at','desc')->paginate($request->input('limit', 20));
+        return response()->json(['data' => $products]);
     }
 
-    public function store(Request $request): JsonResponse
+    public function show(string $id)
     {
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'category' => 'required|string|max:100',
-            'price' => 'required|numeric|min:0.01|max:999999.99',
-            'stock' => 'required|integer|min:0',
+        $product = MartProduct::findOrFail($id);
+        return response()->json(['data' => $product]);
+    }
+
+    public function store(Request $request)
+    {
+        $data = $request->validate([
+            'name'        => 'required|string|max:255',
+            'category'    => 'required|string|max:100',
+            'price'       => 'required|numeric|min:0.01|max:9999.99',
             'description' => 'nullable|string|max:1000',
-            'image' => 'nullable|image|max:2048',
-            'is_active' => 'sometimes|boolean',
-            'zone_id' => 'nullable|string',
+            'stock'       => 'required|integer|min:0|max:99999',
+            'is_active'   => 'boolean',
+            'image'       => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json(responseFormatter(DEFAULT_400, errorProcessor($validator)), 422);
-        }
-
-        $data = $validator->validated();
-        $data['is_active'] = $data['is_active'] ?? true;
 
         if ($request->hasFile('image')) {
             $data['image'] = $request->file('image')->store('mart/products', 'public');
         }
 
         $product = MartProduct::create($data);
-
-        return response()->json(responseFormatter(DEFAULT_STORE_200, $product->fresh()), 201);
+        $this->auditLog(auth()->id(), 'create', MartProduct::class, $product->id, $data);
+        return response()->json(['data' => $product], 201);
     }
 
-    public function update(Request $request, string $id): JsonResponse
+    public function update(Request $request, string $id)
     {
-        $product = MartProduct::find($id);
-        if (!$product) {
-            return response()->json(responseFormatter(DEFAULT_404), 404);
-        }
-
-        $validator = Validator::make($request->all(), [
-            'name' => 'sometimes|string|max:255',
-            'category' => 'sometimes|string|max:100',
-            'price' => 'sometimes|numeric|min:0.01|max:999999.99',
-            'stock' => 'sometimes|integer|min:0',
+        $product = MartProduct::findOrFail($id);
+        $data = $request->validate([
+            'name'        => 'sometimes|required|string|max:255',
+            'category'    => 'sometimes|required|string|max:100',
+            'price'       => 'sometimes|required|numeric|min:0.01|max:9999.99',
             'description' => 'nullable|string|max:1000',
-            'image' => 'nullable|image|max:2048',
-            'is_active' => 'sometimes|boolean',
-            'zone_id' => 'nullable|string',
+            'stock'       => 'sometimes|required|integer|min:0|max:99999',
+            'is_active'   => 'boolean',
+            'image'       => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
         ]);
 
-        if ($validator->fails()) {
-            return response()->json(responseFormatter(DEFAULT_400, errorProcessor($validator)), 422);
-        }
-
-        $data = $validator->validated();
-
         if ($request->hasFile('image')) {
-            if ($product->image) {
-                Storage::disk('public')->delete($product->image);
-            }
+            if ($product->image) Storage::disk('public')->delete($product->image);
             $data['image'] = $request->file('image')->store('mart/products', 'public');
         }
 
         $product->update($data);
-
-        return response()->json(responseFormatter(DEFAULT_UPDATE_200, $product->fresh()));
+        $this->auditLog(auth()->id(), 'update', MartProduct::class, $product->id, $data);
+        return response()->json(['data' => $product]);
     }
 
-    public function destroy(string $id): JsonResponse
+    public function destroy(string $id)
     {
-        $product = MartProduct::find($id);
-        if (!$product) {
-            return response()->json(responseFormatter(DEFAULT_404), 404);
-        }
-
-        if ($product->image) {
-            Storage::disk('public')->delete($product->image);
-        }
-
+        $product = MartProduct::findOrFail($id);
         $product->delete();
+        $this->auditLog(auth()->id(), 'delete', MartProduct::class, $product->id, []);
+        return response()->json(['message' => 'Product deleted']);
+    }
 
-        return response()->json(responseFormatter(DEFAULT_DELETE_200));
+    private function auditLog(?string $userId, string $action, string $modelType, string $modelId, array $changes): void
+    {
+        try {
+            \Illuminate\Support\Facades\DB::table('vito_audit_log')->insert([
+                'id'         => \Illuminate\Support\Str::uuid(),
+                'user_id'    => $userId,
+                'action'     => $action,
+                'model_type' => $modelType,
+                'model_id'   => $modelId,
+                'changes'    => json_encode($changes),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        } catch (\Throwable) {}
     }
 }

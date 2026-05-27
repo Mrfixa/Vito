@@ -4411,4 +4411,7 @@
   'Successfully deleted information' => 'Successfully deleted information',
   'Create a level first' => 'Create a level first',
   'Your access has been denied' => 'Your access has been denied',
+  'The status field is required.' => 'The status field is required.',
+  'User credential does not match' => 'User credential does not match',
+  ' ' => ' ',
 );

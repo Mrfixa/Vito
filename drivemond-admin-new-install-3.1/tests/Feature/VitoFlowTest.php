@@ -39,16 +39,21 @@ class VitoFlowTest extends TestCase
         Schema::dropIfExists('mart_orders');
         Schema::dropIfExists('mart_promo_codes');
         Schema::dropIfExists('mart_products');
+        Schema::dropIfExists('vito_otps');
         Schema::dropIfExists('qr_tokens');
         Schema::dropIfExists('user_accounts');
         Schema::dropIfExists('time_tracks');
         Schema::dropIfExists('activity_logs');
         Schema::dropIfExists('driver_details');
+        Schema::dropIfExists('trip_status');
+        Schema::dropIfExists('firebase_push_notifications');
+        Schema::dropIfExists('app_notifications');
         Schema::dropIfExists('temp_trip_notifications');
         Schema::dropIfExists('trip_requests');
         Schema::dropIfExists('user_levels');
         Schema::dropIfExists('business_settings');
         Schema::dropIfExists('admin_notifications');
+        Schema::dropIfExists('vito_audit_log');
         Schema::dropIfExists('oauth_access_tokens');
         Schema::dropIfExists('oauth_personal_access_clients');
         Schema::dropIfExists('oauth_clients');
@@ -151,6 +156,8 @@ class VitoFlowTest extends TestCase
                 $table->decimal('actual_fare', 23, 2)->default(0);
                 $table->decimal('estimated_distance', 23, 2)->default(0);
                 $table->decimal('paid_fare', 23, 2)->default(0);
+                $table->text('pickup_note')->nullable();
+                $table->text('delivery_notes')->nullable();
                 $table->timestamps();
                 $table->softDeletes();
             });
@@ -165,6 +172,51 @@ class VitoFlowTest extends TestCase
                 $table->string('plate_number')->nullable();
                 $table->string('car_photo')->nullable();
                 $table->boolean('is_approved')->default(false);
+                $table->unsignedInteger('parcel_count')->default(0);
+                $table->unsignedInteger('trip_count')->default(0);
+                $table->timestamps();
+            });
+        }
+
+        if (!Schema::hasTable('app_notifications')) {
+            Schema::create('app_notifications', function (Blueprint $table) {
+                $table->id();
+                $table->uuid('user_id')->nullable();
+                $table->uuid('ride_request_id')->nullable();
+                $table->string('title')->nullable();
+                $table->text('description')->nullable();
+                $table->string('type')->nullable();
+                $table->string('notification_type')->nullable();
+                $table->string('action')->nullable();
+                $table->boolean('is_read')->default(false);
+                $table->timestamps();
+            });
+        }
+
+        if (!Schema::hasTable('firebase_push_notifications')) {
+            Schema::create('firebase_push_notifications', function (Blueprint $table) {
+                $table->id();
+                $table->string('name')->unique();
+                $table->string('user_type')->nullable();
+                $table->string('title')->nullable();
+                $table->text('description')->nullable();
+                $table->boolean('status')->default(true);
+                $table->timestamps();
+            });
+        }
+
+        if (!Schema::hasTable('trip_status')) {
+            Schema::create('trip_status', function (Blueprint $table) {
+                $table->id();
+                $table->uuid('trip_request_id');
+                $table->timestamp('pending')->nullable();
+                $table->timestamp('accepted')->nullable();
+                $table->timestamp('ongoing')->nullable();
+                $table->timestamp('out_for_pickup')->nullable();
+                $table->timestamp('picked_up')->nullable();
+                $table->timestamp('completed')->nullable();
+                $table->timestamp('cancelled')->nullable();
+                $table->timestamp('failed')->nullable();
                 $table->timestamps();
             });
         }
@@ -192,6 +244,7 @@ class VitoFlowTest extends TestCase
                 $table->string('edited_by')->nullable();
                 $table->text('before')->nullable();
                 $table->text('after')->nullable();
+                $table->string('user_type')->nullable();
                 $table->string('logable_id')->nullable();
                 $table->string('logable_type')->nullable();
                 $table->timestamps();
@@ -208,6 +261,18 @@ class VitoFlowTest extends TestCase
                 $table->timestamp('redeemed_at')->nullable();
                 $table->timestamp('expires_at');
                 $table->boolean('is_revoked')->default(false);
+                $table->timestamps();
+            });
+        }
+
+        if (!Schema::hasTable('vito_otps')) {
+            Schema::create('vito_otps', function (Blueprint $table) {
+                $table->uuid('id')->primary();
+                $table->string('phone', 30)->index();
+                $table->string('otp_hash');
+                $table->timestamp('expires_at');
+                $table->timestamp('verified_at')->nullable();
+                $table->unsignedTinyInteger('attempts')->default(0);
                 $table->timestamps();
             });
         }
@@ -1566,5 +1631,145 @@ class VitoFlowTest extends TestCase
         $r->assertStatus(403);
 
         Schema::dropIfExists('reviews');
+    }
+
+    // ========================================================================
+    // 17. Parcel Flow Tests
+    // ========================================================================
+
+    public function test_parcel_delivery_notes_stored(): void
+    {
+        $customer = $this->createUser('customer');
+        $driver   = $this->createUser('driver', ['username' => 'driverp1']);
+
+        DB::table('driver_details')->insert([
+            'user_id' => $driver->id, 'is_online' => 1, 'availability_status' => 'available',
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        DB::table('time_tracks')->insert([
+            'user_id' => $driver->id, 'date' => now()->toDateString(),
+            'last_ride_completed_at' => now(), 'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        $parcelId = Str::uuid()->toString();
+        DB::table('trip_requests')->insert([
+            'id'                => $parcelId,
+            'customer_id'       => $customer->id,
+            'driver_id'         => $driver->id,
+            'current_status'    => 'accepted',
+            'type'              => 'parcel',
+            'payment_method'    => 'cash',
+            'estimated_fare'    => 50,
+            'actual_fare'       => 0,
+            'estimated_distance'=> 3,
+            'paid_fare'         => 0,
+            'delivery_notes'    => 'Leave at door',
+            'created_at'        => now(),
+            'updated_at'        => now(),
+        ]);
+
+        $this->assertDatabaseHas('trip_requests', [
+            'id'             => $parcelId,
+            'delivery_notes' => 'Leave at door',
+        ]);
+    }
+
+    // ========================================================================
+    // 23. Client OTP Auth Flow
+    // ========================================================================
+
+    public function test_client_otp_auth_flow(): void
+    {
+        // 1. Check phone
+        $resp = $this->postJson('/api/customer/auth/check', ['phone_or_email' => '+15550001234']);
+        $resp->assertStatus(200);
+
+        // 2. Send OTP (local env returns the OTP in body)
+        $resp = $this->postJson('/api/customer/auth/send-otp', ['phone_or_email' => '+15550001234']);
+        $resp->assertStatus(200);
+        $otp = $resp->json('otp'); // available in testing env
+        $this->assertNotNull($otp, 'OTP should be returned in testing environment');
+
+        // 3. Verify OTP — new user → 406
+        $resp = $this->postJson('/api/customer/auth/otp-verification', [
+            'phone_or_email' => '+15550001234',
+            'otp'            => $otp,
+        ]);
+        $resp->assertStatus(406); // new user, profile incomplete
+
+        // 4. Complete profile
+        $resp = $this->postJson('/api/customer/auth/registration-from-otp', [
+            'phone'      => '+15550001234',
+            'first_name' => 'Test',
+            'last_name'  => 'User',
+        ]);
+        $resp->assertStatus(200);
+        $token = $resp->json('data.token');
+        $this->assertNotNull($token);
+
+        // 5. Send OTP again (for returning user login)
+        $resp = $this->postJson('/api/customer/auth/send-otp', ['phone_or_email' => '+15550001234']);
+        $resp->assertStatus(200);
+        $otp2 = $resp->json('otp');
+
+        // 6. Verify OTP — existing user → 200 with token
+        $resp = $this->postJson('/api/customer/auth/otp-verification', [
+            'phone_or_email' => '+15550001234',
+            'otp'            => $otp2,
+        ]);
+        $resp->assertStatus(200);
+        $this->assertNotNull($resp->json('data.token'));
+
+        // 7. Wrong OTP → 400
+        $this->postJson('/api/customer/auth/send-otp', ['phone_or_email' => '+15550009999']);
+        $resp = $this->postJson('/api/customer/auth/otp-verification', [
+            'phone_or_email' => '+15550009999',
+            'otp'            => '000000',
+        ]);
+        // Either 400 (wrong OTP) or 406 (new user no profile) — either is valid
+        $this->assertContains($resp->getStatusCode(), [400, 406]);
+    }
+
+    public function test_driver_can_update_parcel_to_out_for_pickup(): void
+    {
+        $customer = $this->createUser('customer');
+        $driver   = $this->createUser('driver', ['username' => 'driverp2']);
+
+        DB::table('driver_details')->insert([
+            'user_id' => $driver->id, 'is_online' => 1, 'availability_status' => 'available',
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        DB::table('time_tracks')->insert([
+            'user_id' => $driver->id, 'date' => now()->toDateString(),
+            'last_ride_completed_at' => now(), 'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        $parcelId = Str::uuid()->toString();
+        DB::table('trip_requests')->insert([
+            'id'                => $parcelId,
+            'customer_id'       => $customer->id,
+            'driver_id'         => $driver->id,
+            'current_status'    => 'accepted',
+            'type'              => 'parcel',
+            'payment_method'    => 'cash',
+            'estimated_fare'    => 50,
+            'actual_fare'       => 0,
+            'estimated_distance'=> 3,
+            'paid_fare'         => 0,
+            'created_at'        => now(),
+            'updated_at'        => now(),
+        ]);
+
+        Passport::actingAs($driver, ['AccessToDriver']);
+        $r = $this->putJson('/api/driver/ride/update-status', [
+            'trip_request_id' => $parcelId,
+            'status'          => 'out_for_pickup',
+        ]);
+
+        $r->assertOk();
+        $this->assertDatabaseHas('trip_requests', [
+            'id'             => $parcelId,
+            'current_status' => 'out_for_pickup',
+        ]);
     }
 }

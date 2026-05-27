@@ -60,6 +60,7 @@ class TripRequestResource extends JsonResource
             'discount_amount' => $this->discount_amount === null ? null : round((double)$this->discount_amount, 2),
             'note' => $this->note,
             'pickup_note' => $this->pickup_note ?? null,
+            'delivery_notes' => $this->delivery_notes ?? null,
             'otp' => $this->otp,
             'rise_request_count' => $this->rise_request_count,
             'type' => $this->type == PARCEL ? PARCEL : ($this->ride_request_type == 'scheduled' ? 'scheduled_request' : RIDE_REQUEST),

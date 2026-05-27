@@ -139,7 +139,7 @@ class LoginHelper{
   }
 
   static void checkLoginMedium(){
-    Get.offAll(()=> const SignInScreen());
+    Get.offAll(() => const SignInScreen());
   }
 
 }

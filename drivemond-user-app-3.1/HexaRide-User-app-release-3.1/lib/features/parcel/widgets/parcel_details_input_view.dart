@@ -70,6 +70,24 @@ class _ParcelDetailInputViewState extends State<ParcelDetailInputView> with Sing
                   )),
                   const SizedBox(height: Dimensions.paddingSizeDefault),
 
+                  TextFieldTitle(title: 'delivery_notes'.tr, textOpacity: 0.8),
+
+                  CustomTextField(
+                    prefixIcon: Images.editProfilePhone,
+                    borderRadius: Dimensions.radiusDefault,
+                    showBorder: true,
+                    hintText: 'parcel_notes_hint'.tr,
+                    maxLength: 200,
+                    maxLines: 2,
+                    controller: parcelController.parcelNotesController,
+                    focusNode: parcelController.parcelNotesNode,
+                    inputType: TextInputType.multiline,
+                    inputAction: TextInputAction.newline,
+                    prefix: false,
+                    onTap: () => parcelController.focusOnBottomSheet(widget.expandableKey),
+                  ),
+                  const SizedBox(height: Dimensions.paddingSizeDefault),
+
                   rideController.isEstimate ?
                   Center(child: SpinKitCircle(color: Theme.of(context).primaryColor, size: 40.0)) :
                   ButtonWidget(

@@ -104,8 +104,6 @@ class AppConstants {
   static const String otpLoginAfterUpdateData = '/api/customer/auth/update-data';
   static const String pinLogin = '/api/customer/auth/pin-login';
   static const String pinRegister = '/api/customer/auth/pin-register';
-  static const String qrTokenValidate = '/api/qr-token/validate';
-  static const String qrTokenValidatePublic = '/api/qr/validate/'; // GET, public — append token
   static const String martProducts = '/api/customer/mart/products';
   static const String martProductDetails = '/api/customer/mart/products/';
   static const String martApplyPromo = '/api/customer/mart/apply-promo';

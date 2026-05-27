@@ -148,8 +148,12 @@ function sendCurlRequest(string $url, string $postdata, array $header): string|b
 
 function sendNotificationToHttp(array|null $data): bool|string|null
 {
-    $key = Cache::rememberForever('server_key', function () {
-        return json_decode(businessConfig('server_key')->value);
+    $serverKeyConfig = businessConfig('server_key');
+    if (!$serverKeyConfig || !($serverKeyConfig->value ?? null)) {
+        return false;
+    }
+    $key = Cache::rememberForever('server_key', function () use ($serverKeyConfig) {
+        return json_decode($serverKeyConfig->value);
     });
 
     $accessTokenData = Cache::get('firebase_access_token');

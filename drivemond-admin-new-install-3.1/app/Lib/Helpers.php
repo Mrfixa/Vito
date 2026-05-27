@@ -627,16 +627,24 @@ if (!function_exists('getCurrencyFormat')) {
 if (!function_exists('getNotification')) {
     function getNotification(string $key, ?string $group = null, ?string $type = null): array
     {
-        $notification = FirebasePushNotification::query()
-            ->where('name', $key)
-            ->when($group, fn($q) => $q->where('group', $group))
-            ->when($type, fn($q) => $q->where('type', $type))
-            ->first();
+        try {
+            $notification = FirebasePushNotification::query()
+                ->where('name', $key)
+                ->when($group, fn($q) => $q->where('group', $group))
+                ->when($type, fn($q) => $q->where('type', $type))
+                ->first();
+        } catch (\Throwable) {
+            $notification = null;
+        }
+
+        if (!$notification) {
+            return ['title' => ' ', 'description' => ' ', 'status' => false, 'action' => ' '];
+        }
 
         return [
             'title' => $notification['name'] ?? ' ',
             'description' => $notification['value'] ?? ' ',
-            'status' => (bool)$notification['status'] ?? 0,
+            'status' => (bool)($notification['status'] ?? 0),
             'action' => $notification['action'] ?? ' ',
         ];
     }

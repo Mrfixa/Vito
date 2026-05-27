@@ -59,6 +59,7 @@ class TripRequest extends Model
         'discount_amount',
         'note',
         'pickup_note',
+        'delivery_notes',
         'entrance',
         'otp',
         'rise_request_count',

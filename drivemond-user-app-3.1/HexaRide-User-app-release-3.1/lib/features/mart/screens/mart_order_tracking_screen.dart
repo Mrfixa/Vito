@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:ride_sharing_user_app/data/api_client.dart';
 import 'package:ride_sharing_user_app/features/message/controllers/message_controller.dart';
 import 'package:ride_sharing_user_app/util/app_constants.dart';
@@ -28,19 +29,39 @@ class _MartOrderTrackingScreenState extends State<MartOrderTrackingScreen> {
   static const int _maxPollCount = 240;
 
   Map<String, dynamic> _driverInfo = {};
+  Map<String, dynamic> _orderData = {};
   String _estimatedArrival = '';
   String _driverId = '';
   String _driverName = '';
 
-  final List<Map<String, dynamic>> _statusSteps = [
-    {'status': 'pending', 'label': 'order_placed', 'icon': Icons.receipt_long},
-    {'status': 'accepted', 'label': 'order_accepted', 'icon': Icons.check_circle},
-    {'status': 'picked_up', 'label': 'picked_up', 'icon': Icons.local_shipping},
-    {'status': 'delivered', 'label': 'delivered', 'icon': Icons.done_all},
-  ];
+  // B30: driver location
+  double? _driverLat;
+  double? _driverLng;
 
+  // B29: richer status timeline matching actual backend statuses
+  List<Map<String, dynamic>> get _statusSteps => [
+        {'key': 'pending',   'label': 'order_placed'.tr,    'icon': Icons.receipt_outlined},
+        {'key': 'accepted',  'label': 'order_confirmed'.tr, 'icon': Icons.check_circle_outline},
+        {'key': 'picked_up', 'label': 'out_for_delivery'.tr,'icon': Icons.delivery_dining_outlined},
+        {'key': 'delivered', 'label': 'delivered'.tr,       'icon': Icons.home_outlined},
+      ];
+
+  // B29: map status → step index; cancelled returns -1
   int get _currentStepIndex {
-    return _statusSteps.indexWhere((s) => s['status'] == _currentStatus);
+    switch (_currentStatus) {
+      case 'pending':
+        return 0;
+      case 'accepted':
+        return 1;
+      case 'picked_up':
+        return 2;
+      case 'delivered':
+        return 3;
+      case 'cancelled':
+        return -1;
+      default:
+        return 0;
+    }
   }
 
   @override
@@ -73,16 +94,22 @@ class _MartOrderTrackingScreenState extends State<MartOrderTrackingScreen> {
         final data = response.body['data'];
         setState(() {
           _currentStatus = data['status'] ?? 'pending';
+          _orderData = Map<String, dynamic>.from(data);
           if (data['driver'] != null) {
             _driverInfo = Map<String, dynamic>.from(data['driver']);
             _driverId = data['driver_id'] ?? data['driver']?['id'] ?? '';
-            _driverName = '${data['driver']?['first_name'] ?? ''} ${data['driver']?['last_name'] ?? ''}'.trim();
+            _driverName =
+                '${data['driver']?['first_name'] ?? ''} ${data['driver']?['last_name'] ?? ''}'
+                    .trim();
           } else {
             _driverInfo = {};
             _driverId = '';
             _driverName = '';
           }
           _estimatedArrival = data['estimated_arrival'] ?? '';
+          // B30: parse driver location
+          _driverLat = double.tryParse(data['driver_lat']?.toString() ?? '');
+          _driverLng = double.tryParse(data['driver_lng']?.toString() ?? '');
           _isLoading = false;
           _isOffline = false;
         });
@@ -119,10 +146,15 @@ class _MartOrderTrackingScreenState extends State<MartOrderTrackingScreen> {
                         _buildOrderHeader(context),
                         const SizedBox(height: Dimensions.paddingSizeLarge),
                         _buildStatusTimeline(context),
+                        // B30: driver location map when picked_up
+                        _buildDriverMap(context),
                         const SizedBox(height: Dimensions.paddingSizeLarge),
                         _buildDriverInfo(context),
+                        // B31: delivery photo + signature
+                        _buildDeliveryProof(context),
                         const SizedBox(height: Dimensions.paddingSizeLarge),
-                        if (_currentStatus != 'delivered' && _currentStatus != 'cancelled')
+                        if (_currentStatus != 'delivered' &&
+                            _currentStatus != 'cancelled')
                           _buildCancelButton(context),
                       ],
                     ),
@@ -200,9 +232,11 @@ class _MartOrderTrackingScreenState extends State<MartOrderTrackingScreen> {
                     _estimatedArrival,
                     style: textMedium.copyWith(fontSize: Dimensions.fontSizeSmall),
                   ),
-                  Text('eta'.tr, style: textRegular.copyWith(
-                    fontSize: 10, color: Theme.of(context).hintColor,
-                  )),
+                  Text('eta'.tr,
+                      style: textRegular.copyWith(
+                        fontSize: 10,
+                        color: Theme.of(context).hintColor,
+                      )),
                 ],
               ),
           ],
@@ -211,19 +245,23 @@ class _MartOrderTrackingScreenState extends State<MartOrderTrackingScreen> {
     );
   }
 
+  // B29: richer status timeline
   Widget _buildStatusTimeline(BuildContext context) {
+    final steps = _statusSteps;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(Dimensions.paddingSizeDefault),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('delivery_status'.tr, style: textBold.copyWith(fontSize: Dimensions.fontSizeDefault)),
+            Text('delivery_status'.tr,
+                style: textBold.copyWith(fontSize: Dimensions.fontSizeDefault)),
             const SizedBox(height: Dimensions.paddingSizeDefault),
-            ...List.generate(_statusSteps.length, (index) {
-              final step = _statusSteps[index];
-              final isCompleted = index <= _currentStepIndex;
-              final isActive = index == _currentStepIndex;
+            ...List.generate(steps.length, (index) {
+              final step = steps[index];
+              final stepIndex = _currentStepIndex;
+              final isCompleted = stepIndex >= 0 && index <= stepIndex;
+              final isActive = index == stepIndex;
 
               return Column(
                 children: [
@@ -247,7 +285,7 @@ class _MartOrderTrackingScreenState extends State<MartOrderTrackingScreen> {
                       const SizedBox(width: Dimensions.paddingSizeDefault),
                       Expanded(
                         child: Text(
-                          (step['label'] as String).tr,
+                          step['label'] as String,
                           style: (isActive ? textBold : textRegular).copyWith(
                             fontSize: Dimensions.fontSizeDefault,
                             color: isCompleted
@@ -260,7 +298,7 @@ class _MartOrderTrackingScreenState extends State<MartOrderTrackingScreen> {
                         Icon(Icons.check, color: Theme.of(context).primaryColor, size: 20),
                     ],
                   ),
-                  if (index < _statusSteps.length - 1)
+                  if (index < steps.length - 1)
                     Container(
                       margin: const EdgeInsets.only(left: 17),
                       width: 2,
@@ -275,6 +313,42 @@ class _MartOrderTrackingScreenState extends State<MartOrderTrackingScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  // B30: driver location GoogleMap shown only when picked_up
+  Widget _buildDriverMap(BuildContext context) {
+    if (_driverLat == null ||
+        _driverLng == null ||
+        !['picked_up'].contains(_currentStatus)) {
+      return const SizedBox.shrink();
+    }
+    return Column(
+      children: [
+        const SizedBox(height: 16),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: SizedBox(
+            height: 180,
+            child: GoogleMap(
+              initialCameraPosition: CameraPosition(
+                target: LatLng(_driverLat!, _driverLng!),
+                zoom: 14,
+              ),
+              markers: {
+                Marker(
+                  markerId: const MarkerId('driver'),
+                  position: LatLng(_driverLat!, _driverLng!),
+                  icon: BitmapDescriptor.defaultMarkerWithHue(
+                      BitmapDescriptor.hueViolet),
+                ),
+              },
+              zoomControlsEnabled: false,
+              myLocationButtonEnabled: false,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -306,10 +380,13 @@ class _MartOrderTrackingScreenState extends State<MartOrderTrackingScreen> {
     final String rawName = _driverName.isNotEmpty
         ? _driverName
         : (_driverInfo['full_name'] as String? ??
-            '${_driverInfo['first_name'] ?? ''} ${_driverInfo['last_name'] ?? ''}'.trim());
+            '${_driverInfo['first_name'] ?? ''} ${_driverInfo['last_name'] ?? ''}'
+                .trim());
     final driverName = rawName.isNotEmpty ? rawName : 'driver'.tr;
     final driverPhone = _driverInfo['phone'] ?? '';
-    final driverRating = _driverInfo['avg_rating']?.toString() ?? _driverInfo['rating']?.toString() ?? '';
+    final driverRating = _driverInfo['avg_rating']?.toString() ??
+        _driverInfo['rating']?.toString() ??
+        '';
     final vehicleModel = _driverInfo['vehicle_model'] ?? '';
     final vehiclePlate = _driverInfo['vehicle_plate'] ?? '';
 
@@ -319,28 +396,36 @@ class _MartOrderTrackingScreenState extends State<MartOrderTrackingScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('your_driver'.tr, style: textBold.copyWith(fontSize: Dimensions.fontSizeDefault)),
+            Text('your_driver'.tr,
+                style: textBold.copyWith(fontSize: Dimensions.fontSizeDefault)),
             const SizedBox(height: Dimensions.paddingSizeDefault),
             Row(
               children: [
                 CircleAvatar(
                   radius: 28,
-                  backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.1),
-                  child: Icon(Icons.person, color: Theme.of(context).primaryColor, size: 30),
+                  backgroundColor:
+                      Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                  child: Icon(Icons.person,
+                      color: Theme.of(context).primaryColor, size: 30),
                 ),
                 const SizedBox(width: Dimensions.paddingSizeDefault),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(driverName, style: textBold.copyWith(fontSize: Dimensions.fontSizeDefault)),
+                      Text(driverName,
+                          style: textBold.copyWith(
+                              fontSize: Dimensions.fontSizeDefault)),
                       if (driverRating.isNotEmpty) ...[
                         const SizedBox(height: 4),
                         Row(
                           children: [
-                            const Icon(Icons.star, color: Colors.amber, size: 16),
+                            const Icon(Icons.star,
+                                color: Colors.amber, size: 16),
                             const SizedBox(width: 4),
-                            Text(driverRating, style: textMedium.copyWith(fontSize: Dimensions.fontSizeSmall)),
+                            Text(driverRating,
+                                style: textMedium.copyWith(
+                                    fontSize: Dimensions.fontSizeSmall)),
                           ],
                         ),
                       ],
@@ -375,7 +460,8 @@ class _MartOrderTrackingScreenState extends State<MartOrderTrackingScreen> {
                             color: Colors.green.withValues(alpha: 0.1),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.phone, color: Colors.green, size: 20),
+                          child: const Icon(Icons.phone,
+                              color: Colors.green, size: 20),
                         ),
                       ),
                     IconButton(
@@ -383,7 +469,8 @@ class _MartOrderTrackingScreenState extends State<MartOrderTrackingScreen> {
                           ? null
                           : () {
                               HapticFeedback.mediumImpact();
-                              final name = _driverName.isEmpty ? 'driver'.tr : _driverName;
+                              final name =
+                                  _driverName.isEmpty ? 'driver'.tr : _driverName;
                               Get.find<MessageController>()
                                   .createMartChannel(_driverId, widget.orderId, name);
                             },
@@ -392,7 +479,9 @@ class _MartOrderTrackingScreenState extends State<MartOrderTrackingScreen> {
                         decoration: BoxDecoration(
                           color: _driverId.isEmpty
                               ? Theme.of(context).hintColor.withValues(alpha: 0.1)
-                              : Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                              : Theme.of(context)
+                                  .primaryColor
+                                  .withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
@@ -414,14 +503,92 @@ class _MartOrderTrackingScreenState extends State<MartOrderTrackingScreen> {
     );
   }
 
+  // B31: delivery photo + signature display with lightbox
+  Widget _buildDeliveryProof(BuildContext context) {
+    final deliveryPhoto = _orderData['delivery_photo'] as String?;
+    final signatureImage = _orderData['signature_image'] as String?;
+
+    if ((deliveryPhoto == null || deliveryPhoto.isEmpty) &&
+        (signatureImage == null || signatureImage.isEmpty)) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (deliveryPhoto != null && deliveryPhoto.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          Text('delivery_proof'.tr,
+              style: textBold.copyWith(fontSize: 14)),
+          const SizedBox(height: 8),
+          GestureDetector(
+            onTap: () => _showLightbox(context, deliveryPhoto),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.network(
+                deliveryPhoto,
+                height: 150,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  height: 150,
+                  color: Colors.grey[200],
+                  child: const Icon(Icons.image_not_supported_outlined),
+                ),
+              ),
+            ),
+          ),
+        ],
+        if (signatureImage != null && signatureImage.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          Text('customer_signature'.tr,
+              style: textBold.copyWith(fontSize: 14)),
+          const SizedBox(height: 8),
+          GestureDetector(
+            onTap: () => _showLightbox(context, signatureImage),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.network(
+                signatureImage,
+                height: 120,
+                width: double.infinity,
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => Container(
+                  height: 120,
+                  color: Colors.grey[200],
+                  child: const Icon(Icons.draw_outlined),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  // B31: lightbox helper
+  void _showLightbox(BuildContext context, String imageUrl) {
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        backgroundColor: Colors.black,
+        child: InteractiveViewer(
+          child: Image.network(imageUrl, fit: BoxFit.contain),
+        ),
+      ),
+    );
+  }
+
   Widget _buildCancelButton(BuildContext context) {
     return SizedBox(
       width: double.infinity,
       child: OutlinedButton(
-        onPressed: _isOffline ? null : () {
-          HapticFeedback.mediumImpact();
-          _showCancelConfirmation(context);
-        },
+        onPressed: _isOffline
+            ? null
+            : () {
+                HapticFeedback.mediumImpact();
+                _showCancelConfirmation(context);
+              },
         style: OutlinedButton.styleFrom(
           foregroundColor: Theme.of(context).colorScheme.error,
           side: BorderSide(color: Theme.of(context).colorScheme.error),
@@ -465,7 +632,9 @@ class _MartOrderTrackingScreenState extends State<MartOrderTrackingScreen> {
                 Get.snackbar('error'.tr, 'cancel_failed'.tr);
               }
             },
-            child: Text('yes'.tr, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+            child: Text('yes'.tr,
+                style:
+                    TextStyle(color: Theme.of(context).colorScheme.error)),
           ),
         ],
       ),
