@@ -1,18 +1,22 @@
+import 'package:country_code_picker/country_code_picker.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:get/get.dart';
+import 'package:ride_sharing_user_app/features/auth/domain/enums/verification_from_enum.dart';
+import 'package:ride_sharing_user_app/features/auth/screens/otp_log_in_screen.dart';
+import 'package:ride_sharing_user_app/features/auth/screens/forgot_password_screen.dart';
 import 'package:ride_sharing_user_app/features/settings/domain/html_enum_types.dart';
 import 'package:ride_sharing_user_app/helper/display_helper.dart';
 import 'package:ride_sharing_user_app/util/dimensions.dart';
 import 'package:ride_sharing_user_app/util/images.dart';
 import 'package:ride_sharing_user_app/util/styles.dart';
 import 'package:ride_sharing_user_app/features/auth/controllers/auth_controller.dart';
-import 'package:ride_sharing_user_app/features/auth/screens/sign_up_screen.dart';
 import 'package:ride_sharing_user_app/features/settings/screens/policy_screen.dart';
 import 'package:ride_sharing_user_app/features/splash/controllers/config_controller.dart';
 import 'package:ride_sharing_user_app/common_widgets/button_widget.dart';
 import 'package:ride_sharing_user_app/common_widgets/custom_text_field.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -22,32 +26,32 @@ class SignInScreen extends StatefulWidget {
 }
 
 class _SignInScreenState extends State<SignInScreen> {
-  TextEditingController usernameController = TextEditingController();
-  TextEditingController pinController = TextEditingController();
-  FocusNode usernameNode = FocusNode();
-  FocusNode pinNode = FocusNode();
+  TextEditingController passwordController = TextEditingController();
+  TextEditingController phoneController = TextEditingController();
+  FocusNode phoneNode = FocusNode();
+  FocusNode passwordNode = FocusNode();
+
+
 
   @override
   void initState() {
     super.initState();
 
     if(Get.find<AuthController>().getUserNumber(false).isNotEmpty) {
-      usernameController.text = Get.find<AuthController>().getUserNumber(false);
+      phoneController.text =  Get.find<AuthController>().getUserNumber(false);
     }
-    pinController.text = Get.find<AuthController>().getUserPassword(false);
+    passwordController.text = Get.find<AuthController>().getUserPassword(false);
 
-    if(pinController.text.isNotEmpty) {
+    if(passwordController.text.isNotEmpty) {
       Get.find<AuthController>().setRememberMe();
     }
-  }
 
-  @override
-  void dispose() {
-    usernameController.dispose();
-    pinController.dispose();
-    usernameNode.dispose();
-    pinNode.dispose();
-    super.dispose();
+    if(Get.find<AuthController>().getLoginCountryCode(false).isNotEmpty) {
+      Get.find<AuthController>().countryDialCode = Get.find<AuthController>().getLoginCountryCode(false);
+    }else if(Get.find<ConfigController>().config!.countryCode != null){
+      Get.find<AuthController>().countryDialCode = CountryCode.fromCountryCode(Get.find<ConfigController>().config!.countryCode!).dialCode!;
+
+    }
   }
 
   @override
@@ -68,33 +72,38 @@ class _SignInScreenState extends State<SignInScreen> {
             const SizedBox(height: Dimensions.paddingSizeExtraSmall),
 
             Text(
-              'enter_username_and_pin'.tr,
+              'log_in_message'.tr,
               style: textMedium.copyWith(color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),fontSize: Dimensions.fontSizeSmall),
               maxLines: 2,
             ),
             const SizedBox(height: Dimensions.paddingSizeSignUp),
 
             CustomTextField(
-              hintText: 'username'.tr,
-              inputType: TextInputType.text,
-              prefixIcon: Images.person,
-              controller: usernameController,
-              focusNode: usernameNode,
-              nextFocus: pinNode,
+              isCodePicker: true,
+              hintText: 'phone'.tr,
+              inputType: TextInputType.phone,
+              countryDialCode: authController.countryDialCode,
+              controller: phoneController,
+              focusNode: phoneNode,
+              nextFocus: passwordNode,
               inputAction: TextInputAction.next,
-              autoFocus: usernameController.text.isEmpty,
+              onCountryChanged: (CountryCode countryCode) {
+                authController.countryDialCode = countryCode.dialCode!;
+                authController.setCountryCode(countryCode.dialCode!);
+                FocusScope.of(context).requestFocus(phoneNode);
+              },
+              autoFocus: phoneController.text.isEmpty,
             ),
             const SizedBox(height: Dimensions.paddingSizeSmall),
 
             CustomTextField(
-              hintText: 'enter_6_digit_pin'.tr,
-              inputType: TextInputType.number,
+              hintText: 'enter_password'.tr,
+              inputType: TextInputType.text,
               prefixIcon: Images.lock,
               inputAction: TextInputAction.done,
               isPassword: true,
-              controller: pinController,
-              focusNode: pinNode,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              controller: passwordController,
+              focusNode: passwordNode,
             ),
 
             Row(children: [
@@ -121,6 +130,18 @@ class _SignInScreenState extends State<SignInScreen> {
               ),
 
               const Spacer(),
+
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () {
+                    Get.to(() => const ForgotPasswordScreen(from: VerificationForm.resetPassword));
+                  },
+                  child: Text('forgot_password'.tr, style: textRegular.copyWith(
+                    fontSize: Dimensions.fontSizeSmall, color: Theme.of(context).primaryColor,
+                  )),
+                ),
+              ),
             ]),
 
             authController.isLoading ?
@@ -128,25 +149,38 @@ class _SignInScreenState extends State<SignInScreen> {
             ButtonWidget(
               buttonText: 'log_in'.tr,
               onPressed: () {
-                HapticFeedback.mediumImpact();
-                String username = usernameController.text.trim();
-                String pin = pinController.text.trim();
+                String phone = phoneController.text.trim();
+                String password = passwordController.text.trim();
 
-                if(username.isEmpty){
-                  showCustomSnackBar('username_is_required'.tr);
-                  FocusScope.of(context).requestFocus(usernameNode);
-                }else if(username.length < 3) {
-                  showCustomSnackBar('username_min_3_characters'.tr);
-                  FocusScope.of(context).requestFocus(usernameNode);
-                }else if(pin.isEmpty) {
-                  showCustomSnackBar('pin_is_required'.tr);
-                  FocusScope.of(context).requestFocus(pinNode);
-                }else if(!RegExp(r'^\d{6}$').hasMatch(pin)) {
-                  showCustomSnackBar('pin_must_be_6_digits'.tr);
+                if(phone.isEmpty){
+                  showCustomSnackBar('phone_number_is_required'.tr);
+                  FocusScope.of(context).requestFocus(phoneNode);
+                }else if(!GetUtils.isPhoneNumber(authController.countryDialCode + phone)) {
+                  showCustomSnackBar('phone_number_is_not_valid'.tr);
+                  FocusScope.of(context).requestFocus(phoneNode);
+                }else if(password.isEmpty) {
+                  showCustomSnackBar('password_is_required'.tr);
+                  FocusScope.of(context).requestFocus(passwordNode);
+                }else if(password.length < 8) {
+                  showCustomSnackBar('minimum_password_length_is_8'.tr);
                 }else {
-                  authController.login('', username, pin);
+                  authController.login(authController.countryDialCode, phone, password);
                 }
               },
+              radius: 50,
+            ),
+
+            Center(child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: Dimensions.paddingSizeSmall,vertical: 8),
+              child: Text('or'.tr ,style: textRegular.copyWith(color: Theme.of(context).hintColor),),
+            )),
+
+            ButtonWidget(
+              showBorder: true,
+              borderWidth: 1,
+              transparent: true,
+              buttonText: 'login_with_otp'.tr,
+              onPressed: () => Get.to(() => const OtpLoginScreen(from: VerificationForm.login)),
               radius: 50,
             ),
 
@@ -165,7 +199,7 @@ class _SignInScreenState extends State<SignInScreen> {
 
                   TextButton(
                     onPressed: () {
-                      Get.to(() => const SignUpScreen());
+                      Get.to(() => const OtpLoginScreen(from: VerificationForm.signUp));
                     },
                     style: TextButton.styleFrom(
                       padding: EdgeInsets.zero,
@@ -182,7 +216,7 @@ class _SignInScreenState extends State<SignInScreen> {
                   )
                 ],
               ),
-              SizedBox(height: Dimensions.paddingSizeLarge),
+              const SizedBox(height: Dimensions.paddingSizeLarge),
             ],
 
             InkWell(
@@ -201,6 +235,95 @@ class _SignInScreenState extends State<SignInScreen> {
           ]),
         )));
       }),
+      bottomNavigationBar: GetBuilder<AuthController>(builder: (authController){
+        return ((Get.find<ConfigController>().config?.externalSystem ?? false) && authController.showNavigationBar) ?
+        Container(
+          padding: const EdgeInsets.all(Dimensions.paddingSizeSmall),
+          decoration: BoxDecoration(
+              color: Theme.of(Get.context!).textTheme.titleMedium!.color!
+          ),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Row(children: [
+              Padding(
+                padding: const EdgeInsets.all(Dimensions.paddingSizeExtraSmall),
+                child: Icon(Icons.info,size: 20,color: Theme.of(context).cardColor),
+              ),
+
+              const SizedBox(width: Dimensions.paddingSizeSmall),
+
+              Expanded(child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('this_is_not_an_independent_app'.tr,style: textRegular.copyWith(color: Theme.of(context).cardColor)),
+                  const SizedBox(height: Dimensions.paddingSizeExtraSmall),
+
+                  RichText(text: TextSpan(
+                      text: 'this_app_is_connected_with_6ammart'.tr,
+                      style: textRegular.copyWith(color: Theme.of(context).cardColor.withValues(alpha:0.7),fontSize: Dimensions.fontSizeExtraSmall),
+                      children: [
+                        TextSpan(
+                            text: ' ${'click_here_to_sigh_up'.tr}',
+                            style: textRegular.copyWith(color: Theme.of(context).colorScheme.surfaceContainer,fontSize: Dimensions.fontSizeExtraSmall,decoration: TextDecoration.underline),
+                            recognizer: TapGestureRecognizer()..onTap = () async{
+                              navigateToMart('sixammart://open?country_code=&phone=signUp&password=}');
+                            }
+                        ),
+                        TextSpan(
+                            text: '  ${'or'.tr}  ',
+                            style: textRegular.copyWith(color: Theme.of(context).cardColor,fontSize: Dimensions.fontSizeExtraSmall)
+                        ),
+                        TextSpan(
+                            text: 'download_mart'.tr,
+                            style: textRegular.copyWith(color: Theme.of(context).colorScheme.surfaceContainer,fontSize: Dimensions.fontSizeExtraSmall,decoration: TextDecoration.underline),
+                            recognizer: TapGestureRecognizer()..onTap = () async{
+                              if(GetPlatform.isAndroid && Get.find<ConfigController>().config?.martPlayStoreUrl != null){
+                                navigateToMart(Get.find<ConfigController>().config!.martPlayStoreUrl!);
+                              }else if(GetPlatform.isIOS && Get.find<ConfigController>().config?.martAppStoreUrl != null){
+                                navigateToMart(Get.find<ConfigController>().config!.martAppStoreUrl!);
+                              }else{
+                                showCustomSnackBar('contact_with_support'.tr);
+                              }
+                            }
+                        )
+                      ]
+                  ))
+                ])),
+
+                InkWell(
+                  onTap: ()=> authController.toggleNavigationBar(),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: Dimensions.paddingSizeExtraSmall),
+                    child: Icon(Icons.clear,color: Theme.of(context).cardColor),
+                  ),
+                )
+              ])),
+            ]),
+          ]),
+        ) :
+        const SizedBox();
+      }),
     ));
+  }
+
+  void navigateToMart(String url) async{
+    if(GetPlatform.isAndroid){
+      try{
+        await launchUrl(Uri.parse(url));
+      }catch(exception){
+        navigateToStores(url);
+      }
+    }else if(GetPlatform.isIOS){
+      if(await launchUrl(Uri.parse(url))){}else{
+        navigateToStores(url);
+      }
+    }
+  }
+  void navigateToStores(String url) async{
+    if(GetPlatform.isAndroid && Get.find<ConfigController>().config?.martPlayStoreUrl != null){
+      await launchUrl(Uri.parse(Get.find<ConfigController>().config!.martPlayStoreUrl!));
+    }else if(GetPlatform.isIOS && Get.find<ConfigController>().config?.martAppStoreUrl != null){
+      await launchUrl(Uri.parse(Get.find<ConfigController>().config!.martAppStoreUrl!));
+    }else{
+      showCustomSnackBar('contact_with_support'.tr);
+    }
   }
 }

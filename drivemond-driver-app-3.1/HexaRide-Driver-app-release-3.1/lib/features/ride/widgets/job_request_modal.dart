@@ -16,6 +16,11 @@ class JobRequestModal extends StatefulWidget {
   final VoidCallback? onDecline;
   final VoidCallback? onTimeout;
   final String? serviceType;
+  final String? parcelWeight;
+  final String? parcelCategory;
+  final String? clientName;
+  final String? payerType;
+  final int? martItemCount;
 
   const JobRequestModal({
     super.key,
@@ -28,6 +33,11 @@ class JobRequestModal extends StatefulWidget {
     this.onDecline,
     this.onTimeout,
     this.serviceType,
+    this.parcelWeight,
+    this.parcelCategory,
+    this.clientName,
+    this.payerType,
+    this.martItemCount,
   });
 
   static Future<void> show({
@@ -40,6 +50,11 @@ class JobRequestModal extends StatefulWidget {
     VoidCallback? onDecline,
     VoidCallback? onTimeout,
     String? serviceType,
+    String? parcelWeight,
+    String? parcelCategory,
+    String? clientName,
+    String? payerType,
+    int? martItemCount,
   }) {
     return Get.dialog(
       JobRequestModal(
@@ -52,6 +67,11 @@ class JobRequestModal extends StatefulWidget {
         onDecline: onDecline,
         onTimeout: onTimeout,
         serviceType: serviceType,
+        parcelWeight: parcelWeight,
+        parcelCategory: parcelCategory,
+        clientName: clientName,
+        payerType: payerType,
+        martItemCount: martItemCount,
       ),
       barrierDismissible: false,
     );
@@ -211,7 +231,9 @@ class _JobRequestModalState extends State<JobRequestModal>
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.25),
+                  color: widget.serviceType == 'mart'
+                      ? const Color(0xFF7C3AED)
+                      : Colors.white.withValues(alpha: 0.25),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
@@ -224,6 +246,13 @@ class _JobRequestModalState extends State<JobRequestModal>
               ),
             ],
           ),
+          if (widget.serviceType == 'parcel' && widget.clientName != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              '${widget.clientName} • ${widget.payerType == 'receiver' ? 'receiver_pays'.tr : 'sender_pays'.tr}',
+              style: textRegular.copyWith(fontSize: Dimensions.fontSizeSmall, color: Colors.white.withValues(alpha: 0.85)),
+            ),
+          ],
           const SizedBox(height: Dimensions.paddingSizeSmall),
           SizedBox(
             width: 60,
@@ -255,26 +284,70 @@ class _JobRequestModalState extends State<JobRequestModal>
   }
 
   Widget _buildFareAndDistance(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+    return Column(
       children: [
-        _buildInfoChip(
-          context,
-          icon: Icons.attach_money,
-          label: 'estimated_fare'.tr,
-          value: widget.estimatedFare,
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _buildInfoChip(
+              context,
+              icon: Icons.attach_money,
+              label: 'est_earnings'.tr,
+              value: widget.estimatedFare,
+              valueColor: Colors.green,
+            ),
+            Container(width: 1, height: 40, color: Theme.of(context).dividerColor),
+            _buildInfoChip(
+              context,
+              icon: Icons.straighten,
+              label: 'distance'.tr,
+              value: widget.distance,
+            ),
+          ],
         ),
-        Container(
-          width: 1,
-          height: 40,
-          color: Theme.of(context).dividerColor,
-        ),
-        _buildInfoChip(
-          context,
-          icon: Icons.straighten,
-          label: 'distance'.tr,
-          value: widget.distance,
-        ),
+        if (widget.serviceType == 'parcel' && (widget.parcelWeight != null || widget.parcelCategory != null)) ...[
+          const SizedBox(height: Dimensions.paddingSizeSmall),
+          Divider(color: Theme.of(context).dividerColor, height: 1),
+          const SizedBox(height: Dimensions.paddingSizeSmall),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              if (widget.parcelWeight != null)
+                _buildInfoChip(context, icon: Icons.scale, label: 'weight_kg'.tr, value: widget.parcelWeight!),
+              if (widget.parcelWeight != null && widget.parcelCategory != null)
+                Container(width: 1, height: 40, color: Theme.of(context).dividerColor),
+              if (widget.parcelCategory != null)
+                _buildInfoChip(context, icon: Icons.category_outlined, label: 'parcel_category'.tr, value: widget.parcelCategory!),
+            ],
+          ),
+        ],
+        if (widget.clientName != null) ...[
+          const SizedBox(height: Dimensions.paddingSizeSmall),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: Dimensions.paddingSizeDefault),
+            child: Row(children: [
+              Icon(Icons.person_outline, size: 14, color: Theme.of(context).hintColor),
+              const SizedBox(width: 4),
+              Text(
+                '${widget.clientName}  •  ${widget.payerType == 'receiver' ? 'receiver_pays'.tr : 'sender_pays'.tr}',
+                style: textRegular.copyWith(fontSize: Dimensions.fontSizeSmall, color: Theme.of(context).hintColor),
+              ),
+            ]),
+          ),
+        ],
+        if (widget.serviceType == 'mart' && widget.martItemCount != null) ...[
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              Icon(Icons.shopping_basket_outlined, size: 14, color: Colors.grey[600]),
+              const SizedBox(width: 4),
+              Text(
+                '${widget.martItemCount} ${'items_ordered'.tr}',
+                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              ),
+            ],
+          ),
+        ],
       ],
     );
   }
@@ -284,6 +357,7 @@ class _JobRequestModalState extends State<JobRequestModal>
     required IconData icon,
     required String label,
     required String value,
+    Color? valueColor,
   }) {
     return Column(
       children: [
@@ -295,6 +369,7 @@ class _JobRequestModalState extends State<JobRequestModal>
         )),
         Text(value, style: textSemiBold.copyWith(
           fontSize: Dimensions.fontSizeDefault,
+          color: valueColor,
         )),
       ],
     );

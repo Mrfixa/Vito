@@ -26,7 +26,14 @@
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label">{{translate('category')}} *</label>
-                                        <input type="text" name="category" class="form-control" required value="{{$product->category}}">
+                                        <select name="category" class="form-control" required>
+                                            <option value="">{{ translate('select_category') }}</option>
+                                            @foreach(['Food','Drinks','Snacks','Essentials','Personal Care','Household','Electronics','Other'] as $cat)
+                                                <option value="{{ $cat }}"
+                                                    @if(isset($product) && $product->category === $cat) selected @endif
+                                                >{{ $cat }}</option>
+                                            @endforeach
+                                        </select>
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label">{{translate('price')}} *</label>

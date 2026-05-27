@@ -467,7 +467,7 @@ class _OngoingTripWidget extends StatelessWidget {
                     Get.dialog(const RideCompletationDialogWidget(),barrierDismissible: false);
                   }
                 },
-                label: Text('complete'.tr, style: TextStyle(color: Theme.of(context).primaryColor)),
+                label: Text('mark_as_delivered'.tr, style: TextStyle(color: Colors.green, fontSize: Dimensions.fontSizeLarge)),
                 dismissThresholds: 0.5, dismissible: false,
                 shimmer: false, width: 1170, height: 40, buttonSize: 40, radius: 20,
                 icon: Center(child: Container(
@@ -476,15 +476,15 @@ class _OngoingTripWidget extends StatelessWidget {
                   child: Center(child: Icon(
                     Get.find<LocalizationController>().isLtr ?
                     Icons.arrow_forward_ios_rounded : Icons.keyboard_arrow_left,
-                    color: Colors.grey, size: 20.0,
+                    color: Colors.green, size: 20.0,
                   )),
                 )),
 
                 isLtr: Get.find<LocalizationController>().isLtr,
                 boxShadow: const BoxShadow(blurRadius: 0),
                 buttonColor: Colors.transparent,
-                backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.15),
-                baseColor: Theme.of(context).primaryColor,
+                backgroundColor: Colors.green.withValues(alpha: 0.15),
+                baseColor: Colors.green,
               ),
 
               ButtonWidget(

@@ -34,5 +34,21 @@ Route::group(['prefix' => 'driver/mart', 'middleware' => ['auth:api', 'maintenan
         Route::middleware('throttle:10,1')->post('upload-proof', 'uploadDeliveryProof');
         Route::get('my-orders', 'myOrders');
         Route::get('orders/{id}', 'orderDetails');
+        // Alias routes for per-order photo and signature upload
+        Route::post('orders/{id}/photo', 'uploadDeliveryProof');
+        Route::post('orders/{id}/signature', 'uploadDeliveryProof');
     });
+});
+
+/*
+|--------------------------------------------------------------------------
+| VitoMart Admin API Routes
+|--------------------------------------------------------------------------
+*/
+Route::group(['prefix' => 'admin/mart', 'middleware' => ['auth:api', 'maintenance_mode', 'scope:AccessToSuperAdmin']], function () {
+    // Admin Mart Product API
+    Route::get('products', [\Modules\TripManagement\Http\Controllers\Api\Admin\VitoMartAdminApiController::class, 'index']);
+    Route::post('products', [\Modules\TripManagement\Http\Controllers\Api\Admin\VitoMartAdminApiController::class, 'store']);
+    Route::put('products/{id}', [\Modules\TripManagement\Http\Controllers\Api\Admin\VitoMartAdminApiController::class, 'update']);
+    Route::delete('products/{id}', [\Modules\TripManagement\Http\Controllers\Api\Admin\VitoMartAdminApiController::class, 'destroy']);
 });

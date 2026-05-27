@@ -997,5 +997,11 @@
   "we_do_for_you_the_best": "نقدم لك الأفضل",
   "your_payment_cancelled": "تم إلغاء دفعتك",
   "your_payment_failed": "فشلت دفعتك",
-  "your_payment_successfully_done": "تمت دفعتك بنجاح"
+  "your_payment_successfully_done": "تمت دفعتك بنجاح",
+  "otp_sent": "تم إرسال OTP إلى هاتفك",
+  "invalid_otp": "OTP غير صالح. يرجى المحاولة مرة أخرى.",
+  "otp_expired": "انتهت صلاحية OTP. يرجى طلب رمز جديد.",
+  "resend_otp": "إعادة إرسال OTP",
+  "verify_otp": "تحقق من OTP",
+  "profile_incomplete": "يرجى إكمال ملفك الشخصي"
 }

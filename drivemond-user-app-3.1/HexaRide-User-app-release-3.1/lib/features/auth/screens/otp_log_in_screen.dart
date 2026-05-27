@@ -5,7 +5,6 @@ import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 import 'package:ride_sharing_user_app/features/auth/controllers/auth_controller.dart';
 import 'package:ride_sharing_user_app/features/auth/domain/enums/verification_from_enum.dart';
-import 'package:ride_sharing_user_app/features/auth/screens/sign_up_screen.dart';
 import 'package:ride_sharing_user_app/features/settings/domain/html_enum_types.dart';
 import 'package:ride_sharing_user_app/features/settings/screens/policy_screen.dart';
 import 'package:ride_sharing_user_app/helper/display_helper.dart';
@@ -155,33 +154,6 @@ class _OtpLoginScreenState extends State<OtpLoginScreen> {
                       ),
                       const SizedBox(height: Dimensions.paddingSizeDefault),
 
-                      if(!(Get.find<ConfigController>().config?.externalSystem ?? false))
-                        Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                          Text('${'do_not_have_an_account'.tr} ',
-                            style: textMedium.copyWith(
-                              fontSize: Dimensions.fontSizeSmall,
-                              color: Theme.of(context).hintColor,
-                            ),
-                          ),
-
-                          TextButton(
-                            onPressed: () {
-                              Get.off(() => const SignUpScreen());
-                            },
-                            style: TextButton.styleFrom(
-                              padding: EdgeInsets.zero,
-                              minimumSize: const Size(50,30),
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-
-                            ),
-                            child: Text('sign_up'.tr, style: textMedium.copyWith(
-                              decoration: TextDecoration.underline,
-                              color: Theme.of(context).primaryColor,
-                              fontSize: Dimensions.fontSizeSmall,
-                              decorationColor: Theme.of(context).primaryColor,
-                            )),
-                          )
-                        ]),
                     ],
 
                     SizedBox(height: Dimensions.paddingSizeLarge),

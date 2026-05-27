@@ -1,4 +1,7 @@
+import 'dart:async';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:ride_sharing_user_app/features/home/controllers/category_controller.dart';
 import 'package:ride_sharing_user_app/features/map/screens/map_screen.dart';
@@ -24,6 +27,9 @@ class ParcelScreen extends StatefulWidget {
 }
 
 class _ParcelScreenState extends State<ParcelScreen> {
+  bool _isOffline = false;
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+
   @override
   void initState() {
     super.initState();
@@ -35,6 +41,19 @@ class _ParcelScreenState extends State<ParcelScreen> {
     Get.find<ParcelController>().initParcelData();
     Get.find<MapController>().initializeData();
     Get.find<CategoryController>().setCouponFilterIndex(1, isUpdate: false);
+
+    _connectivitySub = Connectivity().onConnectivityChanged.listen((results) {
+      final offline = !results.contains(ConnectivityResult.wifi) &&
+          !results.contains(ConnectivityResult.mobile) &&
+          !results.contains(ConnectivityResult.ethernet);
+      if (offline != _isOffline) setState(() => _isOffline = offline);
+    });
+  }
+
+  @override
+  void dispose() {
+    _connectivitySub?.cancel();
+    super.dispose();
   }
 
   @override
@@ -45,13 +64,32 @@ class _ParcelScreenState extends State<ParcelScreen> {
         body: Stack(children: [
           BodyWidget(
             appBar: AppBarWidget(title: 'parcel_delivery'.tr),
-            body: const Padding(padding: EdgeInsets.all(Dimensions.paddingSizeDefault), child: Column(children:  [
+            body: Padding(padding: const EdgeInsets.all(Dimensions.paddingSizeDefault), child: Column(children: [
 
-              BannerView(),
+              if (_isOffline)
+                Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.only(bottom: Dimensions.paddingSizeSmall),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: Dimensions.paddingSizeDefault,
+                    vertical: Dimensions.paddingSizeSmall,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.shade700,
+                    borderRadius: BorderRadius.circular(Dimensions.radiusSmall),
+                  ),
+                  child: Row(children: [
+                    const Icon(Icons.wifi_off, color: Colors.white, size: 18),
+                    const SizedBox(width: Dimensions.paddingSizeSmall),
+                    Text('you_are_offline'.tr, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                  ]),
+                ),
 
-              DottedBorderCard(),
+              const BannerView(),
 
-              ParcelCategoryView(),
+              const DottedBorderCard(),
+
+              const ParcelCategoryView(),
 
             ])),
           ),
@@ -62,7 +100,13 @@ class _ParcelScreenState extends State<ParcelScreen> {
             right:  Dimensions.paddingSizeDefault,
             child: ButtonWidget(
               buttonText: 'add_parcel'.tr,
+              backgroundColor: _isOffline ? Theme.of(context).hintColor : null,
               onPressed: () {
+                HapticFeedback.mediumImpact();
+                if (_isOffline) {
+                  showCustomSnackBar('you_are_offline'.tr);
+                  return;
+                }
                 if(Get.find<ConfigController>().config!.maintenanceMode != null &&
                     Get.find<ConfigController>().config!.maintenanceMode!.maintenanceStatus == 1 &&
                     Get.find<ConfigController>().config!.maintenanceMode!.selectedMaintenanceSystem!.userApp == 1
@@ -77,7 +121,6 @@ class _ParcelScreenState extends State<ParcelScreen> {
                     Get.to(() => const MapScreen(fromScreen: MapScreenType.parcel));
                   }
                 }
-
               },
             ),
           ),

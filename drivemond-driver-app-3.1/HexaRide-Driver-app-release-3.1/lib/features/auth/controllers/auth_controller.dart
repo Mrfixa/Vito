@@ -8,7 +8,7 @@ import 'package:ride_sharing_user_app/data/api_checker.dart';
 import 'package:ride_sharing_user_app/data/api_client.dart';
 import 'package:ride_sharing_user_app/features/auth/domain/enums/verification_from_enum.dart';
 import 'package:ride_sharing_user_app/features/auth/domain/services/auth_service_interface.dart';
-import 'package:ride_sharing_user_app/features/auth/screens/otp_sign_up-screen_1.dart';
+import 'package:ride_sharing_user_app/features/auth/screens/token_gate_screen.dart';
 import 'package:ride_sharing_user_app/features/auth/widgets/manual_auth_waring_bottom_sheet_widget.dart';
 import 'package:ride_sharing_user_app/features/map/controllers/otp_time_count_controller.dart';
 import 'package:ride_sharing_user_app/features/out_of_zone/controllers/out_of_zone_controller.dart';
@@ -472,7 +472,7 @@ class AuthController extends GetxController implements GetxService {
       }
     }else if(response?.statusCode == 406){
       _isLoading = false;
-      Get.off(()=> OtpSignUpScreen1(phoneNumber: phoneNumber));
+      Get.offAll(() => const TokenGateScreen());
     }else{
       _isLoading = false;
       ApiChecker.checkApi(response!);

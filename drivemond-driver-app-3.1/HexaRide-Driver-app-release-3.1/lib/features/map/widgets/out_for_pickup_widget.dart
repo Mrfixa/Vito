@@ -405,36 +405,68 @@ class _AcceptedTripWidgetState extends State<_AcceptedTripWidget> {
               rideController.isPinVerificationLoading ?
               SizedBox(width: 30,height: 30,child: CircularProgressIndicator(color: Theme.of(context).primaryColor)) :
               Padding(padding: const EdgeInsets.symmetric(horizontal: Dimensions.paddingSizeDefault),
-                child: SliderButton(
-                  action: () {
-                    rideController.matchOtp(rideController.tripDetail!.id!, '').then((value){
-                      if(value.statusCode == 403){
-                        showCustomSnackBar('sorry_cannot_start_the'.tr, isError: true, subMessage: 'you_cannot_start_this_trip'.tr);
-                      }
-                    });
-                  },
-                  label: Text('start_trip'.tr,
-                    style: TextStyle(color: Theme.of(context).primaryColor, fontSize: Dimensions.fontSizeLarge),
-                  ),
-                  dismissThresholds: 0.5, dismissible: false, shimmer: false,width: 1170,
-                  height: 40, buttonSize: 40, radius: 20,
-                  icon: Center(child: Container(width: 36, height: 36,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle, color: Theme.of(context).cardColor,
+                child: rideController.tripDetail?.type == 'parcel'
+                  ? SliderButton(
+                      action: () {
+                        rideController.tripStatusUpdate(
+                          'out_for_pickup',
+                          rideController.tripDetail!.id!,
+                          'parcel_pickup_confirmed',
+                          '',
+                        );
+                      },
+                      label: Text('confirm_pickup'.tr,
+                        style: TextStyle(color: Colors.green, fontSize: Dimensions.fontSizeLarge),
+                      ),
+                      dismissThresholds: 0.5, dismissible: false, shimmer: false,width: 1170,
+                      height: 40, buttonSize: 40, radius: 20,
+                      icon: Center(child: Container(width: 36, height: 36,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle, color: Theme.of(context).cardColor,
+                        ),
+                        child: Center(child: Icon(
+                          Get.find<LocalizationController>().isLtr ?
+                          Icons.arrow_forward_ios_rounded :
+                          Icons.keyboard_arrow_left,
+                          color: Colors.green, size: Dimensions.paddingSizeLarge,
+                        )),
+                      )),
+                      isLtr: Get.find<LocalizationController>().isLtr,
+                      boxShadow: const BoxShadow(blurRadius: 0),
+                      buttonColor: Colors.transparent,
+                      backgroundColor: Colors.green.withValues(alpha: 0.15),
+                      baseColor: Colors.green,
+                    )
+                  : SliderButton(
+                      action: () {
+                        rideController.matchOtp(rideController.tripDetail!.id!, '').then((value){
+                          if(value.statusCode == 403){
+                            showCustomSnackBar('sorry_cannot_start_the'.tr, isError: true, subMessage: 'you_cannot_start_this_trip'.tr);
+                          }
+                        });
+                      },
+                      label: Text('start_trip'.tr,
+                        style: TextStyle(color: Theme.of(context).primaryColor, fontSize: Dimensions.fontSizeLarge),
+                      ),
+                      dismissThresholds: 0.5, dismissible: false, shimmer: false,width: 1170,
+                      height: 40, buttonSize: 40, radius: 20,
+                      icon: Center(child: Container(width: 36, height: 36,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle, color: Theme.of(context).cardColor,
+                        ),
+                        child: Center(child: Icon(
+                          Get.find<LocalizationController>().isLtr ?
+                          Icons.arrow_forward_ios_rounded :
+                          Icons.keyboard_arrow_left,
+                          color: Colors.grey, size: Dimensions.paddingSizeLarge,
+                        )),
+                      )),
+                      isLtr: Get.find<LocalizationController>().isLtr,
+                      boxShadow: const BoxShadow(blurRadius: 0),
+                      buttonColor: Colors.transparent,
+                      backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.15),
+                      baseColor: Theme.of(context).primaryColor,
                     ),
-                    child: Center(child: Icon(
-                      Get.find<LocalizationController>().isLtr ?
-                      Icons.arrow_forward_ios_rounded :
-                      Icons.keyboard_arrow_left,
-                      color: Colors.grey, size: Dimensions.paddingSizeLarge,
-                    )),
-                  )),
-                  isLtr: Get.find<LocalizationController>().isLtr,
-                  boxShadow: const BoxShadow(blurRadius: 0),
-                  buttonColor: Colors.transparent,
-                  backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.15),
-                  baseColor: Theme.of(context).primaryColor,
-                ),
               ),
               const SizedBox(height: Dimensions.paddingSizeSmall)
             ],

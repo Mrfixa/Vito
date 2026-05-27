@@ -39,6 +39,7 @@ class ParcelController extends GetxController with GetSingleTickerProviderStateM
   TextEditingController parcelDimensionController = TextEditingController();
   TextEditingController parcelWeightController = TextEditingController();
   TextEditingController parcelTypeController = TextEditingController();
+  TextEditingController parcelNotesController = TextEditingController();
 
   FocusNode senderContactNode = FocusNode();
   FocusNode senderNameNode = FocusNode();
@@ -50,6 +51,7 @@ class ParcelController extends GetxController with GetSingleTickerProviderStateM
 
   FocusNode parcelDimensionNode = FocusNode();
   FocusNode parcelWeightNode = FocusNode();
+  FocusNode parcelNotesNode = FocusNode();
 
   String? _senderCountryDialCode;
   String? _receiverCountryDialCode;
@@ -87,6 +89,7 @@ class ParcelController extends GetxController with GetSingleTickerProviderStateM
     receiverAddressController.text = '';
     receiverContactController.text = '';
     receiverNameController.text = '';
+    parcelNotesController.text = '';
   }
 
   void updateParcelCategoryIndex(int newIndex) {

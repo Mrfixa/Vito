@@ -110,6 +110,7 @@ class RideRepository implements RideRepositoryInterface{
       "actual_fare": actualFare,
       "note" : note,
       "pickup_note": pickupNote,
+      "delivery_notes": type == 'parcel' ? Get.find<ParcelController>().parcelNotesController.text.trim().isEmpty ? null : Get.find<ParcelController>().parcelNotesController.text.trim() : null,
       "payment_method" : paymentMethod,
       "type" : type,
       "bid" : bid,

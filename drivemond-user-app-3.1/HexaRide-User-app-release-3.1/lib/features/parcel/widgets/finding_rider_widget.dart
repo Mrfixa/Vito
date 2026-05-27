@@ -45,6 +45,10 @@ class _FindingRiderWidgetState extends State<FindingRiderWidget> {
            padding: const EdgeInsets.symmetric(horizontal: Dimensions.paddingSizeDefault),
            child: isSearching ?
            Column(children: [
+            if(widget.fromPage == FindingRide.parcel) ...[
+              _ParcelProgressStepper(state: parcelController.currentParcelState),
+              const SizedBox(height: Dimensions.paddingSizeDefault),
+            ],
             TollTipWidget(
               title: rideController.tripDetails?.type == 'parcel' ?
               'finding_deliveryman' : 'rider_finding',
@@ -260,4 +264,45 @@ void _cancelRideRequest(RideController rideController){
 
     }
   });
+}
+
+class _ParcelProgressStepper extends StatelessWidget {
+  final ParcelDeliveryState state;
+  const _ParcelProgressStepper({required this.state});
+
+  @override
+  Widget build(BuildContext context) {
+    final steps = [
+      {'label': 'step_details'.tr, 'done': true},
+      {'label': 'step_pickup'.tr, 'done': state.index >= ParcelDeliveryState.findingRider.index},
+      {'label': 'step_delivery'.tr, 'done': state.index >= ParcelDeliveryState.parcelOngoing.index},
+      {'label': 'step_done'.tr, 'done': state == ParcelDeliveryState.parcelComplete},
+    ];
+
+    return Row(
+      children: List.generate(steps.length * 2 - 1, (i) {
+        if (i.isOdd) {
+          final prev = steps[i ~/ 2];
+          final active = prev['done'] == true;
+          return Expanded(child: Container(height: 2, color: active ? Theme.of(context).primaryColor : Theme.of(context).hintColor.withValues(alpha: 0.3)));
+        }
+        final step = steps[i ~/ 2];
+        final done = step['done'] == true;
+        final active = i == 2 && state.index >= ParcelDeliveryState.findingRider.index && state.index < ParcelDeliveryState.parcelOngoing.index;
+        return Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(
+            width: 24, height: 24,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: done ? Theme.of(context).primaryColor : Theme.of(context).hintColor.withValues(alpha: 0.2),
+              border: active ? Border.all(color: Theme.of(context).primaryColor, width: 2) : null,
+            ),
+            child: done ? const Icon(Icons.check, color: Colors.white, size: 14) : null,
+          ),
+          const SizedBox(height: 4),
+          Text(step['label']! as String, style: textRegular.copyWith(fontSize: 10, color: done ? Theme.of(context).primaryColor : Theme.of(context).hintColor)),
+        ]);
+      }),
+    );
+  }
 }

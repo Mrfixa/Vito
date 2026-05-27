@@ -468,7 +468,7 @@ class _ServiceCardsRow extends StatelessWidget {
   }
 }
 
-class _ServiceCard extends StatelessWidget {
+class _ServiceCard extends StatefulWidget {
   final IconData icon;
   final String label;
   final String subtitle;
@@ -484,12 +484,41 @@ class _ServiceCard extends StatelessWidget {
   });
 
   @override
+  State<_ServiceCard> createState() => _ServiceCardState();
+}
+
+class _ServiceCardState extends State<_ServiceCard> with SingleTickerProviderStateMixin {
+  late AnimationController _animCtrl;
+  late Animation<double> _scaleAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _animCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 120));
+    _scaleAnim = Tween<double>(begin: 1.0, end: 0.93).animate(
+      CurvedAnimation(parent: _animCtrl, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _animCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Expanded(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(Dimensions.radiusDefault),
-        child: Container(
+      child: GestureDetector(
+        onTapDown: (_) => _animCtrl.forward(),
+        onTapUp: (_) {
+          _animCtrl.reverse();
+          widget.onTap();
+        },
+        onTapCancel: () => _animCtrl.reverse(),
+        child: ScaleTransition(
+          scale: _scaleAnim,
+          child: Container(
           padding: const EdgeInsets.symmetric(
             vertical: Dimensions.paddingSizeDefault,
             horizontal: Dimensions.paddingSizeSmall,
@@ -497,10 +526,10 @@ class _ServiceCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(Dimensions.radiusDefault),
-            border: Border.all(color: color.withValues(alpha: 0.25)),
+            border: Border.all(color: widget.color.withValues(alpha: 0.25)),
             boxShadow: [
               BoxShadow(
-                color: color.withValues(alpha: 0.08),
+                color: widget.color.withValues(alpha: 0.08),
                 blurRadius: 6,
                 offset: const Offset(0, 2),
               ),
@@ -512,14 +541,14 @@ class _ServiceCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.12),
+                  color: widget.color.withValues(alpha: 0.12),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(icon, color: color, size: 22),
+                child: Icon(widget.icon, color: widget.color, size: 22),
               ),
               const SizedBox(height: 6),
               Text(
-                label,
+                widget.label,
                 style: textBold.copyWith(
                   fontSize: Dimensions.fontSizeSmall,
                   color: Theme.of(context).textTheme.bodyLarge?.color,
@@ -527,7 +556,7 @@ class _ServiceCard extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
               Text(
-                subtitle,
+                widget.subtitle,
                 style: textRegular.copyWith(
                   fontSize: 10,
                   color: Theme.of(context).hintColor,
@@ -540,7 +569,8 @@ class _ServiceCard extends StatelessWidget {
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 }
 

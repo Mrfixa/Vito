@@ -408,7 +408,7 @@ class _MartDeliveryScreenState extends State<MartDeliveryScreen> {
             const SizedBox(height: Dimensions.paddingSizeSmall),
             GestureDetector(
               onTap: () async {
-                HapticFeedback.mediumImpact();
+                HapticFeedback.lightImpact();
                 final picker = ImagePicker();
                 final photo = await picker.pickImage(source: ImageSource.camera);
                 if (photo != null) {
@@ -473,13 +473,19 @@ class _MartDeliveryScreenState extends State<MartDeliveryScreen> {
     switch (_orderStatus) {
       case 'accepted':
         buttonText = 'mark_as_picked_up'.tr;
-        onPressed = _isOffline ? null : () => _updateStatusViaApi('picked_up');
+        onPressed = _isOffline ? null : () {
+          HapticFeedback.mediumImpact();
+          _updateStatusViaApi('picked_up');
+        };
         break;
       case 'picked_up':
         buttonText = 'mark_as_delivered'.tr;
         onPressed = (_isOffline || !_hasSignature || !_hasDeliveryPhoto)
             ? null
-            : () => _markAsDelivered();
+            : () {
+                HapticFeedback.mediumImpact();
+                _markAsDelivered();
+              };
         break;
       default:
         buttonText = 'completed'.tr;
@@ -512,7 +518,6 @@ class _MartDeliveryScreenState extends State<MartDeliveryScreen> {
   }
 
   Future<void> _updateStatusViaApi(String newStatus) async {
-    HapticFeedback.heavyImpact();
     setState(() => _isUpdating = true);
 
     try {
@@ -540,7 +545,6 @@ class _MartDeliveryScreenState extends State<MartDeliveryScreen> {
   }
 
   Future<void> _markAsDelivered() async {
-    HapticFeedback.heavyImpact();
     setState(() => _isUpdating = true);
 
     try {
@@ -737,7 +741,7 @@ class _SignatureDialogState extends State<SignatureDialog> {
                   onPressed: _points.isEmpty
                       ? null
                       : () async {
-                          HapticFeedback.mediumImpact();
+                          HapticFeedback.lightImpact();
                           final bytes = await _renderToBytes();
                           widget.onSave(bytes);
                           Get.back();

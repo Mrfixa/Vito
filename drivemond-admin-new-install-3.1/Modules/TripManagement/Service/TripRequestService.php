@@ -2009,6 +2009,7 @@ class TripRequestService extends BaseService implements TripRequestServiceInterf
                 'payment_method' => $attributes['payment_method'] ?? null,
                 'note' => $attributes['note'] ?? null,
                 'pickup_note' => $attributes['pickup_note'] ?? null,
+                'delivery_notes' => $attributes['delivery_notes'] ?? null,
                 'type' => $attributes['type'],
                 'ride_request_type' => $attributes['ride_request_type'] ?? null,
                 'scheduled_at' => $attributes['scheduled_at'] ?? null,

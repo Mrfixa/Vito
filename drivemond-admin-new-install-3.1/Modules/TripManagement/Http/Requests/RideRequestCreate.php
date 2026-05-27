@@ -59,6 +59,7 @@ class RideRequestCreate extends FormRequest
             'ride_request_type' => [Rule::requiredIf($this->input('type') === RIDE_REQUEST), 'nullable', Rule::in(['regular', 'scheduled'])],
             'scheduled_at' => 'required_if:ride_request_type,scheduled',
             'pickup_note' => 'nullable|string|max:100',
+            'delivery_notes' => 'nullable|string|max:200',
 
             // Sender and Receiver Information (required only for parcel type)
             'sender_name' => 'required_if:type,parcel',
