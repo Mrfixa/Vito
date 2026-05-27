@@ -29,16 +29,9 @@ Route::controller(\Modules\AuthManagement\Http\Controllers\Api\AuthController::c
     //driver routes
     Route::group(['prefix' => 'driver'], function () {
         Route::group(['prefix' => 'auth'], function () {
-            Route::post('registration', 'register')->name('driver-registration');
-            Route::post('registration-from-otp', 'registrationFromOtp');
-            Route::post('update-data', 'updateData');
             Route::post('login', 'login')->name('driver-login');
-            Route::post('send-otp', 'sendOtp');
-            Route::post('check', 'userExistOrNotChecking');
             Route::post('forget-password', 'forgetPassword');
             Route::post('reset-password', 'resetPassword');
-            Route::post('otp-verification', 'otpVerification');
-            Route::post('firebase-otp-verification', 'firebaseOtpVerification');
         });
 
         Route::group(['middleware' => ['auth:api', 'maintenance_mode']], function () {

@@ -416,7 +416,7 @@ class _AcceptedTripWidgetState extends State<_AcceptedTripWidget> {
                         );
                       },
                       label: Text('confirm_pickup'.tr,
-                        style: const TextStyle(color: Colors.green, fontSize: Dimensions.fontSizeLarge),
+                        style: TextStyle(color: Colors.green, fontSize: Dimensions.fontSizeLarge),
                       ),
                       dismissThresholds: 0.5, dismissible: false, shimmer: false,width: 1170,
                       height: 40, buttonSize: 40, radius: 20,

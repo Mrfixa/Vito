@@ -38,7 +38,7 @@ class AuthRepository implements AuthRepositoryInterface {
       updateFromRegistration ?
       AppConstants.otpLoginAfterUpdateData :
       AppConstants.registrationFromOtp,
-      signUpBody.toJson(),
+      signUpBody.toJson().map((k, v) => MapEntry(k, v?.toString() ?? '')),
       identityImage!,
       MultipartBody('profile_image', profileImage), documents ?? []);
   }
