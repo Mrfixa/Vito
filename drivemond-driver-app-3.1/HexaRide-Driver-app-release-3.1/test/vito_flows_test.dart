@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:ride_sharing_user_app/features/auth/domain/models/signup_body.dart';
 
 /// Unit tests for VITO-specific flows in the driver app.
 /// These validate localization, token logic, atomic acceptance,
@@ -164,6 +165,89 @@ void main() {
       const tokenRole = 'driver';
       const autoApprove = tokenRole == 'driver';
       expect(autoApprove, isTrue);
+    });
+  });
+
+  group('SignUpBody Serialization', () {
+    test('toJson includes service when services list is non-empty', () {
+      final body = SignUpBody(
+        fName: 'John', lName: 'Doe', username: 'johndoe',
+        password: '123456', confirmPassword: '123456',
+        services: ['ride_request'],
+      );
+      final json = body.toJson();
+      expect(json.containsKey('service'), isTrue);
+      expect(json['service'], 'ride_request');
+    });
+
+    test('toJson joins multiple services with comma', () {
+      final body = SignUpBody(
+        fName: 'Jane', lName: 'Doe', username: 'janedoe',
+        password: '123456', confirmPassword: '123456',
+        services: ['ride_request', 'parcel'],
+      );
+      final json = body.toJson();
+      expect(json['service'], 'ride_request,parcel');
+    });
+
+    test('toJson includes address when set', () {
+      final body = SignUpBody(
+        fName: 'Ali', lName: 'Hassan', username: 'ali',
+        password: '123456', confirmPassword: '123456',
+        address: '123 Main St',
+      );
+      final json = body.toJson();
+      expect(json['address'], '123 Main St');
+    });
+
+    test('toJson includes identification_type and identification_number', () {
+      final body = SignUpBody(
+        fName: 'Sara', lName: 'Lee', username: 'sara',
+        password: '123456', confirmPassword: '123456',
+        identificationType: 'passport',
+        identityNumber: 'P123456',
+      );
+      final json = body.toJson();
+      expect(json['identification_type'], 'passport');
+      expect(json['identification_number'], 'P123456');
+    });
+
+    test('toJson omits service key when services list is empty', () {
+      final body = SignUpBody(
+        fName: 'Bob', lName: 'Smith', username: 'bob',
+        password: '123456', confirmPassword: '123456',
+        services: [],
+      );
+      final json = body.toJson();
+      expect(json.containsKey('service'), isFalse);
+    });
+  });
+
+  group('Driver Service Selection', () {
+    test('Both ride and parcel selected produces comma-joined service string', () {
+      final body = SignUpBody(
+        fName: 'Driver', lName: 'A', username: 'drivera',
+        password: '123456', confirmPassword: '123456',
+        services: ['ride_request', 'parcel'],
+      );
+      expect(body.toJson()['service'], 'ride_request,parcel');
+    });
+
+    test('Only ride selected produces single service string', () {
+      final body = SignUpBody(
+        fName: 'Driver', lName: 'B', username: 'driverb',
+        password: '123456', confirmPassword: '123456',
+        services: ['ride_request'],
+      );
+      expect(body.toJson()['service'], 'ride_request');
+    });
+
+    test('No service selected means no service key in toJson', () {
+      final body = SignUpBody(
+        fName: 'Driver', lName: 'C', username: 'driverc',
+        password: '123456', confirmPassword: '123456',
+      );
+      expect(body.toJson().containsKey('service'), isFalse);
     });
   });
 }

@@ -4410,4 +4410,10 @@
   'The status field is required.' => 'The status field is required.',
   'User credential does not match' => 'User credential does not match',
   ' ' => ' ',
+  'The qr token field is required.' => 'The qr token field is required.',
+  'The username must be at least 3 characters.' => 'The username must be at least 3 characters.',
+  'The username has already been taken.' => 'The username has already been taken.',
+  'The pin must be 6 digits.' => 'The pin must be 6 digits.',
+  'The driver id field is required.' => 'The driver id field is required.',
+  'The selected action is invalid.' => 'The selected action is invalid.',
 );
