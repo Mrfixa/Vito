@@ -17,12 +17,12 @@ class MaintenanceModeMiddleware
      */
     public function handle(Request $request, Closure $next)
     {
-//        if ((bool) BusinessSetting::where('key_name', 'maintenance_mode')->first()?->value ?? false)
-//        {
-//            return response()->json([
-//                'message' => "Server under maintenance"
-//            ],503);
-//        }
+        if ((bool) BusinessSetting::where('key_name', 'maintenance_mode')->first()?->value ?? false)
+        {
+            return response()->json([
+                'message' => "Server under maintenance"
+            ],503);
+        }
         return $next($request);
     }
 }

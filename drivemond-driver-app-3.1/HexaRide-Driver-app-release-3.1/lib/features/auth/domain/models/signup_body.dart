@@ -57,6 +57,14 @@ class SignUpBody {
     if (qrToken != null && qrToken!.isNotEmpty) {
       data['qr_token'] = qrToken!;
     }
+    data['address'] = address ?? '';
+    data['identification_type'] = identificationType ?? '';
+    data['identification_number'] = identityNumber ?? '';
+    if (phone != null && phone!.isNotEmpty) data['phone'] = phone!;
+    if (fcmToken != null && fcmToken!.isNotEmpty) data['fcm_token'] = fcmToken!;
+    if (services != null && services!.isNotEmpty) {
+      data['service'] = services!.join(',');
+    }
     return data;
   }
 }

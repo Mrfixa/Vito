@@ -35,11 +35,12 @@ php artisan test --filter=VitoFlowTest
 ./vendor/bin/phpstan analyse --level=0 \
   Modules/AuthManagement/Http/Controllers/Api/VitoAuthController.php \
   Modules/AuthManagement/Http/Controllers/Api/QrTokenController.php \
-  Modules/TripManagement/Http/Controllers/Api/Customer/VitoTripController.php \
-  Modules/TripManagement/Http/Controllers/Api/Customer/VitoParcelController.php \
+  Modules/TripManagement/Http/Controllers/Api/Customer/VitoMartController.php \
+  Modules/TripManagement/Http/Controllers/Api/Driver/VitoTripController.php \
+  Modules/TripManagement/Http/Controllers/Api/Driver/VitoParcelController.php \
   Modules/TripManagement/Http/Controllers/Api/Driver/VitoMartDriverController.php \
-  Modules/TripManagement/Http/Controllers/Api/Admin/VitoMartAdminController.php \
-  Modules/Gateways/Http/Controllers/VitoStripeController.php
+  Modules/TripManagement/Http/Controllers/Api/Admin/VitoMartAdminApiController.php \
+  Modules/Gateways/Http/Controllers/Api/VitoStripeController.php
 ```
 
 ### Module Architecture

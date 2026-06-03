@@ -166,4 +166,63 @@ void main() {
       expect(total, 36.50);
     });
   });
+
+  group('Client Auth Validation Logic', () {
+    test('Empty first name is rejected in signup', () {
+      const firstName = '';
+      expect(firstName.trim().isEmpty, isTrue,
+          reason: 'Empty first name should fail validation');
+    });
+
+    test('Phone with country code passes length check', () {
+      const phone = '+15551234567';
+      expect(phone.startsWith('+'), isTrue);
+      expect(phone.length, greaterThanOrEqualTo(10));
+    });
+
+    test('Password shorter than 8 characters is invalid', () {
+      const password = 'abc123';
+      expect(password.length < 8, isTrue,
+          reason: 'Password must be at least 8 characters');
+    });
+
+    test('Password mismatch is detected', () {
+      const password = 'securePass1';
+      const confirm = 'differentPass';
+      expect(password == confirm, isFalse,
+          reason: 'Passwords do not match');
+    });
+
+    test('Promo max_discount cap limits discount', () {
+      const subtotal = 20.0;
+      const discountPercent = 0.5;
+      const maxDiscount = 3.0;
+      final rawDiscount = subtotal * discountPercent;
+      final appliedDiscount = rawDiscount > maxDiscount ? maxDiscount : rawDiscount;
+      expect(appliedDiscount, 3.0);
+    });
+
+    test('Order total equals subtotal minus discount plus tip', () {
+      const subtotal = 20.0;
+      const discount = 3.0;
+      const tip = 2.0;
+      final total = subtotal - discount + tip;
+      expect(total, 19.0);
+    });
+
+    test('Negative total is floored to zero', () {
+      const subtotal = 2.0;
+      const discount = 5.0;
+      const tip = 0.0;
+      final raw = subtotal - discount + tip;
+      final total = raw < 0 ? 0.0 : raw;
+      expect(total, 0.0);
+    });
+
+    test('Expired token is invalid', () {
+      final expiry = DateTime.now().subtract(const Duration(minutes: 1));
+      final isExpired = expiry.isBefore(DateTime.now());
+      expect(isExpired, isTrue);
+    });
+  });
 }

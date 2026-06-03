@@ -49,12 +49,13 @@ jobs:
           ./vendor/bin/phpstan analyse \
             Modules/AuthManagement/Http/Controllers/Api/VitoAuthController.php \
             Modules/AuthManagement/Http/Controllers/Api/QrTokenController.php \
+            Modules/TripManagement/Http/Controllers/Api/Customer/VitoMartController.php \
             Modules/TripManagement/Http/Controllers/Api/Driver/VitoTripController.php \
             Modules/TripManagement/Http/Controllers/Api/Driver/VitoParcelController.php \
             Modules/TripManagement/Http/Controllers/Api/Driver/VitoMartDriverController.php \
-            Modules/TripManagement/Http/Controllers/Web/VitoMartAdminController.php \
+            Modules/TripManagement/Http/Controllers/Api/Admin/VitoMartAdminApiController.php \
             Modules/Gateways/Http/Controllers/Api/VitoStripeController.php \
-            --level=0 --no-progress || true
+            --level=0 --no-progress
 
       - name: Run PHPUnit Tests
         run: php artisan test --filter=VitoFlowTest
