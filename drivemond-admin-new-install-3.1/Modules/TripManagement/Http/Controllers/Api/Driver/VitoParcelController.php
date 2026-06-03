@@ -38,14 +38,14 @@ class VitoParcelController extends Controller
             $trip->current_status = 'accepted';
             $trip->save();
 
+            TempTripNotification::where('trip_request_id', $trip->id)->delete();
+
             return $trip;
         });
 
         if (!$result) {
             return response()->json(responseFormatter(constant: TRIP_REQUEST_404), 404);
         }
-
-        TempTripNotification::where('trip_request_id', $result->id)->delete();
 
         return response()->json(responseFormatter(DEFAULT_200, $result));
     }

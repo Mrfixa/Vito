@@ -37,16 +37,16 @@ class VitoTripController extends Controller
             $trip->current_status = 'accepted';
             $trip->save();
 
+            // Delete inside the transaction so notification cleanup is atomic
+            // with the acceptance — no window where another driver still sees it.
+            TempTripNotification::where('trip_request_id', $trip->id)->delete();
+
             return $trip;
         });
 
         if (!$result) {
             return response()->json(responseFormatter(constant: TRIP_REQUEST_404), 404);
         }
-
-        // Release all pending notification records for this trip so other drivers
-        // stop seeing it in their queue.
-        TempTripNotification::where('trip_request_id', $result->id)->delete();
 
         return response()->json(responseFormatter(DEFAULT_200, $result));
     }

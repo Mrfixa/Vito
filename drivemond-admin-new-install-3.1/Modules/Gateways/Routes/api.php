@@ -28,7 +28,7 @@ Route::group(['prefix' => 'v1', 'as'=>'v1.'], function () {
 | Vito Stripe Routes
 |--------------------------------------------------------------------------
 */
-Route::group(['prefix' => 'customer/stripe', 'middleware' => ['auth:api', 'maintenance_mode']], function () {
+Route::group(['prefix' => 'customer/stripe', 'middleware' => ['auth:api', 'maintenance_mode', 'scope:AccessToCustomer']], function () {
     Route::post('payment-intent', [\Modules\Gateways\Http\Controllers\Api\VitoStripeController::class, 'createPaymentIntent']);
 });
 

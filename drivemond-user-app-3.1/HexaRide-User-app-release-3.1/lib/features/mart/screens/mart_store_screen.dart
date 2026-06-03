@@ -1034,9 +1034,6 @@ class _MartCartScreenState extends State<MartCartScreen> {
         'items': items,
         'delivery_address': _addressController.text,
         'notes': _notesController.text,
-        // B23: delivery fee
-        'delivery_fee': _kDeliveryFee,
-        // B25: payment method
         'payment_method': _paymentMethod,
         if (_tipAmount > 0) 'tip_amount': _tipAmount,
         if (_appliedPromoCode != null) 'promo_code': _appliedPromoCode,

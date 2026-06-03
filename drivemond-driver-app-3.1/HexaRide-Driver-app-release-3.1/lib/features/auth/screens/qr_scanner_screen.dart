@@ -125,10 +125,14 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
     if (scannedValue.contains('token=')) {
       final uri = Uri.tryParse(scannedValue);
       if (uri != null && uri.queryParameters.containsKey('token')) {
-        token = uri.queryParameters['token']!;
+        final extracted = uri.queryParameters['token']!;
+        if (extracted.isNotEmpty) token = extracted;
       }
     } else if (scannedValue.contains('/invite/')) {
-      token = scannedValue.split('/invite/').last;
+      final parts = scannedValue.split('/invite/');
+      if (parts.length > 1 && parts.last.isNotEmpty) {
+        token = parts.last;
+      }
     }
 
     Get.back();
