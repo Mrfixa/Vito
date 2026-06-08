@@ -173,7 +173,7 @@ jobs:
         run: find . -name "*.php" -not -path "./vendor/*" -exec php -l {} \; | grep -v "No syntax errors" || true
 
   create-release:
-    name: Create GitHub Release v1.3.0
+    name: Create GitHub Release v1.4.0
     needs: [build-driver-apk, build-user-apk]
     runs-on: ubuntu-latest
     permissions:
@@ -206,11 +206,11 @@ jobs:
           name: vito-user-release-apk
           path: release-assets/
 
-      - name: Create Release v1.3.0
+      - name: Create Release v1.4.0
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.3.0
-          name: Vito v1.3.0
+          tag_name: v1.4.0
+          name: Vito v1.4.0
           files: release-assets/*
           generate_release_notes: true
         env:
