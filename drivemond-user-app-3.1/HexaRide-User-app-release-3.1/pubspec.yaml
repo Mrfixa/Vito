@@ -1,6 +1,6 @@
 name: ride_sharing_user_app
 description: A ride sharing Flutter project.
-version: 1.6.0+9
+version: 1.7.0+10
 publish_to: 'none'
 
 environment:
