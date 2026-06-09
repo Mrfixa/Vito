@@ -9,6 +9,7 @@ class AddressShimmer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return SizedBox(height: 60,
       child: ListView.builder(
         itemCount: 10,
@@ -16,12 +17,12 @@ class AddressShimmer extends StatelessWidget {
         padding: EdgeInsets.zero,
         scrollDirection: Axis.horizontal,
         itemBuilder: (context, item) => Shimmer.fromColors(
-          baseColor: Colors.grey[200]!,
-          highlightColor: Colors.grey[50]!,
+          baseColor: isDark ? const Color(0xFF2D2D2D) : Colors.grey[300]!,
+          highlightColor: isDark ? const Color(0xFF404040) : Colors.grey[100]!,
           child: Padding(
-            padding: const EdgeInsets.only(right: 10),
+            padding: const EdgeInsets.only(right: Dimensions.paddingSizeSmall),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 15),
+              padding: const EdgeInsets.symmetric(horizontal: Dimensions.paddingSizeDefault),
               decoration: BoxDecoration(
                 color: Theme.of(context).primaryColor.withValues(alpha:0.07),
                 borderRadius: const BorderRadius.all(Radius.circular(Dimensions.radiusLarge)),
@@ -39,11 +40,11 @@ class AddressShimmer extends StatelessWidget {
                   ),
                   const SizedBox(width: Dimensions.paddingSizeSmall,),
                   Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Container(width: 80, height: 15, color: Colors.white,),
+                    padding: const EdgeInsets.all(Dimensions.paddingSizeExtraSmall),
+                    child: Container(width: 80, height: 15,
+                      color: isDark ? const Color(0xFF303030) : Colors.white,
+                    ),
                   ),
-
-
                 ],
               ),
             ),

@@ -8,23 +8,27 @@ class BannerShimmer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Shimmer.fromColors(
-      baseColor: Colors.grey[200]!,
-      highlightColor: Colors.grey[50]!,
+      baseColor: isDark ? const Color(0xFF2D2D2D) : Colors.grey[300]!,
+      highlightColor: isDark ? const Color(0xFF404040) : Colors.grey[100]!,
       child: Container(
         decoration: BoxDecoration(
           color: Theme.of(context).primaryColor.withValues(alpha:0.07),
           borderRadius: const BorderRadius.all(Radius.circular(Dimensions.radiusLarge)),
         ),
         padding: const EdgeInsets.symmetric(
-          horizontal: 10,
-          vertical: 10,
+          horizontal: Dimensions.paddingSizeSmall,
+          vertical: Dimensions.paddingSizeSmall,
         ),
-
-        child: Container(width: Get.width,height: 130,
-          decoration: BoxDecoration(color: Colors.white,
-              borderRadius: BorderRadius.circular(20)
-          ),),
+        child: Container(
+          width: Get.width,
+          height: 130,
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF303030) : Colors.white,
+            borderRadius: BorderRadius.circular(Dimensions.radiusDefault),
+          ),
+        ),
       ),
     );
   }

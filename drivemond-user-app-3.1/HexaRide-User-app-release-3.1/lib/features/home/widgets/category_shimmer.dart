@@ -9,6 +9,7 @@ class CategoryShimmer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical : Dimensions.paddingSizeSmall),
       child: ListView.builder(
@@ -17,12 +18,12 @@ class CategoryShimmer extends StatelessWidget {
         padding: EdgeInsets.zero,
         scrollDirection: Axis.horizontal,
         itemBuilder: (context, item) => Shimmer.fromColors(
-          baseColor: Colors.grey[200]!,
-          highlightColor: Colors.grey[50]!,
+          baseColor: isDark ? const Color(0xFF2D2D2D) : Colors.grey[300]!,
+          highlightColor: isDark ? const Color(0xFF404040) : Colors.grey[100]!,
           child: Padding(
-            padding: const EdgeInsets.only(right: 10),
+            padding: const EdgeInsets.only(right: Dimensions.paddingSizeSmall),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10),
+              padding: const EdgeInsets.symmetric(horizontal: Dimensions.paddingSizeSmall),
               decoration: BoxDecoration(
                 color: Theme.of(context).primaryColor.withValues(alpha:0.07),
                 borderRadius: const BorderRadius.all(Radius.circular(Dimensions.radiusLarge)),
@@ -37,11 +38,11 @@ class CategoryShimmer extends StatelessWidget {
                    ),
                   const SizedBox(height: Dimensions.paddingSizeSmall,),
                   Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Container(width: 70, height: 5, color: Colors.white,),
+                    padding: const EdgeInsets.all(Dimensions.paddingSizeExtraSmall),
+                    child: Container(width: 70, height: 5,
+                      color: isDark ? const Color(0xFF303030) : Colors.white,
+                    ),
                   ),
-
-
                 ],
               ),
             ),

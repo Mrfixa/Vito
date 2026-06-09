@@ -77,7 +77,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           child: Container(
                             decoration: BoxDecoration(color: Theme.of(context).primaryColor, shape: BoxShape.circle),
                             padding: const EdgeInsets.all(5),
-                            child: const Icon(Icons.camera_enhance_rounded, color: Colors.white,size: 13),
+                            child: Icon(Icons.camera_enhance_rounded, color: Theme.of(context).colorScheme.onPrimary, size: 13),
                           ),
                         )
                       ]),
