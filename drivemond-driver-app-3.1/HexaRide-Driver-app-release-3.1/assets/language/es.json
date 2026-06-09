@@ -1078,5 +1078,6 @@
   "remove_item_confirmation": "¿Eliminar este artículo de tu carrito?",
   "select_country_code": "Por favor selecciona un código de país",
   "confirm_delivery_message": "¿Marcar este pedido como entregado? Esta acción no se puede deshacer.",
-  "browse_products": "Explorar productos"
+  "browse_products": "Explorar productos",
+  "new_orders_appear_here": "Los nuevos pedidos aparecerán aquí automáticamente"
 }

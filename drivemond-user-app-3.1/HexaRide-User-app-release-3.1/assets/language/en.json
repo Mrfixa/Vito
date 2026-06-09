@@ -1073,5 +1073,6 @@
   "select_country_code": "Please select a country code",
   "confirm_delivery": "Confirm Delivery",
   "confirm_delivery_message": "Mark this order as delivered? This cannot be undone.",
-  "browse_products": "Browse Products"
+  "browse_products": "Browse Products",
+  "tap_to_select": "Tap to select"
 }

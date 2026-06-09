@@ -57,7 +57,7 @@ class _FareInputWidgetState extends State<FareInputWidget> {
                       overflow: TextOverflow.ellipsis,
                       style: textRegular.copyWith(
                         fontSize: Dimensions.fontSizeLarge,
-                        color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha:0.9),
+                        color: Theme.of(context).textTheme.bodyMedium?.color,
                       ),
                     ),
                   )),
@@ -69,9 +69,9 @@ class _FareInputWidgetState extends State<FareInputWidget> {
                         (widget.discountAmount ?? 0) > 0 ?
                         widget.discountFare! : double.tryParse(widget.fare) ?? 0,
                       ),
-                      style: textRobotoMedium.copyWith(
+                      style: textBold.copyWith(
                         fontSize: Dimensions.fontSizeLarge,
-                        color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha:0.9),
+                        color: Theme.of(context).textTheme.bodyMedium?.color,
                       ),
                     ),
                   ),

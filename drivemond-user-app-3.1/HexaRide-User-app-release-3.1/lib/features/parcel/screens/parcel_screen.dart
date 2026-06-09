@@ -77,9 +77,10 @@ class _ParcelScreenState extends State<ParcelScreen> {
                   decoration: BoxDecoration(
                     color: Colors.amber.shade700,
                     borderRadius: BorderRadius.circular(Dimensions.radiusSmall),
+                    boxShadow: [BoxShadow(color: Colors.amber.withValues(alpha: 0.35), blurRadius: 6, offset: const Offset(0, 2))],
                   ),
                   child: Row(children: [
-                    const Icon(Icons.wifi_off, color: Colors.white, size: 18),
+                    const Icon(Icons.wifi_off, color: Colors.white, size: 20),
                     const SizedBox(width: Dimensions.paddingSizeSmall),
                     Text('you_are_offline'.tr, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
                   ]),

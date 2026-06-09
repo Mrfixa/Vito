@@ -34,7 +34,7 @@ class DottedBorderCard extends StatelessWidget {
                 child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,children: [
 
                   Column(crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [Text('send'.tr,style: textMedium.copyWith(color: Theme.of(context).primaryColor,fontSize: Dimensions.fontSizeOverLarge),),
+                    children: [Text('send'.tr,style: textMedium.copyWith(color: Theme.of(context).primaryColor,fontSize: Dimensions.fontSizeLarge),),
                       Padding(padding: const EdgeInsets.symmetric(vertical: Dimensions.paddingSizeExtraSmall),
                         child: Text('safest_delivery'.tr,style: textMedium.copyWith(color: Theme.of(context).hintColor,fontSize: Dimensions.fontSizeDefault)))]),
                   const Spacer(),

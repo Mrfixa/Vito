@@ -1036,5 +1036,6 @@
   "select_country_code": "يرجى اختيار رمز الدولة",
   "confirm_delivery": "تأكيد التسليم",
   "confirm_delivery_message": "هل تريد تعليم هذا الطلب بأنه تم تسليمه؟ لا يمكن التراجع عن ذلك.",
-  "browse_products": "تصفح المنتجات"
+  "browse_products": "تصفح المنتجات",
+  "new_orders_appear_here": "ستظهر الطلبات الجديدة هنا تلقائياً"
 }

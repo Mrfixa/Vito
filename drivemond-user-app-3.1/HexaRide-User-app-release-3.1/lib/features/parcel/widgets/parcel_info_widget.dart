@@ -130,7 +130,7 @@ class _ParcelInfoWidgetState extends State<ParcelInfoWidget> {
             isEnabled: false,
             showBorder: false,
             textColor: Theme.of(context).textTheme.bodyLarge!.color,
-            hintText: 'location'.tr,
+            hintText: 'tap_to_select'.tr,
             fillColor:  Get.isDarkMode? Theme.of(context).cardColor : Theme.of(context).primaryColor.withValues(alpha:0.04),
             controller: widget.isSender ? parcelController.senderAddressController : parcelController.receiverAddressController,
             focusNode: widget.isSender ? parcelController.senderAddressNode : parcelController.receiverAddressNode,

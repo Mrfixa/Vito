@@ -87,6 +87,7 @@ class _MartPendingOrdersScreenState extends State<MartPendingOrdersScreen> {
           ? Center(child: CircularProgressIndicator(color: Theme.of(context).primaryColor))
           : RefreshIndicator(
               onRefresh: _fetchOrders,
+              color: Theme.of(context).primaryColor,
               child: _orders.isEmpty
                   ? ListView(
                       children: [
@@ -97,6 +98,15 @@ class _MartPendingOrdersScreenState extends State<MartPendingOrdersScreen> {
                           'no_pending_orders'.tr,
                           textAlign: TextAlign.center,
                           style: textMedium.copyWith(color: Theme.of(context).hintColor),
+                        ),
+                        const SizedBox(height: Dimensions.paddingSizeSmall),
+                        Text(
+                          'new_orders_appear_here'.tr,
+                          textAlign: TextAlign.center,
+                          style: textRegular.copyWith(
+                            color: Theme.of(context).hintColor,
+                            fontSize: Dimensions.fontSizeSmall,
+                          ),
                         ),
                       ],
                     )
@@ -131,7 +141,7 @@ class _MartPendingOrdersScreenState extends State<MartPendingOrdersScreen> {
                 Text('${'order'.tr} #$refId',
                     style: textBold.copyWith(fontSize: Dimensions.fontSizeDefault)),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(horizontal: Dimensions.paddingSizeSmall, vertical: Dimensions.paddingSizeExtraSmall),
                   decoration: BoxDecoration(
                     color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(Dimensions.radiusSmall),
@@ -180,7 +190,7 @@ class _MartPendingOrdersScreenState extends State<MartPendingOrdersScreen> {
                             borderRadius: BorderRadius.circular(Dimensions.radiusDefault)),
                       ),
                       child: Text('accept_order'.tr,
-                          style: textBold.copyWith(color: Colors.white)),
+                          style: textBold.copyWith(color: Theme.of(context).colorScheme.onPrimary)),
                     ),
             ),
           ],

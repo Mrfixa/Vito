@@ -1073,5 +1073,6 @@
   "select_country_code": "Por favor selecciona un código de país",
   "confirm_delivery": "Confirmar entrega",
   "confirm_delivery_message": "¿Marcar este pedido como entregado? Esta acción no se puede deshacer.",
-  "browse_products": "Explorar productos"
+  "browse_products": "Explorar productos",
+  "tap_to_select": "Toca para seleccionar"
 }
