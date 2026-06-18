@@ -266,7 +266,7 @@ class MessageController extends GetxController implements GetxService{
     _subscribedMartChannelName = martChannelName;
     id = orderId;
 
-    if (Get.find<ConfigController>().pusherConnectionStatus != null ||
+    if (Get.find<ConfigController>().pusherConnectionStatus != null &&
         Get.find<ConfigController>().pusherConnectionStatus == 'Connected') {
       martChannel = PusherHelper.pusherClient?.privateChannel(
           "private-customer-mart-chat.$orderId",
@@ -285,7 +285,7 @@ class MessageController extends GetxController implements GetxService{
         martChannel!.bind("customer-mart-chat.$orderId").listen((event) {
           final data = jsonDecode(event.data!);
           final eventOrderId = data['order_id'] ?? data['channel_conversation']?['channel']?['trip_id'];
-          if (eventOrderId == orderId) {
+          if (eventOrderId == orderId && messageModel?.data != null) {
             messageModel!.data!.insert(0, Message.fromJson(data['channel_conversation']));
             update();
           }
@@ -353,7 +353,7 @@ class MessageController extends GetxController implements GetxService{
     _subscribedRideChannelName = channelName;
     id = tripId;
 
-    if (Get.find<ConfigController>().pusherConnectionStatus != null || Get.find<ConfigController>().pusherConnectionStatus == 'Connected'){
+    if (Get.find<ConfigController>().pusherConnectionStatus != null && Get.find<ConfigController>().pusherConnectionStatus == 'Connected'){
       channel = PusherHelper.pusherClient!.privateChannel(channelName, authorizationDelegate:
       EndpointAuthorizableChannelTokenAuthorizationDelegate.forPrivateChannel(
         authorizationEndpoint: Uri.parse('https://${Get.find<ConfigController>().config!.webSocketUrl}/broadcasting/auth'),
@@ -368,7 +368,7 @@ class MessageController extends GetxController implements GetxService{
       if(channel!.currentStatus == null){
         channel!.subscribe();
         channel!.bind("customer-ride-chat.$id").listen((event) {
-          if(id == jsonDecode(event.data!)['channel_conversation']['channel']['trip_id']){
+          if(id == jsonDecode(event.data!)['channel_conversation']['channel']['trip_id'] && messageModel?.data != null){
             messageModel!.data!.insert(0,Message.fromJson(jsonDecode(event.data!)['channel_conversation']));
             update();
           }
