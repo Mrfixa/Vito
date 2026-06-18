@@ -84,6 +84,21 @@ class VitoMartDriverController extends Controller
             return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 422);
         }
 
+        // Delivery requires proof (photo or signature) to have been uploaded first.
+        // Only enforce when the order is in picked_up (the valid pre-delivery state).
+        if ($request->status === 'delivered') {
+            $proofCheck = MartOrder::where('id', $request->order_id)
+                ->where('driver_id', $request->user()->id)
+                ->where('status', 'picked_up')
+                ->first();
+            if ($proofCheck && !$proofCheck->delivery_photo && !$proofCheck->signature_image) {
+                return response()->json(responseFormatter(
+                    constant: DEFAULT_400,
+                    errors: [['message' => 'Delivery proof (photo or signature) must be uploaded before marking as delivered.']]
+                ), 422);
+            }
+        }
+
         // Drivers may cancel an order only while it is still in 'accepted' state.
         $allowedTransitions = [
             'picked_up'  => ['accepted'],

@@ -306,7 +306,7 @@ class User extends Authenticatable
 
     public function isProfileVerified()
     {
-        return $this?->first_name && $this?->last_name == null ? 0 : 1;
+        return ($this?->first_name && $this?->last_name) ? 1 : 0;
     }
 
     public function vehicleStatus()

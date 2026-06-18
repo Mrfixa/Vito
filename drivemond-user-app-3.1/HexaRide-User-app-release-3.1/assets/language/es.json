@@ -1034,6 +1034,8 @@
   "pay_with_card": "Pagar con Tarjeta",
   "select_payment": "Seleccionar Pago",
   "location_permission_denied": "Permiso de ubicación denegado",
+  "location_service_disabled": "Los servicios de ubicación están desactivados. Por favor, activa el GPS.",
+  "location_fetch_failed": "No se pudo obtener la ubicación actual. Por favor, inténtalo de nuevo.",
   "enable_location_settings": "Activar en Configuración",
   "go_to_settings": "Ir a Configuración",
   "parcel_request_submitted": "¡Solicitud de paquete enviada!",

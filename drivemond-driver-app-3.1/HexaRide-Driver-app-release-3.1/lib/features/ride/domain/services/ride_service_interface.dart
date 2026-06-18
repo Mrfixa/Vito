@@ -8,6 +8,8 @@ abstract class RideServiceInterface {
   Future<dynamic> uploadScreenShots(String id, XFile? file);
   Future<dynamic> getRideDetailBeforeAccept(String tripId);
   Future<dynamic> tripAcceptOrReject(String tripId, String action);
+  Future<dynamic> atomicAcceptRide(String tripId);
+  Future<dynamic> atomicAcceptParcel(String tripId);
   Future<dynamic> ignoreMessage(String tripId);
   Future<dynamic> matchOtp(String tripId, String otp);
   Future<dynamic> startForPickup(String tripId);

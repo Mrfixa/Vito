@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:ride_sharing_user_app/data/api_client.dart';
@@ -529,9 +530,9 @@ class _MartCartScreenState extends State<MartCartScreen> {
   double _discount = 0.0;
   String? _appliedPromoCode;
   double _tipAmount = 0.0;
-
-  // B23: delivery fee constant
-  static const double _kDeliveryFee = 2.00;
+  double? _deliveryLat;
+  double? _deliveryLng;
+  bool _isLocating = false;
 
   // B25: payment method state
   String _paymentMethod = 'cash';
@@ -550,8 +551,7 @@ class _MartCartScreenState extends State<MartCartScreen> {
     return total;
   }
 
-  // B23: include delivery fee in total
-  double get _totalAmount => _subtotal - _discount + _tipAmount + _kDeliveryFee;
+  double get _totalAmount => _subtotal - _discount + _tipAmount;
 
   @override
   void dispose() {
@@ -889,15 +889,39 @@ class _MartCartScreenState extends State<MartCartScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          TextField(
-            controller: _addressController,
-            decoration: InputDecoration(
-              hintText: 'delivery_address'.tr,
-              prefixIcon: const Icon(Icons.location_on_outlined),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(Dimensions.radiusDefault),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _addressController,
+                  decoration: InputDecoration(
+                    hintText: 'delivery_address'.tr,
+                    prefixIcon: const Icon(Icons.location_on_outlined),
+                    suffixIcon: _deliveryLat != null
+                        ? const Icon(Icons.gps_fixed, color: Colors.green, size: 18)
+                        : null,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(Dimensions.radiusDefault),
+                    ),
+                  ),
+                ),
               ),
-            ),
+              const SizedBox(width: Dimensions.paddingSizeSmall),
+              SizedBox(
+                height: 56,
+                child: _isLocating
+                    ? const Padding(
+                        padding: EdgeInsets.all(12),
+                        child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2)),
+                      )
+                    : IconButton.outlined(
+                        tooltip: 'use_current_location'.tr,
+                        icon: const Icon(Icons.my_location),
+                        onPressed: _useCurrentLocation,
+                      ),
+              ),
+            ],
           ),
           const SizedBox(height: Dimensions.paddingSizeSmall),
           TextField(
@@ -935,8 +959,6 @@ class _MartCartScreenState extends State<MartCartScreen> {
 
           // Price breakdown
           _buildPriceLine('subtotal'.tr, _subtotal),
-          // B23: delivery fee line
-          _buildPriceLine('delivery_fee'.tr, _kDeliveryFee),
           if (_discount > 0) _buildPriceLine('discount'.tr, -_discount, isDiscount: true),
           if (_tipAmount > 0) _buildPriceLine('tip'.tr, _tipAmount),
           const Divider(),
@@ -1075,6 +1097,41 @@ class _MartCartScreenState extends State<MartCartScreen> {
     }
   }
 
+  Future<void> _useCurrentLocation() async {
+    setState(() => _isLocating = true);
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        if (mounted) Get.snackbar('error'.tr, 'location_service_disabled'.tr);
+        return;
+      }
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.deniedForever || permission == LocationPermission.denied) {
+        if (mounted) Get.snackbar('error'.tr, 'location_permission_denied'.tr);
+        return;
+      }
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+      );
+      if (mounted) {
+        setState(() {
+          _deliveryLat = position.latitude;
+          _deliveryLng = position.longitude;
+          if (_addressController.text.isEmpty) {
+            _addressController.text = '${position.latitude.toStringAsFixed(5)}, ${position.longitude.toStringAsFixed(5)}';
+          }
+        });
+      }
+    } catch (e) {
+      if (mounted) Get.snackbar('error'.tr, 'location_fetch_failed'.tr);
+    } finally {
+      if (mounted) setState(() => _isLocating = false);
+    }
+  }
+
   Future<void> _placeOrder() async {
     if (widget.cartItems.isEmpty) {
       Get.snackbar('error'.tr, 'cart_is_empty'.tr);
@@ -1105,6 +1162,8 @@ class _MartCartScreenState extends State<MartCartScreen> {
         'delivery_address': _addressController.text,
         'notes': _notesController.text,
         'payment_method': _paymentMethod,
+        if (_deliveryLat != null) 'delivery_lat': _deliveryLat,
+        if (_deliveryLng != null) 'delivery_lng': _deliveryLng,
         if (_tipAmount > 0) 'tip_amount': _tipAmount,
         if (_appliedPromoCode != null) 'promo_code': _appliedPromoCode,
       };

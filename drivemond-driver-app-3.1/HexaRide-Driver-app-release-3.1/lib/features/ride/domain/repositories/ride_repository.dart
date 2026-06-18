@@ -52,6 +52,16 @@ class RideRepository implements RideRepositoryInterface{
   }
 
   @override
+  Future<Response> atomicAcceptRide(String tripId) async {
+    return await apiClient.postData(AppConstants.atomicAcceptRide, {'trip_request_id': tripId});
+  }
+
+  @override
+  Future<Response> atomicAcceptParcel(String tripId) async {
+    return await apiClient.postData(AppConstants.atomicAcceptParcel, {'trip_request_id': tripId});
+  }
+
+  @override
   Future<Response> ignoreMessage(String tripId) async {
     return await apiClient.postData(AppConstants.tripAcceptOrReject,{
       "trip_request_id": tripId

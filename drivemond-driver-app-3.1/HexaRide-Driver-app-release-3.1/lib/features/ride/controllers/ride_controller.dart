@@ -192,7 +192,14 @@ class RideController extends GetxController implements GetxService{
 
       accepting = true;
       update();
-    Response response = await rideServiceInterface.tripAcceptOrReject(tripId, action);
+    final Response response;
+    if (action == 'accepted') {
+      response = type == 'parcel'
+          ? await rideServiceInterface.atomicAcceptParcel(tripId)
+          : await rideServiceInterface.atomicAcceptRide(tripId);
+    } else {
+      response = await rideServiceInterface.tripAcceptOrReject(tripId, action);
+    }
     if (response.statusCode == 200) {
 
       accepting = false;

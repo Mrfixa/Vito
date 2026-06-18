@@ -88,6 +88,14 @@ class RideService implements RideServiceInterface{
   }
 
   @override
+  Future atomicAcceptRide(String tripId) =>
+      rideRepositoryInterface.atomicAcceptRide(tripId);
+
+  @override
+  Future atomicAcceptParcel(String tripId) =>
+      rideRepositoryInterface.atomicAcceptParcel(tripId);
+
+  @override
   Future tripStatusUpdate(String id, String status, String cancellationCause,String dateTime) async{
     return await rideRepositoryInterface.tripStatusUpdate(id, status, cancellationCause,dateTime);
   }

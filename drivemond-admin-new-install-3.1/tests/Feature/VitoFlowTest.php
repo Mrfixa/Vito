@@ -2181,6 +2181,7 @@ class VitoFlowTest extends TestCase
             'status' => 'picked_up', 'total_amount' => 15.00, 'tip_amount' => 0,
             'discount_amount' => 0, 'payment_status' => 'unpaid',
             'delivery_address' => 'Paid St',
+            'delivery_photo' => 'mart/photos/test.jpg', // proof required before delivery
         ]);
 
         Passport::actingAs($driver, ['AccessToDriver']);

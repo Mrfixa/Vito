@@ -11,6 +11,8 @@ abstract class RideRepositoryInterface implements RepositoryInterface{
   Future<Response> uploadScreenShots(String id, XFile? file);
   Future<Response> getRideDetailBeforeAccept(String tripId);
   Future<Response> tripAcceptOrReject(String tripId, String action);
+  Future<Response> atomicAcceptRide(String tripId);
+  Future<Response> atomicAcceptParcel(String tripId);
   Future<Response> ignoreMessage(String tripId);
   Future<Response> matchOtp(String tripId, String otp);
   Future<Response> startForPickup(String tripId);

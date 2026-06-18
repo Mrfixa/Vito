@@ -1015,5 +1015,8 @@
   "confirm_delivery": "تأكيد التسليم",
   "confirm_delivery_message": "هل تريد تعليم هذا الطلب بأنه تم تسليمه؟ لا يمكن التراجع عن ذلك.",
   "browse_products": "تصفح المنتجات",
-  "tap_to_select": "اضغط للاختيار"
+  "tap_to_select": "اضغط للاختيار",
+  "location_permission_denied": "تم رفض إذن الموقع",
+  "location_service_disabled": "خدمات الموقع معطلة. يرجى تفعيل GPS.",
+  "location_fetch_failed": "تعذر الحصول على الموقع الحالي. يرجى المحاولة مرة أخرى."
 }
