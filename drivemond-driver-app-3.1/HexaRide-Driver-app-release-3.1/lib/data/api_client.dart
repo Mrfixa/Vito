@@ -240,7 +240,13 @@ class ApiClient extends GetxService {
       headers: response.headers, statusCode: response.statusCode, statusText: response.reasonPhrase,
     );
     if(localResponse.statusCode != 200 && localResponse.body != null && localResponse.body is !String) {
-      if(localResponse.body.toString().startsWith('{errors: [{code:')) {
+      // Prefer RFC 7807 `title`/`detail` when present (additive backend fields); fall back to legacy format.
+      final title = localResponse.body['title'];
+      final detail = localResponse.body['detail'];
+      if (title != null) {
+        final text = (detail != null && detail.toString().isNotEmpty) ? detail.toString() : title.toString();
+        localResponse = Response(statusCode: localResponse.statusCode, body: localResponse.body, statusText: text);
+      } else if(localResponse.body.toString().startsWith('{errors: [{code:')) {
         ErrorResponse errorResponse = ErrorResponse.fromJson(localResponse.body);
         localResponse = Response(statusCode: localResponse.statusCode, body: localResponse.body, statusText: errorResponse.errors![0].message);
       }else if(localResponse.body.toString().startsWith('{message')) {

@@ -86,6 +86,14 @@ class VitoMartAdminApiController extends Controller
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
-        } catch (\Throwable) {}
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Audit log write failed', [
+                'user_id'    => $userId,
+                'action'     => $action,
+                'model_type' => $modelType,
+                'model_id'   => $modelId,
+                'error'      => $e->getMessage(),
+            ]);
+        }
     }
 }

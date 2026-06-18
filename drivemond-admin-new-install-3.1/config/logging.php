@@ -95,6 +95,16 @@ return [
             ],
         ],
 
+        // JSON-formatted stderr channel for log aggregation (ELK/Datadog).
+        // Activate with: LOG_CHANNEL=json_stderr in .env
+        'json_stderr' => [
+            'driver'    => 'monolog',
+            'level'     => env('LOG_LEVEL', 'debug'),
+            'handler'   => StreamHandler::class,
+            'formatter' => Monolog\Formatter\JsonFormatter::class,
+            'with'      => ['stream' => 'php://stderr'],
+        ],
+
         'syslog' => [
             'driver' => 'syslog',
             'level' => env('LOG_LEVEL', 'debug'),
