@@ -9,6 +9,9 @@ on:
 env:
   FLUTTER_VERSION: "3.44.0"
   PHP_VERSION: "8.2"
+  # Ratcheted coverage floor — raise this as coverage grows toward 80%.
+  PHP_COVERAGE_FLOOR: 0
+  FLUTTER_COVERAGE_FLOOR: 0
 
 jobs:
   laravel:
@@ -26,7 +29,7 @@ jobs:
         with:
           php-version: ${{ env.PHP_VERSION }}
           extensions: mbstring, xml, sqlite3, pdo_sqlite, json, curl
-          coverage: none
+          coverage: xdebug
 
       - name: Install Composer dependencies
         run: composer install --no-interaction --no-scripts --ignore-platform-reqs --prefer-dist
@@ -57,12 +60,33 @@ jobs:
             Modules/Gateways/Http/Controllers/Api/VitoStripeController.php \
             --level=0 --no-progress
 
-      - name: Run PHPUnit Tests
-        run: php artisan test --filter=VitoFlowTest
+      - name: Run PHPUnit Tests with coverage
+        run: |
+          php artisan test --filter=VitoFlowTest \
+            --coverage-clover=coverage.xml \
+            --coverage-text 2>&1 | tee coverage-report.txt
         env:
           DB_CONNECTION: sqlite
           DB_DATABASE: ":memory:"
           APP_URL: "http://localhost"
+          XDEBUG_MODE: coverage
+
+      - name: Upload PHP coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: php-coverage
+          path: drivemond-admin-new-install-3.1/coverage.xml
+          retention-days: 14
+
+      - name: Check PHP coverage floor
+        run: |
+          COVERED=$(grep -oP 'Lines:\s+\K[\d.]+(?=%)' coverage-report.txt | head -1 || echo "0")
+          echo "PHP line coverage: ${COVERED}%"
+          # Fail only if below the ratcheted floor
+          if (( $(echo "$COVERED < ${{ env.PHP_COVERAGE_FLOOR }}" | bc -l) )); then
+            echo "Coverage ${COVERED}% is below floor ${{ env.PHP_COVERAGE_FLOOR }}%"
+            exit 1
+          fi
 
   flutter-user:
     name: Flutter User App
@@ -86,8 +110,30 @@ jobs:
       - name: Run flutter analyze
         run: flutter analyze --no-fatal-infos || true
 
-      - name: Run tests
-        run: flutter test test/vito_flows_test.dart
+      - name: Run tests with coverage
+        run: flutter test test/vito_flows_test.dart --coverage
+
+      - name: Upload Flutter user coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-user-coverage
+          path: drivemond-user-app-3.1/HexaRide-User-app-release-3.1/coverage/lcov.info
+          retention-days: 14
+
+      - name: Check Flutter user coverage floor
+        run: |
+          LINES_FOUND=$(grep -c "^DA:" coverage/lcov.info 2>/dev/null || echo "0")
+          LINES_HIT=$(grep -c "^DA:.*,[^0]" coverage/lcov.info 2>/dev/null || echo "0")
+          if [ "$LINES_FOUND" -gt 0 ]; then
+            PCT=$(echo "scale=1; $LINES_HIT * 100 / $LINES_FOUND" | bc)
+          else
+            PCT="0"
+          fi
+          echo "Flutter user coverage: ${PCT}% (${LINES_HIT}/${LINES_FOUND})"
+          if (( $(echo "$PCT < ${{ env.FLUTTER_COVERAGE_FLOOR }}" | bc -l) )); then
+            echo "Coverage ${PCT}% is below floor ${{ env.FLUTTER_COVERAGE_FLOOR }}%"
+            exit 1
+          fi
 
       - name: Build debug APK
         run: |
@@ -126,8 +172,30 @@ jobs:
       - name: Run flutter analyze
         run: flutter analyze --no-fatal-infos || true
 
-      - name: Run tests
-        run: flutter test test/vito_flows_test.dart
+      - name: Run tests with coverage
+        run: flutter test test/vito_flows_test.dart --coverage
+
+      - name: Upload Flutter driver coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-driver-coverage
+          path: drivemond-driver-app-3.1/HexaRide-Driver-app-release-3.1/coverage/lcov.info
+          retention-days: 14
+
+      - name: Check Flutter driver coverage floor
+        run: |
+          LINES_FOUND=$(grep -c "^DA:" coverage/lcov.info 2>/dev/null || echo "0")
+          LINES_HIT=$(grep -c "^DA:.*,[^0]" coverage/lcov.info 2>/dev/null || echo "0")
+          if [ "$LINES_FOUND" -gt 0 ]; then
+            PCT=$(echo "scale=1; $LINES_HIT * 100 / $LINES_FOUND" | bc)
+          else
+            PCT="0"
+          fi
+          echo "Flutter driver coverage: ${PCT}% (${LINES_HIT}/${LINES_FOUND})"
+          if (( $(echo "$PCT < ${{ env.FLUTTER_COVERAGE_FLOOR }}" | bc -l) )); then
+            echo "Coverage ${PCT}% is below floor ${{ env.FLUTTER_COVERAGE_FLOOR }}%"
+            exit 1
+          fi
 
       - name: Build debug APK
         run: |

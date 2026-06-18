@@ -1,0 +1,9 @@
+Contact: mailto:leroux3301@gmail.com
+Expires: 2027-06-18T00:00:00.000Z
+Preferred-Languages: en, es
+Policy: https://your-domain.example/security-policy
+Scope: https://your-domain.example/
+
+# Vito ride-sharing platform security policy
+# Please report vulnerabilities responsibly via the contact above.
+# We aim to acknowledge reports within 48 hours.

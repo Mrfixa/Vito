@@ -164,8 +164,8 @@ class _SignInScreenState extends State<SignInScreen> {
                 }else if(password.isEmpty) {
                   showCustomSnackBar('password_is_required'.tr);
                   FocusScope.of(context).requestFocus(passwordNode);
-                }else if(password.length < 8) {
-                  showCustomSnackBar('minimum_password_length_is_8'.tr);
+                }else if(!RegExp(r'^\d{6}$').hasMatch(password)) {
+                  showCustomSnackBar('pin_must_be_6_digits'.tr);
                 }else {
                   authController.login(authController.countryDialCode, phone, password);
                 }

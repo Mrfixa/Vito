@@ -17,6 +17,7 @@ use App\Http\Middleware\{Authenticate,
     MaintenanceModeMiddleware,
     RedirectIfAuthenticated,
     RequestId,
+    SecurityHeaders,
     VerifyCsrfToken};
 use Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull;
 use Illuminate\Foundation\Http\Middleware\PreventRequestsDuringMaintenance;
@@ -45,6 +46,7 @@ $app = Application::configure(basePath: dirname(__DIR__))
             TrimStrings::class,
             ConvertEmptyStringsToNull::class,
             GlobalMiddleware::class,
+            SecurityHeaders::class,
         ]);
         $middleware->group('web', [
             EncryptCookies::class,
@@ -88,7 +90,62 @@ $app = Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        // You can customize exception handling here if needed
+        // Structured error logging with request context on every uncaught exception.
+        $exceptions->report(function (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error($e->getMessage(), [
+                'exception'  => get_class($e),
+                'file'       => $e->getFile(),
+                'line'       => $e->getLine(),
+                'user_id'    => optional(request()->user())->id,
+                'url'        => request()->fullUrl(),
+                'request_id' => request()->header('X-Request-Id'),
+            ]);
+            if (app()->bound('sentry') && config('sentry.dsn')) {
+                \Sentry\captureException($e);
+            }
+        });
+
+        // RFC 7807 additive fields on 404s — existing keys remain for Flutter client compat.
+        $exceptions->renderable(function (
+            \Symfony\Component\HttpKernel\Exception\NotFoundHttpException $e,
+            \Illuminate\Http\Request $request
+        ) {
+            if ($request->wantsJson()) {
+                return response()->json(array_merge(
+                    responseFormatter(DEFAULT_404),
+                    [
+                        'type'   => '/errors/not-found',
+                        'title'  => 'Resource not found',
+                        'status' => 404,
+                        'detail' => $e->getMessage() ?: 'The requested resource does not exist.',
+                    ]
+                ), 404);
+            }
+        });
+
+        // RFC 7807 on other HTTP exceptions.
+        $exceptions->renderable(function (
+            \Symfony\Component\HttpKernel\Exception\HttpException $e,
+            \Illuminate\Http\Request $request
+        ) {
+            if ($request->wantsJson()) {
+                $status = $e->getStatusCode();
+                return response()->json(array_merge(
+                    [
+                        'response_code' => $status,
+                        'message'       => $e->getMessage(),
+                        'content'       => null,
+                        'errors'        => [],
+                    ],
+                    [
+                        'type'   => '/errors/http-' . $status,
+                        'title'  => $e->getMessage() ?: 'HTTP Error',
+                        'status' => $status,
+                        'detail' => $e->getMessage(),
+                    ]
+                ), $status);
+            }
+        });
     })
     ->create();
 

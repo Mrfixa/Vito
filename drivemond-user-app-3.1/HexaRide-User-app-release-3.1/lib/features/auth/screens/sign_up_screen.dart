@@ -71,8 +71,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
     } else if (password.isEmpty) {
       showCustomSnackBar('password_is_required'.tr);
       FocusScope.of(context).requestFocus(_passwordNode);
-    } else if (password.length < 8) {
-      showCustomSnackBar('minimum_password_length_is_8'.tr);
+    } else if (!RegExp(r'^\d{6}$').hasMatch(password)) {
+      showCustomSnackBar('pin_must_be_6_digits'.tr);
       FocusScope.of(context).requestFocus(_passwordNode);
     } else if (confirmPassword.isEmpty) {
       showCustomSnackBar('confirm_password_is_required'.tr);

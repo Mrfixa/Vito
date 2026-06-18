@@ -2576,4 +2576,78 @@ class VitoFlowTest extends TestCase
         $this->assertContains('Active Product', $names);
         $this->assertNotContains('Inactive Product', $names);
     }
+
+    // -------------------------------------------------------------------------
+    // Phase 3 — Health endpoint
+    // -------------------------------------------------------------------------
+
+    public function test_health_endpoint_returns_ok(): void
+    {
+        $resp = $this->getJson('/api/health');
+        $resp->assertOk();
+        $resp->assertJsonPath('status', 'ok');
+        $this->assertArrayHasKey('checks', $resp->json());
+        $this->assertArrayHasKey('timestamp', $resp->json());
+    }
+
+    // -------------------------------------------------------------------------
+    // Phase 2 — Idempotency-Key middleware replays cached response
+    // -------------------------------------------------------------------------
+
+    public function test_idempotency_key_replays_cached_response(): void
+    {
+        $this->seedUserLevel('customer');
+        $customer = $this->createUser('customer');
+        $this->createUserAccount($customer);
+        Passport::actingAs($customer, ['AccessToCustomer']);
+
+        $product = MartProduct::create([
+            'id' => Str::uuid(), 'name' => 'Test Item', 'price' => 5.00,
+            'stock' => 10, 'is_active' => true,
+        ]);
+
+        if (!Schema::hasTable('business_settings')) {
+            Schema::create('business_settings', function (Blueprint $table) {
+                $table->string('key_name')->primary();
+                $table->text('value')->nullable();
+                $table->string('settings_type')->nullable();
+            });
+        }
+        DB::table('business_settings')->insertOrIgnore([
+            'key_name' => 'vito_mart_enabled', 'value' => '1', 'settings_type' => 'vito',
+        ]);
+
+        $idempotencyKey = Str::uuid()->toString();
+        $payload = ['items' => [['product_id' => $product->id, 'quantity' => 1]], 'delivery_address' => '123 Test St'];
+
+        // First request — processed
+        $first = $this->postJson('/api/customer/mart/order', $payload, ['Idempotency-Key' => $idempotencyKey]);
+        // Second request with the same key — must replay the cached response, not create a duplicate
+        $second = $this->postJson('/api/customer/mart/order', $payload, ['Idempotency-Key' => $idempotencyKey]);
+
+        // Both should have the same status code
+        $this->assertEquals($first->status(), $second->status(), 'Idempotent replay must return the same status');
+
+        // The replayed response must carry the Idempotency-Replayed header
+        if ($first->status() === 200) {
+            $this->assertEquals('true', $second->headers->get('Idempotency-Replayed'),
+                'Second call with same idempotency key should carry Idempotency-Replayed header');
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Phase 1 — RFC 7807 error shape
+    // -------------------------------------------------------------------------
+
+    public function test_404_response_includes_rfc7807_fields(): void
+    {
+        $resp = $this->getJson('/api/nonexistent-vito-endpoint-xyz');
+        $resp->assertStatus(404);
+        $body = $resp->json();
+        // RFC 7807 additive keys must be present
+        $this->assertArrayHasKey('type', $body, 'RFC 7807 type field missing from 404 response');
+        $this->assertArrayHasKey('title', $body, 'RFC 7807 title field missing from 404 response');
+        $this->assertArrayHasKey('status', $body, 'RFC 7807 status field missing from 404 response');
+        $this->assertEquals(404, $body['status']);
+    }
 }

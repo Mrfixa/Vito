@@ -38,7 +38,7 @@ class Handler extends ExceptionHandler
 
         $this->renderable(function (NotFoundHttpException $e, $request) {
             if ($request->wantsJson()) {
-                abort(response()->json(array_merge(
+                return response()->json(array_merge(
                     responseFormatter(DEFAULT_404),
                     [
                         'type'   => '/errors/not-found',
@@ -46,14 +46,14 @@ class Handler extends ExceptionHandler
                         'status' => 404,
                         'detail' => $e->getMessage() ?: 'The requested resource does not exist.',
                     ]
-                ), 404));
+                ), 404);
             }
         });
 
         $this->renderable(function (HttpException $e, $request) {
             if ($request->wantsJson()) {
                 $status = $e->getStatusCode();
-                abort(response()->json(array_merge(
+                return response()->json(array_merge(
                     [
                         'response_code' => $status,
                         'message'       => $e->getMessage(),
@@ -66,7 +66,7 @@ class Handler extends ExceptionHandler
                         'status' => $status,
                         'detail' => $e->getMessage(),
                     ]
-                ), $status));
+                ), $status);
             }
         });
     }
