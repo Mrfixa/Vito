@@ -130,17 +130,19 @@ class QrTokenController extends Controller
         }
 
         $token = DB::transaction(function () use ($request) {
-            return QrToken::where('token', $request->token)
+            $token = QrToken::where('token', $request->token)
                 ->where('created_by', $request->user()->id)
                 ->lockForUpdate()
                 ->first();
+            if ($token) {
+                $token->update(['is_revoked' => true]);
+            }
+            return $token;
         });
 
         if (!$token) {
             return response()->json(responseFormatter(constant: DEFAULT_404), 404);
         }
-
-        $token->update(['is_revoked' => true]);
 
         return response()->json(responseFormatter(DEFAULT_200));
     }

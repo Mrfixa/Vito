@@ -153,8 +153,17 @@ class VitoStripeController extends Controller
 
                 if ($userId) {
                     $user = \Modules\UserManagement\Entities\User::find($userId);
-                    if ($user && $user->userAccount) {
-                        $user->userAccount()->increment('wallet_balance', $amount);
+                    if ($user) {
+                        $account = $user->userAccount ?? $user->userAccount()->create([
+                            'payable_balance' => 0,
+                            'receivable_balance' => 0,
+                            'received_balance' => 0,
+                            'pending_balance' => 0,
+                            'wallet_balance' => 0,
+                            'total_withdrawn' => 0,
+                            'referral_earn' => 0,
+                        ]);
+                        $account->increment('wallet_balance', $amount);
                     }
                 }
             });
