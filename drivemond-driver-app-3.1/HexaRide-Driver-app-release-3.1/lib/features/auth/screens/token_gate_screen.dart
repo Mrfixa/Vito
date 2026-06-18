@@ -78,7 +78,12 @@ class _TokenGateScreenState extends State<TokenGateScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Image.asset(Images.logoWithName, height: 60),
+                ColorFiltered(
+                  colorFilter: ColorFilter.mode(Theme.of(context).primaryColor, BlendMode.srcIn),
+                  child: Image.asset(Images.logo, height: 52, width: 52),
+                ),
+                const SizedBox(height: 6),
+                Text(AppConstants.appName, style: textBold.copyWith(fontSize: 20, color: Theme.of(context).primaryColor)),
                 const SizedBox(height: Dimensions.paddingSizeExtraLarge),
 
                 Icon(

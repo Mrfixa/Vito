@@ -59,7 +59,7 @@ class AuthController extends GetxController implements GetxService {
   List<MultipartDocument> otherDocuments = [];
   FilePickerResult? _otherFile;
   PlatformFile? objFile;
-  String countryDialCode = '+880';
+  String countryDialCode = '+1';
   bool isParcelShare = true;
   bool isRideShare = true;
 

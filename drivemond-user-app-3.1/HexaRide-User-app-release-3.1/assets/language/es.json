@@ -1080,5 +1080,7 @@
   "tap_to_select": "Toca para seleccionar",
   "order_in_transit_cannot_cancel": "El pedido está en camino y no puede cancelarse",
   "rate_your_delivery": "Califica tu entrega",
-  "optional_comment": "Deja un comentario (opcional)"
+  "optional_comment": "Deja un comentario (opcional)",
+  "pick_from_gallery": "Elegir de la galería",
+  "no_qr_found_in_image": "No se encontró código QR en la imagen"
 }

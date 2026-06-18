@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:ride_sharing_user_app/util/dimensions.dart';
 import 'package:ride_sharing_user_app/util/styles.dart';
@@ -20,11 +21,28 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
     facing: CameraFacing.back,
   );
   bool _hasScanned = false;
+  bool _isLoadingFromGallery = false;
 
   @override
   void dispose() {
     _scannerController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickFromGallery() async {
+    final xFile = await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (xFile == null) return;
+    setState(() => _isLoadingFromGallery = true);
+    try {
+      final capture = await _scannerController.analyzeImage(xFile.path);
+      if (capture == null || capture.barcodes.isEmpty) {
+        Get.snackbar('error'.tr, 'no_qr_found_in_image'.tr);
+        return;
+      }
+      _onDetect(capture);
+    } finally {
+      if (mounted) setState(() => _isLoadingFromGallery = false);
+    }
   }
 
   @override
@@ -80,6 +98,24 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                   'point_camera_at_qr'.tr,
                   style: textRegular.copyWith(color: Colors.white, fontSize: Dimensions.fontSizeSmall),
                 ),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: 20,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: TextButton.icon(
+                onPressed: _isLoadingFromGallery ? null : _pickFromGallery,
+                icon: _isLoadingFromGallery
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                      )
+                    : const Icon(Icons.photo_library_outlined, color: Colors.white),
+                label: Text('pick_from_gallery'.tr, style: textRegular.copyWith(color: Colors.white)),
               ),
             ),
           ),

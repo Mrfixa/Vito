@@ -29,7 +29,7 @@ class AuthController extends GetxController implements GetxService {
   String _verificationCode = '';
   bool _isActiveRememberMe = false;
   bool otpVerifying = false;
-  String countryDialCode = '+880';
+  String countryDialCode = '+1';
   bool get isLoading => _isLoading;
   bool get isOtpSending => _isOtpSending;
   String get verificationCode => _verificationCode;
