@@ -5,6 +5,7 @@ import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:get/get.dart';
 import 'package:ride_sharing_user_app/features/auth/controllers/auth_controller.dart';
 import 'package:ride_sharing_user_app/features/auth/domain/enums/verification_from_enum.dart';
+import 'package:ride_sharing_user_app/features/auth/domain/models/sign_up_body.dart';
 import 'package:ride_sharing_user_app/features/auth/screens/verification_screen.dart';
 import 'package:ride_sharing_user_app/features/splash/controllers/config_controller.dart';
 import 'package:ride_sharing_user_app/helper/display_helper.dart';
@@ -15,7 +16,8 @@ import 'package:ride_sharing_user_app/common_widgets/button_widget.dart';
 import 'package:ride_sharing_user_app/common_widgets/custom_text_field.dart';
 
 class SignUpScreen extends StatefulWidget {
-  const SignUpScreen({super.key});
+  final String? qrToken;
+  const SignUpScreen({super.key, this.qrToken});
 
   @override
   State<SignUpScreen> createState() => _SignUpScreenState();
@@ -85,6 +87,22 @@ class _SignUpScreenState extends State<SignUpScreen> {
       showCustomSnackBar('password_is_mismatch'.tr);
       FocusScope.of(context).requestFocus(_confirmPasswordNode);
     } else {
+      // QR token path: bypass OTP, register directly with PIN
+      if (widget.qrToken != null) {
+        authController.register(SignUpBody(
+          username: phone,
+          fName: fName,
+          lName: lName,
+          phone: authController.countryDialCode + phone,
+          password: password,
+          confirmPassword: confirmPassword,
+          referralCode: authController.referralCodeController.text.trim().isNotEmpty
+              ? authController.referralCodeController.text.trim()
+              : null,
+          qrToken: widget.qrToken,
+        ));
+        return;
+      }
       final fullPhone = authController.countryDialCode + phone;
       authController.checkOAuth(countryCode: authController.countryDialCode, number: phone).then((value) {
         if (value.statusCode == 200 || value.statusCode == 404) {

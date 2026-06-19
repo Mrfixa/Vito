@@ -119,10 +119,6 @@ class VitoMartDriverController extends Controller
 
             $updateData = ['status' => $request->status];
 
-            if ($request->status === 'delivered') {
-                $updateData['payment_status'] = 'paid';
-            }
-
             if ($request->status === 'cancelled') {
                 // Restore product stock atomically under the same transaction lock.
                 foreach ($order->items as $item) {

@@ -7,7 +7,7 @@ import 'package:get/get.dart';
 import 'package:ride_sharing_user_app/features/auth/domain/enums/verification_from_enum.dart';
 import 'package:ride_sharing_user_app/features/auth/screens/otp_log_in_screen.dart';
 import 'package:ride_sharing_user_app/features/auth/screens/forgot_password_screen.dart';
-import 'package:ride_sharing_user_app/features/auth/screens/sign_up_screen.dart';
+import 'package:ride_sharing_user_app/features/auth/screens/token_gate_screen.dart';
 import 'package:ride_sharing_user_app/features/settings/domain/html_enum_types.dart';
 import 'package:ride_sharing_user_app/helper/display_helper.dart';
 import 'package:ride_sharing_user_app/util/app_constants.dart';
@@ -55,6 +55,15 @@ class _SignInScreenState extends State<SignInScreen> {
       Get.find<AuthController>().countryDialCode =
           CountryCode.fromCountryCode(Get.find<ConfigController>().config!.countryCode!).dialCode!;
     }
+  }
+
+  @override
+  void dispose() {
+    passwordController.dispose();
+    phoneController.dispose();
+    phoneNode.dispose();
+    passwordNode.dispose();
+    super.dispose();
   }
 
   @override
@@ -253,7 +262,7 @@ class _SignInScreenState extends State<SignInScreen> {
                           ),
                           TextButton(
                             onPressed: () {
-                              Get.to(() => const SignUpScreen());
+                              Get.to(() => const TokenGateScreen());
                             },
                             style: TextButton.styleFrom(
                               padding: EdgeInsets.zero,

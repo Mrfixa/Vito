@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Modules\TripManagement\Entities\MartOrder;
 use Modules\TripManagement\Entities\StripeEvent;
 
 class VitoStripeController extends Controller
@@ -74,6 +75,87 @@ class VitoStripeController extends Controller
 
             return response()->json(responseFormatter(DEFAULT_200, [
                 'client_secret' => $paymentIntent->client_secret,
+                'payment_intent_id' => $paymentIntent->id,
+            ]));
+
+        } catch (\Exception $e) {
+            return response()->json(responseFormatter(constant: DEFAULT_400), 400);
+        }
+    }
+
+    public function createOrderPaymentIntent(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'order_id' => 'required|uuid',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
+        }
+
+        $order = MartOrder::where('id', $request->order_id)
+            ->where('customer_id', $request->user()->id)
+            ->whereIn('status', ['pending', 'accepted'])
+            ->first();
+
+        if (!$order) {
+            return response()->json(responseFormatter(constant: DEFAULT_404), 404);
+        }
+
+        $stripeConfig = DB::table('settings')
+            ->where('key_name', 'stripe')
+            ->where('settings_type', PAYMENT_CONFIG)
+            ->first();
+        if (!$stripeConfig) {
+            return response()->json(responseFormatter(constant: DEFAULT_404), 500);
+        }
+        $stripeValues = $stripeConfig->mode === 'live'
+            ? json_decode($stripeConfig->live_values, true)
+            : json_decode($stripeConfig->test_values, true);
+        $stripeSecret = $stripeValues['api_key'] ?? null;
+        if (!$stripeSecret) {
+            return response()->json(responseFormatter(constant: DEFAULT_404), 500);
+        }
+
+        try {
+            \Stripe\Stripe::setApiKey($stripeSecret);
+
+            $amountCents = (int) round($order->total_amount * 100);
+            $idempotencyKey = 'pi_order_' . $order->id;
+
+            $paymentIntent = retry(3, function () use ($amountCents, $order, $request, $idempotencyKey) {
+                return \Stripe\PaymentIntent::create(
+                    [
+                        'amount'   => $amountCents,
+                        'currency' => 'usd',
+                        'metadata' => [
+                            'user_id'  => $request->user()->id,
+                            'type'     => 'order_payment',
+                            'order_id' => $order->id,
+                        ],
+                    ],
+                    ['idempotency_key' => $idempotencyKey],
+                );
+            }, 500);
+
+            StripeEvent::firstOrCreate(
+                ['stripe_event_id' => $paymentIntent->id],
+                [
+                    'type'              => 'payment_intent.created',
+                    'user_id'           => $request->user()->id,
+                    'amount'            => $order->total_amount,
+                    'currency'          => 'usd',
+                    'status'            => 'pending',
+                    'payment_intent_id' => $paymentIntent->id,
+                    'metadata'          => [
+                        'type'     => 'order_payment',
+                        'order_id' => $order->id,
+                    ],
+                ]
+            );
+
+            return response()->json(responseFormatter(DEFAULT_200, [
+                'client_secret'     => $paymentIntent->client_secret,
                 'payment_intent_id' => $paymentIntent->id,
             ]));
 
@@ -153,7 +235,12 @@ class VitoStripeController extends Controller
                     'stripe_event_id' => $stripeEventId ?? $stripeEvent->stripe_event_id,
                 ]);
 
-                if ($userId) {
+                $meta = $stripeEvent->metadata ?? [];
+                $metaType = $meta['type'] ?? 'wallet_topup';
+
+                if ($metaType === 'order_payment' && !empty($meta['order_id'])) {
+                    MartOrder::where('id', $meta['order_id'])->update(['payment_status' => 'paid']);
+                } elseif ($userId) {
                     $user = \Modules\UserManagement\Entities\User::find($userId);
                     if ($user) {
                         $account = $user->userAccount ?? $user->userAccount()->create([

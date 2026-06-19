@@ -112,6 +112,8 @@ class AppConstants {
   static const String martOrderDetails = '/api/customer/mart/orders/';
   static const String martCancelOrder = '/api/customer/mart/orders/';
   static const String stripePaymentIntent = '/api/customer/stripe/payment-intent';
+  static const String martOrderPaymentIntent = '/api/customer/stripe/order-payment-intent';
+  static const String qrTokenValidate = '/api/qr-token/validate';
 
 
 

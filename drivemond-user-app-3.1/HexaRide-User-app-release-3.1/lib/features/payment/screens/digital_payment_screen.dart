@@ -66,7 +66,7 @@ class DigitalPaymentScreenState extends State<DigitalPaymentScreen> {
       top: false,
       child: PopScope(canPop: false,
         onPopInvokedWithResult: (didPop, val) async {
-          Get.off(() => const PaymentScreen(fromParcel: true));
+          Get.off(() => PaymentScreen(fromParcel: widget.fromParcel));
           return ;
         },
         child: Scaffold(

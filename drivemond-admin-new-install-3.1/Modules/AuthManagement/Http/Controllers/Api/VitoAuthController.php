@@ -70,7 +70,7 @@ class VitoAuthController extends Controller
         if ($user->is_temp_blocked || $user->pin_blocked_at) {
             $blockedAt = $user->pin_blocked_at;
             if ($blockedAt) {
-                $secondsPassed = Carbon::parse($blockedAt)->diffInSeconds();
+                $secondsPassed = Carbon::now()->diffInSeconds(Carbon::parse($blockedAt), true);
                 if ($secondsPassed <= $blockTime) {
                     $time = $blockTime - $secondsPassed;
                     return response()->json([

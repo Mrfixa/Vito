@@ -2166,7 +2166,7 @@ class VitoFlowTest extends TestCase
         $this->assertNotContains('Orange Soda', $names);
     }
 
-    public function test_delivery_status_sets_payment_paid(): void
+    public function test_delivery_status_transitions_to_delivered(): void
     {
         $this->seedUserLevel('customer');
         $this->seedUserLevel('driver');
@@ -2181,7 +2181,7 @@ class VitoFlowTest extends TestCase
             'status' => 'picked_up', 'total_amount' => 15.00, 'tip_amount' => 0,
             'discount_amount' => 0, 'payment_status' => 'unpaid',
             'delivery_address' => 'Paid St',
-            'delivery_photo' => 'mart/photos/test.jpg', // proof required before delivery
+            'delivery_photo' => 'mart/photos/test.jpg',
         ]);
 
         Passport::actingAs($driver, ['AccessToDriver']);
@@ -2189,7 +2189,10 @@ class VitoFlowTest extends TestCase
             'order_id' => $order->id, 'status' => 'delivered',
         ]);
         $resp->assertOk();
-        $this->assertEquals('paid', MartOrder::find($order->id)->payment_status);
+        $fresh = MartOrder::find($order->id);
+        $this->assertEquals('delivered', $fresh->status);
+        // payment_status is now set exclusively by Stripe webhook, not by driver delivery
+        $this->assertEquals('unpaid', $fresh->payment_status);
     }
 
     public function test_cancelled_order_restores_stock_and_promo(): void
@@ -2418,6 +2421,87 @@ class VitoFlowTest extends TestCase
         $resp = $this->postJson('/api/driver/parcel/atomic-accept', ['trip_request_id' => $rideId]);
         // Should 404 since trip type != parcel
         $resp->assertStatus(404);
+    }
+
+    public function test_mart_order_payment_status_set_by_webhook(): void
+    {
+        $this->seedUserLevel('customer');
+        $customer = $this->createUser('customer');
+        $this->createUserAccount($customer);
+
+        $product = MartProduct::create([
+            'id' => Str::uuid(), 'name' => 'Pay Product', 'price' => 15.00,
+            'stock' => 10, 'is_active' => true,
+        ]);
+
+        $order = MartOrder::create([
+            'id' => Str::uuid(), 'ref_id' => 'VM-PAYTEST1',
+            'customer_id' => $customer->id,
+            'status' => 'accepted', 'payment_status' => 'unpaid',
+            'total_amount' => 15.00, 'tip_amount' => 0, 'discount_amount' => 0,
+            'delivery_address' => 'Payment St',
+        ]);
+
+        $intentId = 'pi_order_' . $order->id;
+
+        DB::table('stripe_events')->insert([
+            'id' => Str::uuid(), 'stripe_event_id' => $intentId,
+            'type' => 'payment_intent.created', 'user_id' => $customer->id,
+            'amount' => 15.00, 'currency' => 'usd', 'status' => 'pending',
+            'payment_intent_id' => $intentId,
+            'metadata' => json_encode(['type' => 'order_payment', 'order_id' => $order->id]),
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        // Simulate webhook logic (webhook signature cannot be generated in tests)
+        DB::transaction(function () use ($intentId, $order) {
+            $stripeEvent = DB::table('stripe_events')
+                ->where('payment_intent_id', $intentId)
+                ->lockForUpdate()->first();
+
+            if ($stripeEvent && $stripeEvent->status !== 'succeeded') {
+                DB::table('stripe_events')->where('id', $stripeEvent->id)->update(['status' => 'succeeded']);
+                $meta = json_decode($stripeEvent->metadata ?? '{}', true);
+                if (($meta['type'] ?? '') === 'order_payment' && !empty($meta['order_id'])) {
+                    MartOrder::where('id', $meta['order_id'])->update(['payment_status' => 'paid']);
+                }
+            }
+        });
+
+        $this->assertEquals('paid', MartOrder::find($order->id)->payment_status);
+    }
+
+    public function test_driver_delivery_does_not_set_payment_status_paid(): void
+    {
+        $this->seedUserLevel('customer');
+        $this->seedUserLevel('driver');
+        $customer = $this->createUser('customer');
+        $this->createUserAccount($customer);
+        $driver = $this->createUser('driver', ['username' => 'paymentdeliverydriver']);
+        $this->createUserAccount($driver);
+        DB::table('driver_details')->insert([
+            'user_id' => $driver->id, 'is_online' => 1, 'availability_status' => 'available',
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        $order = MartOrder::create([
+            'id' => Str::uuid(), 'ref_id' => 'VM-PAYTEST2',
+            'customer_id' => $customer->id, 'driver_id' => $driver->id,
+            'status' => 'picked_up', 'payment_status' => 'unpaid',
+            'total_amount' => 20.00, 'tip_amount' => 0, 'discount_amount' => 0,
+            'delivery_address' => 'No Auto Pay St',
+            'delivery_photo' => 'proof.jpg',
+            'signature_image' => 'sig.png',
+        ]);
+
+        Passport::actingAs($driver, ['AccessToDriver']);
+        $resp = $this->putJson('/api/driver/mart/update-status', [
+            'order_id' => $order->id, 'status' => 'delivered',
+        ]);
+        $resp->assertOk();
+
+        // payment_status must remain 'unpaid' — only Stripe webhook sets it to 'paid'
+        $this->assertEquals('unpaid', MartOrder::find($order->id)->payment_status);
     }
 
     // ========================================================================
