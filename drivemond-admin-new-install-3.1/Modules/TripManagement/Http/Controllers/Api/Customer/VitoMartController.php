@@ -167,6 +167,7 @@ class VitoMartController extends Controller
                         $userUsageCount = MartOrder::where('customer_id', $request->user()->id)
                             ->where('promo_code', $promo->code)
                             ->whereNotIn('status', ['cancelled'])
+                            ->lockForUpdate()
                             ->count();
 
                         if ($userUsageCount < $perUserLimit) {

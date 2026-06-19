@@ -151,6 +151,13 @@ class LocationController extends GetxController implements GetxService {
 
 
   StreamSubscription? _locationSubscription;
+
+  @override
+  void onClose() {
+    _locationSubscription?.cancel();
+    super.onClose();
+  }
+
   Future<Address?> getCurrentLocation({bool isAnimate = true, GoogleMapController? mapController, LocationType type = LocationType.from}) async {
     bool isSuccess = await checkPermission(() {});
     Address? addressModel;

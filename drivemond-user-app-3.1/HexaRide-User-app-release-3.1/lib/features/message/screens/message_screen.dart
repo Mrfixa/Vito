@@ -49,6 +49,13 @@ class _MessageScreenState extends State<MessageScreen> {
 
 
   ScrollController scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    scrollController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(

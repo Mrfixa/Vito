@@ -60,6 +60,11 @@ class _AddNewAddressState extends State<AddNewAddress> {
   }
   @override
   void dispose() {
+    nameController.dispose();
+    phoneController.dispose();
+    roadController.dispose();
+    houseController.dispose();
+    addressLevelController.dispose();
     Get.find<LocationController>().mapController?.dispose();
     _mapController?.dispose();
     super.dispose();

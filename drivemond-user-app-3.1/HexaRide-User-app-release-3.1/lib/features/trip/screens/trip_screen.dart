@@ -39,6 +39,7 @@ class _TripScreenState extends State<TripScreen> with SingleTickerProviderStateM
   @override
   void dispose() {
     tabController.dispose();
+    scrollController.dispose();
     super.dispose();
   }
 

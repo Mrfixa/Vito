@@ -102,6 +102,10 @@ class VitoStripeController extends Controller
             return response()->json(responseFormatter(DEFAULT_404), 404);
         }
 
+        if ($order->payment_status === 'paid') {
+            return response()->json(responseFormatter(DEFAULT_400, null, null, 'Order already paid'), 400);
+        }
+
         $stripeConfig = DB::table('settings')
             ->where('key_name', 'stripe')
             ->where('settings_type', PAYMENT_CONFIG)

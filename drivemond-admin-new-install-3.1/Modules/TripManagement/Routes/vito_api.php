@@ -46,7 +46,7 @@ Route::group(['prefix' => 'driver/mart', 'middleware' => ['auth:api', 'maintenan
 | VitoMart Admin API Routes
 |--------------------------------------------------------------------------
 */
-Route::group(['prefix' => 'admin/mart', 'middleware' => ['auth:api', 'maintenance_mode', 'scope:AccessToSuperAdmin']], function () {
+Route::group(['prefix' => 'admin/mart', 'middleware' => ['auth:api', 'maintenance_mode', 'scope:AccessToSuperAdmin', 'throttle:30,1']], function () {
     // Admin Mart Product API
     Route::get('products', [\Modules\TripManagement\Http\Controllers\Api\Admin\VitoMartAdminApiController::class, 'index']);
     Route::post('products', [\Modules\TripManagement\Http\Controllers\Api\Admin\VitoMartAdminApiController::class, 'store']);

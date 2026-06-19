@@ -9,6 +9,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:ride_sharing_user_app/data/api_client.dart';
 import 'package:ride_sharing_user_app/features/message/controllers/message_controller.dart';
 import 'package:ride_sharing_user_app/features/payment/controllers/payment_controller.dart';
+import 'package:ride_sharing_user_app/util/app_colors.dart';
 import 'package:ride_sharing_user_app/util/app_constants.dart';
 import 'package:ride_sharing_user_app/util/dimensions.dart';
 import 'package:ride_sharing_user_app/util/styles.dart';
@@ -232,7 +233,7 @@ class _MartOrderTrackingScreenState extends State<MartOrderTrackingScreen> {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(Dimensions.paddingSizeSmall),
-      color: Colors.amber.shade700,
+      color: AppColors.offlineWarning,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [

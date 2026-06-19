@@ -311,7 +311,7 @@ class ChatController extends GetxController implements GetxService{
 
   void subscribeMartMessageChannel(String orderId) {
     id = orderId;
-    if (Get.find<SplashController>().pusherConnectionStatus != null ||
+    if (Get.find<SplashController>().pusherConnectionStatus != null &&
         Get.find<SplashController>().pusherConnectionStatus == 'Connected') {
       // Unsubscribe previous mart channel if any
       try { _martChannel?.unsubscribe(); } catch (e) { debugPrint('Chat error: $e'); }

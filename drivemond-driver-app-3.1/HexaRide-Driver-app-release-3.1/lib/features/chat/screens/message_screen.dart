@@ -34,6 +34,13 @@ class _MessageScreenState extends State<MessageScreen> {
     Get.find<ChatController>().subscribeMessageChannel(widget.tripId);
     super.initState();
   }
+
+  @override
+  void dispose() {
+    scrollController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
