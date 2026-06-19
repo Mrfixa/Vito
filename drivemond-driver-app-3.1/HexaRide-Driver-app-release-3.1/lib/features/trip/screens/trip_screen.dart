@@ -54,6 +54,11 @@ class _TripHistoryScreenState extends State<TripHistoryScreen> {
     super.initState();
   }
 
+  @override
+  void dispose() {
+    scrollController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

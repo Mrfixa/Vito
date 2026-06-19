@@ -30,6 +30,12 @@ class _ReviewScreenState extends State<ReviewScreen> {
   }
 
   @override
+  void dispose() {
+    scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return SafeArea(
       top: false,

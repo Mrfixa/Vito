@@ -44,6 +44,12 @@ class _MartMessageScreenState extends State<MartMessageScreen> {
     _loadData();
   }
 
+  @override
+  void dispose() {
+    scrollController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadData() async {
     if (Get.find<ProfileController>().profileModel?.data?.id == null) {
       await Get.find<ProfileController>().getProfileInfo();

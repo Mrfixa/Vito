@@ -8,6 +8,7 @@ use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Modules\TripManagement\Entities\MartOrder;
 use Modules\TripManagement\Entities\MartOrderItem;
 use Modules\TripManagement\Entities\MartPromoCode;
@@ -257,6 +258,10 @@ class VitoMartDriverController extends Controller
 
     public function orderDetails(Request $request, string $id): JsonResponse
     {
+        if (!Str::isUuid($id)) {
+            return response()->json(responseFormatter(DEFAULT_404), 404);
+        }
+
         $order = MartOrder::where('id', $id)
             ->where('driver_id', $request->user()->id)
             ->with(['items.product', 'customer'])

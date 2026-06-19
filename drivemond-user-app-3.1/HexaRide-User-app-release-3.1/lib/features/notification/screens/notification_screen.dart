@@ -26,6 +26,12 @@ class _NotificationScreenState extends State<NotificationScreen> {
   }
 
   @override
+  void dispose() {
+    scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return BodyWidget(
       appBar:  AppBarWidget(title: 'notification'.tr, showBackButton: false,),

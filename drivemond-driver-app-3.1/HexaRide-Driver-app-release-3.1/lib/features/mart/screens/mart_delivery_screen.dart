@@ -605,11 +605,11 @@ class _MartDeliveryScreenState extends State<MartDeliveryScreen> {
         });
       } else {
         if (mounted) setState(() => _isUpdating = false);
-        if (mounted) Get.snackbar('error'.tr, 'status_update_failed'.tr);
+        if (mounted) showCustomSnackBar('status_update_failed'.tr);
       }
     } catch (_) {
       if (mounted) setState(() => _isUpdating = false);
-      if (mounted) Get.snackbar('error'.tr, 'network_error'.tr);
+      if (mounted) showCustomSnackBar('network_error'.tr);
     }
   }
 
@@ -652,7 +652,7 @@ class _MartDeliveryScreenState extends State<MartDeliveryScreen> {
       await _submitDeliveredStatus();
     } catch (_) {
       if (mounted) setState(() => _isUpdating = false);
-      if (mounted) Get.snackbar('error'.tr, 'network_error'.tr);
+      if (mounted) showCustomSnackBar('network_error'.tr);
     }
   }
 
@@ -672,15 +672,15 @@ class _MartDeliveryScreenState extends State<MartDeliveryScreen> {
           _isUpdating = false;
         });
         Get.back();
-        Get.snackbar('success'.tr, 'delivery_completed'.tr);
+        showCustomSnackBar('delivery_completed'.tr, isError: false);
       } else {
         if (mounted) setState(() => _isUpdating = false);
         // Proof is already uploaded; show retry button for just the status call.
-        if (mounted) Get.snackbar('error'.tr, 'delivery_status_update_failed_retry'.tr);
+        if (mounted) showCustomSnackBar('delivery_status_update_failed_retry'.tr);
       }
     } catch (_) {
       if (mounted) setState(() => _isUpdating = false);
-      if (mounted) Get.snackbar('error'.tr, 'network_error'.tr);
+      if (mounted) showCustomSnackBar('network_error'.tr);
     }
   }
 
@@ -875,5 +875,6 @@ class _SignaturePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _SignaturePainter oldDelegate) => true;
+  bool shouldRepaint(covariant _SignaturePainter oldDelegate) =>
+      points.length != oldDelegate.points.length;
 }
