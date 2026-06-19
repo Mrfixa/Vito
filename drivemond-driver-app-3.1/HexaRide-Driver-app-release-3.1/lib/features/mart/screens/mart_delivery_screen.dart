@@ -45,6 +45,13 @@ class _MartDeliveryScreenState extends State<MartDeliveryScreen> {
     _fetchOrderDetails();
   }
 
+  @override
+  void dispose() {
+    _signatureBytes = null;
+    _deliveryPhotoPath = null;
+    super.dispose();
+  }
+
   Future<void> _fetchOrderDetails() async {
     try {
       final response = await Get.find<ApiClient>().getData(

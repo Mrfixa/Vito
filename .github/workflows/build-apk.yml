@@ -7,11 +7,6 @@ on:
     branches:
       - 'claude/analyze-mart-qr-code-FySPn'
   workflow_dispatch:
-    inputs:
-      version:
-        description: 'Release version tag to create (e.g. v1.9.0)'
-        required: false
-        type: string
 
 jobs:
   build-driver-apk:
@@ -53,6 +48,18 @@ jobs:
               yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" "ndk;$VER" || true
             fi
           done
+
+      - name: Setup release keystore
+        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASS }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.KEY_PASS }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 -d > android/app/release.jks
+          printf 'storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=app/release.jks\n' \
+            "$KEYSTORE_PASS" "$KEY_PASS" "$KEY_ALIAS" > android/key.properties
 
       - name: Build debug APK
         run: |
@@ -125,6 +132,18 @@ jobs:
             fi
           done
 
+      - name: Setup release keystore
+        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASS }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.KEY_PASS }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 -d > android/app/release.jks
+          printf 'storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=app/release.jks\n' \
+            "$KEYSTORE_PASS" "$KEY_PASS" "$KEY_ALIAS" > android/key.properties
+
       - name: Build debug APK
         run: |
           flutter build apk --debug \
@@ -156,6 +175,44 @@ jobs:
           name: vito-user-release-apk
           path: vito-user-release.apk
 
+  build-admin-zip:
+    name: Build Admin ZIP
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: drivemond-admin-new-install-3.1
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring,xml,ctype,json,bcmath,pdo_mysql
+
+      - name: Install Composer dependencies (production)
+        run: composer install --no-dev --no-interaction --optimize-autoloader --ignore-platform-reqs
+
+      - name: Create release ZIP
+        working-directory: ${{ github.workspace }}
+        run: |
+          VERSION=$(grep '^version:' drivemond-user-app-3.1/HexaRide-User-app-release-3.1/pubspec.yaml | head -1 | awk '{print $2}' | cut -d'+' -f1)
+          echo "Building admin ZIP for version $VERSION"
+          zip -r "vito-admin-v${VERSION}.zip" drivemond-admin-new-install-3.1 \
+            --exclude "*/node_modules/*" \
+            --exclude "*/.git/*" \
+            --exclude "*/storage/logs/*" \
+            --exclude "*/.env" \
+            --exclude "*/storage/framework/cache/*" \
+            --exclude "*/storage/framework/views/*" \
+            --exclude "*/storage/framework/sessions/*"
+
+      - name: Upload Admin ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: vito-admin-zip
+          path: vito-admin-v*.zip
+
   laravel-checks:
     name: Laravel Backend Checks
     runs-on: ubuntu-latest
@@ -179,9 +236,8 @@ jobs:
 
   create-release:
     name: Create GitHub Release
-    needs: [build-driver-apk, build-user-apk]
+    needs: [build-driver-apk, build-user-apk, build-admin-zip]
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && github.event.inputs.version != '')
     permissions:
       contents: write
 
@@ -212,11 +268,17 @@ jobs:
           name: vito-user-release-apk
           path: release-assets/
 
+      - name: Download Admin ZIP
+        uses: actions/download-artifact@v4
+        with:
+          name: vito-admin-zip
+          path: release-assets/
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.event.inputs.version || github.ref_name }}
-          name: Vito ${{ github.event.inputs.version || github.ref_name }}
+          tag_name: ${{ github.ref_name }}
+          name: Vito ${{ github.ref_name }}
           files: release-assets/*
           generate_release_notes: true
         env:

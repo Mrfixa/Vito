@@ -5,7 +5,6 @@ import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:get/get.dart';
 import 'package:ride_sharing_user_app/features/auth/controllers/auth_controller.dart';
 import 'package:ride_sharing_user_app/features/auth/domain/enums/verification_from_enum.dart';
-import 'package:ride_sharing_user_app/features/auth/domain/models/sign_up_body.dart';
 import 'package:ride_sharing_user_app/features/auth/screens/verification_screen.dart';
 import 'package:ride_sharing_user_app/features/splash/controllers/config_controller.dart';
 import 'package:ride_sharing_user_app/helper/display_helper.dart';
@@ -17,6 +16,7 @@ import 'package:ride_sharing_user_app/common_widgets/custom_text_field.dart';
 
 class SignUpScreen extends StatefulWidget {
   final String? qrToken;
+
   const SignUpScreen({super.key, this.qrToken});
 
   @override
@@ -44,6 +44,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
     authController.countryDialCode = CountryCode.fromCountryCode(
       Get.find<ConfigController>().config!.countryCode!,
     ).dialCode!;
+    // Store the QR token so it is forwarded into SignUpBody after OTP verification.
+    authController.pendingQrToken = widget.qrToken;
   }
 
   @override
@@ -87,22 +89,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
       showCustomSnackBar('password_is_mismatch'.tr);
       FocusScope.of(context).requestFocus(_confirmPasswordNode);
     } else {
-      // QR token path: bypass OTP, register directly with PIN
-      if (widget.qrToken != null) {
-        authController.register(SignUpBody(
-          username: phone,
-          fName: fName,
-          lName: lName,
-          phone: authController.countryDialCode + phone,
-          password: password,
-          confirmPassword: confirmPassword,
-          referralCode: authController.referralCodeController.text.trim().isNotEmpty
-              ? authController.referralCodeController.text.trim()
-              : null,
-          qrToken: widget.qrToken,
-        ));
-        return;
-      }
       final fullPhone = authController.countryDialCode + phone;
       authController.checkOAuth(countryCode: authController.countryDialCode, number: phone).then((value) {
         if (value.statusCode == 200 || value.statusCode == 404) {

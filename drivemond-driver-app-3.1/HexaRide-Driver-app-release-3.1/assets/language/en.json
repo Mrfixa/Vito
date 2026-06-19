@@ -1082,10 +1082,9 @@
   "new_orders_appear_here": "New orders will appear here automatically",
   "retry_delivery": "Retry Delivery",
   "delivery_status_update_failed_retry": "Proof uploaded but status update failed. Tap Retry to try again.",
-  "pick_from_gallery": "Pick from Gallery",
-  "no_qr_found_in_image": "No QR code found in image",
   "point_camera_at_qr": "Point camera at QR code",
   "scan_qr_code": "Scan QR Code",
   "token_history": "Token History",
-  "order_chat_unavailable": "Chat unavailable until driver is assigned"
+  "order_chat_unavailable": "Chat unavailable until driver is assigned",
+  "loading": "Loading..."
 }

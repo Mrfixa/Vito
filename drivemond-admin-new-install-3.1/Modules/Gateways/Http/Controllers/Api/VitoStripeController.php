@@ -99,7 +99,7 @@ class VitoStripeController extends Controller
             ->first();
 
         if (!$order) {
-            return response()->json(responseFormatter(constant: DEFAULT_404), 404);
+            return response()->json(responseFormatter(DEFAULT_404), 404);
         }
 
         $stripeConfig = DB::table('settings')
@@ -123,7 +123,7 @@ class VitoStripeController extends Controller
             $amountCents = (int) round($order->total_amount * 100);
             $idempotencyKey = 'pi_order_' . $order->id;
 
-            $paymentIntent = retry(3, function () use ($amountCents, $order, $request, $idempotencyKey) {
+            $paymentIntent = retry(3, function () use ($amountCents, $request, $order, $idempotencyKey) {
                 return \Stripe\PaymentIntent::create(
                     [
                         'amount'   => $amountCents,
@@ -147,10 +147,7 @@ class VitoStripeController extends Controller
                     'currency'          => 'usd',
                     'status'            => 'pending',
                     'payment_intent_id' => $paymentIntent->id,
-                    'metadata'          => [
-                        'type'     => 'order_payment',
-                        'order_id' => $order->id,
-                    ],
+                    'metadata'          => ['type' => 'order_payment', 'order_id' => $order->id],
                 ]
             );
 
@@ -244,13 +241,13 @@ class VitoStripeController extends Controller
                     $user = \Modules\UserManagement\Entities\User::find($userId);
                     if ($user) {
                         $account = $user->userAccount ?? $user->userAccount()->create([
-                            'payable_balance' => 0,
-                            'receivable_balance' => 0,
-                            'received_balance' => 0,
-                            'pending_balance' => 0,
-                            'wallet_balance' => 0,
-                            'total_withdrawn' => 0,
-                            'referral_earn' => 0,
+                            'payable_balance'   => 0,
+                            'receivable_balance'=> 0,
+                            'received_balance'  => 0,
+                            'pending_balance'   => 0,
+                            'wallet_balance'    => 0,
+                            'total_withdrawn'   => 0,
+                            'referral_earn'     => 0,
                         ]);
                         $account->increment('wallet_balance', $amount);
                     }

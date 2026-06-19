@@ -71,140 +71,135 @@ class _TokenGateScreenState extends State<TokenGateScreen> {
     return PopScope(
       canPop: true,
       child: SafeArea(
-        child: Scaffold(
-          body: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(Dimensions.paddingSizeLarge),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  ColorFiltered(
-                    colorFilter: ColorFilter.mode(Theme.of(context).primaryColor, BlendMode.srcIn),
-                    child: Image.asset(Images.logo, height: 52, width: 52),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(AppConstants.appName, style: textBold.copyWith(fontSize: 20, color: Theme.of(context).primaryColor)),
-                  const SizedBox(height: Dimensions.paddingSizeExtraLarge),
+      child: Scaffold(
+        body: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(Dimensions.paddingSizeLarge),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Image.asset(Images.logoWithName, height: 60),
+                const SizedBox(height: Dimensions.paddingSizeExtraLarge),
 
-                  Icon(
-                    Icons.qr_code_scanner_rounded,
-                    size: 80,
-                    color: Theme.of(context).primaryColor,
-                  ),
-                  const SizedBox(height: Dimensions.paddingSizeLarge),
+                Icon(
+                  Icons.qr_code_scanner_rounded,
+                  size: 80,
+                  color: Theme.of(context).primaryColor,
+                ),
+                const SizedBox(height: Dimensions.paddingSizeLarge),
 
-                  Text(
-                    'invitation_required'.tr,
-                    style: textBold.copyWith(fontSize: Dimensions.fontSizeTwenty),
+                Text(
+                  'invitation_required'.tr,
+                  style: textBold.copyWith(fontSize: Dimensions.fontSizeTwenty),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: Dimensions.paddingSizeSmall),
+
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: Dimensions.paddingSizeLarge),
+                  child: Text(
+                    'scan_qr_or_enter_token'.tr,
+                    style: textRegular.copyWith(
+                      color: Theme.of(context).hintColor,
+                      fontSize: Dimensions.fontSizeSmall,
+                    ),
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: Dimensions.paddingSizeSmall),
+                ),
+                const SizedBox(height: Dimensions.paddingSizeExtraLarge),
 
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: Dimensions.paddingSizeLarge),
-                    child: Text(
-                      'scan_qr_or_enter_token'.tr,
-                      style: textRegular.copyWith(
-                        color: Theme.of(context).hintColor,
-                        fontSize: Dimensions.fontSizeSmall,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                  const SizedBox(height: Dimensions.paddingSizeExtraLarge),
-
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        HapticFeedback.mediumImpact();
-                        Get.to(() => QrScannerScreen(
-                          onTokenScanned: (token) {
-                            _tokenController.text = token;
-                            _validateToken();
-                          },
-                        ));
-                      },
-                      icon: Icon(Icons.qr_code_scanner, color: Theme.of(context).colorScheme.onPrimary),
-                      label: Text('scan_qr_code'.tr, style: textBold.copyWith(color: Theme.of(context).colorScheme.onPrimary)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(context).primaryColor,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(Dimensions.radiusDefault),
-                        ),
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      HapticFeedback.mediumImpact();
+                      Get.to(() => QrScannerScreen(
+                        onTokenScanned: (token) {
+                          _tokenController.text = token;
+                          _validateToken();
+                        },
+                      ));
+                    },
+                    icon: Icon(Icons.qr_code_scanner, color: Theme.of(context).colorScheme.onPrimary),
+                    label: Text('scan_qr_code'.tr, style: textBold.copyWith(color: Theme.of(context).colorScheme.onPrimary)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Theme.of(context).primaryColor,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(Dimensions.radiusDefault),
                       ),
                     ),
                   ),
-                  const SizedBox(height: Dimensions.paddingSizeDefault),
+                ),
+                const SizedBox(height: Dimensions.paddingSizeDefault),
 
-                  Row(
-                    children: [
-                      Expanded(child: Divider(color: Theme.of(context).hintColor.withValues(alpha: 0.3))),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: Dimensions.paddingSizeSmall),
-                        child: Text('or'.tr, style: textRegular.copyWith(color: Theme.of(context).hintColor)),
-                      ),
-                      Expanded(child: Divider(color: Theme.of(context).hintColor.withValues(alpha: 0.3))),
-                    ],
-                  ),
-                  const SizedBox(height: Dimensions.paddingSizeDefault),
-
-                  Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(Dimensions.radiusDefault),
-                      border: Border.all(
-                        color: Theme.of(context).primaryColor.withValues(alpha: 0.3),
-                      ),
+                Row(
+                  children: [
+                    Expanded(child: Divider(color: Theme.of(context).hintColor.withValues(alpha: 0.3))),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: Dimensions.paddingSizeSmall),
+                      child: Text('or'.tr, style: textRegular.copyWith(color: Theme.of(context).hintColor)),
                     ),
-                    child: TextField(
-                      controller: _tokenController,
-                      maxLength: 64,
-                      decoration: InputDecoration(
-                        hintText: 'enter_invitation_token'.tr,
-                        counterText: '',
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.all(Dimensions.paddingSizeDefault),
-                        prefixIcon: Icon(Icons.vpn_key_outlined, color: Theme.of(context).primaryColor),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: Dimensions.paddingSizeLarge),
-
-                  _isValidating
-                      ? CircularProgressIndicator(color: Theme.of(context).primaryColor)
-                      : ButtonWidget(
-                          buttonText: 'validate_token'.tr,
-                          radius: 50,
-                          onPressed: () {
-                            HapticFeedback.mediumImpact();
-                            _validateToken();
-                          },
-                        ),
-                  const SizedBox(height: Dimensions.paddingSizeDefault),
-
-                  TextButton(
-                    onPressed: () => Get.to(() => const SignInScreen()),
-                    child: Text(
-                      'already_have_account'.tr,
-                      style: textMedium.copyWith(
-                        color: Theme.of(context).primaryColor,
-                        decoration: TextDecoration.underline,
-                        decorationColor: Theme.of(context).primaryColor,
-                      ),
-                    ),
-                  ),
-
-                  if (_tokenHistory.isNotEmpty) ...[
-                    const SizedBox(height: Dimensions.paddingSizeLarge),
-                    _buildTokenHistory(context),
+                    Expanded(child: Divider(color: Theme.of(context).hintColor.withValues(alpha: 0.3))),
                   ],
+                ),
+                const SizedBox(height: Dimensions.paddingSizeDefault),
+
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(Dimensions.radiusDefault),
+                    border: Border.all(
+                      color: Theme.of(context).primaryColor.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: TextField(
+                    controller: _tokenController,
+                    maxLength: 64,
+                    decoration: InputDecoration(
+                      hintText: 'enter_invitation_token'.tr,
+                      counterText: '',
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.all(Dimensions.paddingSizeDefault),
+                      prefixIcon: Icon(Icons.vpn_key_outlined, color: Theme.of(context).primaryColor),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: Dimensions.paddingSizeLarge),
+
+                _isValidating
+                    ? CircularProgressIndicator(color: Theme.of(context).primaryColor)
+                    : ButtonWidget(
+                        buttonText: 'validate_token'.tr,
+                        radius: 50,
+                        onPressed: () {
+                          HapticFeedback.mediumImpact();
+                          _validateToken();
+                        },
+                      ),
+                const SizedBox(height: Dimensions.paddingSizeDefault),
+
+                TextButton(
+                  onPressed: () => Get.off(() => const SignInScreen()),
+                  child: Text(
+                    'already_have_account'.tr,
+                    style: textMedium.copyWith(
+                      color: Theme.of(context).primaryColor,
+                      decoration: TextDecoration.underline,
+                      decorationColor: Theme.of(context).primaryColor,
+                    ),
+                  ),
+                ),
+
+                if (_tokenHistory.isNotEmpty) ...[
+                  const SizedBox(height: Dimensions.paddingSizeLarge),
+                  _buildTokenHistory(context),
                 ],
-              ),
+              ],
             ),
           ),
         ),
       ),
+    ),
     );
   }
 
@@ -279,7 +274,7 @@ class _TokenGateScreenState extends State<TokenGateScreen> {
 
       if (response.statusCode == 200 && response.body['data']?['valid'] == true) {
         await _saveTokenToHistory(token, true);
-        Get.off(() => SignUpScreen(qrToken: token));
+        Get.to(() => SignUpScreen(qrToken: token));
       } else {
         await _saveTokenToHistory(token, false);
         showCustomSnackBar('invalid_or_expired_token'.tr);

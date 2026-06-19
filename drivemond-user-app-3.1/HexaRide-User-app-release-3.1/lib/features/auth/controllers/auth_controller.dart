@@ -44,6 +44,9 @@ class AuthController extends GetxController implements GetxService {
   TextEditingController confirmPasswordController = TextEditingController();
   TextEditingController referralCodeController = TextEditingController();
 
+  /// QR token collected by TokenGateScreen; forwarded into SignUpBody on registration.
+  String? pendingQrToken;
+
   void toggleNavigationBar(){
     showNavigationBar = false;
     update();
@@ -238,9 +241,11 @@ class AuthController extends GetxController implements GetxService {
               phone: countryDialCode + phoneController.text.trim(),
               password: passwordController.text.trim(),
               confirmPassword: confirmPasswordController.text.trim(),
-              referralCode: referralCodeController.text.trim()
+              referralCode: referralCodeController.text.trim(),
+              qrToken: pendingQrToken,
           ), updateFromRegistration: true
         );
+        pendingQrToken = null;
       }
 
     }else if(response.statusCode == 406){

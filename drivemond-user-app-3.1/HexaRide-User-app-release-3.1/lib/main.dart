@@ -16,6 +16,7 @@ import 'package:ride_sharing_user_app/theme/dark_theme.dart';
 import 'package:ride_sharing_user_app/theme/light_theme.dart';
 import 'package:ride_sharing_user_app/theme/theme_controller.dart';
 import 'package:ride_sharing_user_app/util/app_constants.dart';
+import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:ride_sharing_user_app/common_widgets/offline_banner_widget.dart';
 
 
@@ -51,6 +52,7 @@ Future<void> main() async {
   await NotificationHelper.initialize(flutterLocalNotificationsPlugin);
   FirebaseMessaging.onBackgroundMessage(myBackgroundMessageHandler);
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+  Stripe.publishableKey = const String.fromEnvironment('STRIPE_PUBLISHABLE_KEY', defaultValue: '');
   runApp(MyApp(languages: languages, notificationData: remoteMessage?.data));
 }
 

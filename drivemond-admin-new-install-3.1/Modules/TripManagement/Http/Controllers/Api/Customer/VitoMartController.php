@@ -46,12 +46,24 @@ class VitoMartController extends Controller
     public function applyPromo(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'code' => 'required|string|max:50',
-            'subtotal' => 'required|numeric|min:0',
+            'code'               => 'required|string|max:50',
+            'items'              => 'required|array|min:1',
+            'items.*.product_id' => 'required|string',
+            'items.*.quantity'   => 'required|integer|min:1|max:100',
         ]);
 
         if ($validator->fails()) {
             return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 422);
+        }
+
+        // Compute subtotal server-side — never trust client-sent prices
+        $subtotal = 0;
+        foreach ($request->items as $item) {
+            $product = MartProduct::where('id', $item['product_id'])->where('is_active', true)->first();
+            if (!$product) {
+                return response()->json(responseFormatter(constant: DEFAULT_404, errors: [['message' => 'One or more products not found']]), 404);
+            }
+            $subtotal += $product->price * (int) $item['quantity'];
         }
 
         $promo = MartPromoCode::where('code', strtoupper(trim($request->code)))->first();
@@ -60,16 +72,16 @@ class VitoMartController extends Controller
             return response()->json(responseFormatter(constant: DEFAULT_404, errors: [['message' => 'Invalid or expired promo code']]), 404);
         }
 
-        $discount = $promo->computeDiscount((float) $request->subtotal);
+        $discount = $promo->computeDiscount((float) $subtotal);
 
         if ($discount <= 0) {
             return response()->json(responseFormatter(constant: DEFAULT_400, errors: [['message' => 'Order does not meet the minimum amount for this promo']]), 400);
         }
 
         return response()->json(responseFormatter(DEFAULT_200, [
-            'code' => $promo->code,
-            'discount' => $discount,
-            'discount_type' => $promo->discount_type,
+            'code'           => $promo->code,
+            'discount'       => $discount,
+            'discount_type'  => $promo->discount_type,
             'discount_value' => $promo->discount_value,
         ]));
     }
@@ -111,7 +123,7 @@ class VitoMartController extends Controller
 
                 foreach ($items as $item) {
                     if ($item['quantity'] > 100) {
-                        throw new \RuntimeException('Quantity exceeds maximum (100) for product: ' . ($item['product_id'] ?? ''));
+                        throw new \RuntimeException('Quantity exceeds maximum (100) per product.');
                     }
 
                     $product = MartProduct::where('id', $item['product_id'])
@@ -120,7 +132,7 @@ class VitoMartController extends Controller
                         ->first();
 
                     if (!$product || $product->stock < $item['quantity']) {
-                        throw new \RuntimeException('Product unavailable or insufficient stock: ' . ($item['product_id'] ?? ''));
+                        throw new \RuntimeException('One or more products are unavailable or out of stock.');
                     }
 
                     $product->decrement('stock', $item['quantity']);

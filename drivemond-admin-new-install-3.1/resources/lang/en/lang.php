@@ -4425,4 +4425,5 @@
   'The external token field is required.' => 'The external token field is required.',
   'The external base url field is required.' => 'The external base url field is required.',
   'The token field is required.' => 'The token field is required.',
+  'The items field is required.' => 'The items field is required.',
 );

@@ -1082,10 +1082,9 @@
   "new_orders_appear_here": "Los nuevos pedidos aparecerán aquí automáticamente",
   "retry_delivery": "Reintentar entrega",
   "delivery_status_update_failed_retry": "Prueba subida pero la actualización de estado falló. Toca Reintentar para volver a intentarlo.",
-  "pick_from_gallery": "Elegir de la galería",
-  "no_qr_found_in_image": "No se encontró código QR en la imagen",
   "point_camera_at_qr": "Apunte la cámara al código QR",
   "scan_qr_code": "Escanear código QR",
   "token_history": "Historial de tokens",
-  "order_chat_unavailable": "Chat no disponible hasta que se asigne un conductor"
+  "order_chat_unavailable": "Chat no disponible hasta que se asigne un conductor",
+  "loading": "Cargando..."
 }

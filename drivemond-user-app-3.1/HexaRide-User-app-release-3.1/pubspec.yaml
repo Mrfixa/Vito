@@ -1,6 +1,6 @@
 name: ride_sharing_user_app
 description: A ride sharing Flutter project.
-version: 1.10.0+16
+version: 2.0.0+17
 publish_to: 'none'
 
 environment:
@@ -60,11 +60,11 @@ dependencies:
   phone_numbers_parser: ^9.0.19
   flutter_keyboard_visibility: ^6.0.0
   mobile_scanner: ^6.0.2
-  flutter_stripe: ^11.4.0
   lottie: ^3.3.2
   sqflite: ^2.4.1
   path: ^1.9.1
   firebase_crashlytics: ^5.0.7
+  flutter_stripe: ^11.4.0
 
 dev_dependencies:
   flutter_test:

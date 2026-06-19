@@ -67,34 +67,48 @@ class VitoAuthController extends Controller
         $hitLimit = businessConfig('maximum_login_hit')?->value ?? 5;
         $blockTime = businessConfig('temporary_login_block_time')?->value ?? 60;
 
-        if ($user->is_temp_blocked || $user->pin_blocked_at) {
-            $blockedAt = $user->pin_blocked_at;
-            if ($blockedAt) {
-                $secondsPassed = Carbon::now()->diffInSeconds(Carbon::parse($blockedAt), true);
-                if ($secondsPassed <= $blockTime) {
-                    $time = $blockTime - $secondsPassed;
-                    return response()->json([
-                        'response_code' => 'too_many_attempt_405',
-                        'message' => translate('please_try_again_after_') . CarbonInterval::seconds($time)->cascade()->forHumans(),
-                    ], 403);
+        $loginResult = DB::transaction(function () use ($user, $request, $hitLimit, $blockTime) {
+            // Re-fetch with row lock for atomicity
+            $user = \Modules\UserManagement\Entities\User::where('id', $user->id)->lockForUpdate()->first();
+
+            if ($user->is_temp_blocked || $user->pin_blocked_at) {
+                $blockedAt = $user->pin_blocked_at;
+                if ($blockedAt) {
+                    $secondsPassed = Carbon::now()->diffInSeconds(Carbon::parse($blockedAt), true);
+                    if ($secondsPassed <= $blockTime) {
+                        $time = $blockTime - $secondsPassed;
+                        return ['blocked' => true, 'time' => $time];
+                    }
                 }
+                $user->pin_attempts = 0;
+                $user->is_temp_blocked = 0;
+                $user->pin_blocked_at = null;
+                $user->save();
             }
 
-            $user->pin_attempts = 0;
-            $user->is_temp_blocked = 0;
-            $user->pin_blocked_at = null;
-            $user->save();
+            if (!$user->pin_hash || !Hash::check($request->pin, $user->pin_hash)) {
+                $user->pin_attempts = ($user->pin_attempts ?? 0) + 1;
+                if ($user->pin_attempts >= (int)$hitLimit) {
+                    $user->is_temp_blocked = 1;
+                    $user->pin_blocked_at = now();
+                }
+                $user->save();
+                return ['blocked' => false, 'failed' => true];
+            }
+
+            return ['user' => $user, 'blocked' => false, 'failed' => false];
+        });
+
+        if ($loginResult['blocked'] ?? false) {
+            return response()->json([
+                'response_code' => 'too_many_attempt_405',
+                'message' => translate('please_try_again_after_') . CarbonInterval::seconds($loginResult['time'])->cascade()->forHumans(),
+            ], 403);
         }
-
-        if (!$user->pin_hash || !Hash::check($request->pin, $user->pin_hash)) {
-            $user->pin_attempts = ($user->pin_attempts ?? 0) + 1;
-            if ($user->pin_attempts >= (int)$hitLimit) {
-                $user->is_temp_blocked = 1;
-                $user->pin_blocked_at = now();
-            }
-            $user->save();
+        if ($loginResult['failed'] ?? false) {
             return response()->json(responseFormatter(AUTH_LOGIN_401), 403);
         }
+        $user = $loginResult['user'];
 
         if (!$user->is_active) {
             $user->update(['pin_attempts' => 0]);

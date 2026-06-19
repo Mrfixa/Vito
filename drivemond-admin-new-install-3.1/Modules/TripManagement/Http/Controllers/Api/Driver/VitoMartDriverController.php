@@ -39,6 +39,11 @@ class VitoMartDriverController extends Controller
             return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 422);
         }
 
+        $driver = $request->user()->driverDetails;
+        if (!$driver || !$driver->is_approved) {
+            return response()->json(responseFormatter(DEFAULT_403), 403);
+        }
+
         $order = DB::transaction(function () use ($request) {
             $order = MartOrder::where('id', $request->order_id)
                 ->where('status', 'pending')

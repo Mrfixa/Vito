@@ -18,6 +18,7 @@ import 'package:ride_sharing_user_app/features/ride/controllers/ride_controller.
 import 'package:ride_sharing_user_app/common_widgets/app_bar_widget.dart';
 import 'package:ride_sharing_user_app/common_widgets/body_widget.dart';
 import 'package:ride_sharing_user_app/common_widgets/button_widget.dart';
+import 'package:ride_sharing_user_app/util/app_colors.dart';
 
 class ParcelScreen extends StatefulWidget {
   const ParcelScreen({super.key});
@@ -75,9 +76,9 @@ class _ParcelScreenState extends State<ParcelScreen> {
                     vertical: Dimensions.paddingSizeSmall,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.amber.shade700,
+                    color: AppColors.offlineWarning,
                     borderRadius: BorderRadius.circular(Dimensions.radiusSmall),
-                    boxShadow: [BoxShadow(color: Colors.amber.withValues(alpha: 0.35), blurRadius: 6, offset: const Offset(0, 2))],
+                    boxShadow: [BoxShadow(color: AppColors.offlineWarning.withValues(alpha: 0.35), blurRadius: 6, offset: const Offset(0, 2))],
                   ),
                   child: Row(children: [
                     const Icon(Icons.wifi_off, color: Colors.white, size: 20),

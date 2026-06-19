@@ -11,6 +11,7 @@ import 'package:ride_sharing_user_app/util/styles.dart';
 import 'package:ride_sharing_user_app/common_widgets/app_bar_widget.dart';
 import 'package:ride_sharing_user_app/features/mart/screens/mart_order_tracking_screen.dart';
 import 'package:ride_sharing_user_app/features/mart/screens/mart_payment_screen.dart';
+import 'package:ride_sharing_user_app/util/app_colors.dart';
 
 class MartStoreScreen extends StatefulWidget {
   const MartStoreScreen({super.key});
@@ -121,7 +122,7 @@ class _MartStoreScreenState extends State<MartStoreScreen> {
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(Dimensions.paddingSizeSmall),
-          color: Colors.amber.shade700,
+          color: AppColors.offlineWarning,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [

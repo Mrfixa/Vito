@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:just_the_tooltip/just_the_tooltip.dart';
 import 'package:ride_sharing_user_app/features/auth/controllers/auth_controller.dart';
+import 'package:ride_sharing_user_app/util/app_colors.dart';
 import 'package:ride_sharing_user_app/features/home/widgets/banner_view.dart';
 import 'package:ride_sharing_user_app/features/home/widgets/best_offers_widget.dart';
 import 'package:ride_sharing_user_app/features/home/widgets/category_view.dart';
@@ -452,7 +453,7 @@ class _ServiceCardsRow extends StatelessWidget {
           icon: Icons.inventory_2_outlined,
           label: 'vito_send'.tr,
           subtitle: 'send_package'.tr,
-          color: Colors.deepOrange.shade600,
+          color: AppColors.rideService,
           onTap: () => Get.to(() => const ParcelScreen()),
         ),
         const SizedBox(width: Dimensions.paddingSizeSmall),
@@ -460,7 +461,7 @@ class _ServiceCardsRow extends StatelessWidget {
           icon: Icons.storefront_outlined,
           label: 'vito_mart'.tr,
           subtitle: 'shop_mart'.tr,
-          color: Colors.green.shade700,
+          color: AppColors.parcelService,
           onTap: () => Get.to(() => const MartStoreScreen()),
         ),
       ],
