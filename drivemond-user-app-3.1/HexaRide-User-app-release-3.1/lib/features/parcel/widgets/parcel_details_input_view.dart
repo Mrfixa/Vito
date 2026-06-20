@@ -65,7 +65,7 @@ class _ParcelDetailInputViewState extends State<ParcelDetailInputView> with Sing
 
                   if(_showErrorWeightCapacity())
                   Align(alignment: Alignment.centerRight, child: Text(
-                      'Max Capacity ${Get.find<ConfigController>().config?.maximumParcelWeightCapacity} Kg',
+                      '${'max_capacity'.tr} ${Get.find<ConfigController>().config?.maximumParcelWeightCapacity} ${'kg'.tr}',
                     style: textRegular.copyWith(fontSize: Dimensions.fontSizeSmall,color: Theme.of(context).colorScheme.error),
                   )),
                   const SizedBox(height: Dimensions.paddingSizeDefault),

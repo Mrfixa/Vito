@@ -257,6 +257,73 @@ class VitoStripeController extends Controller
                     }
                 }
             });
+        } elseif ($eventType === 'payment_intent.payment_failed' && $data) {
+            // Mark the stored event + any associated order as failed so the client
+            // and reporting reflect the declined charge.
+            $paymentIntentId = is_object($data) ? $data->id : ($data['id'] ?? '');
+            try {
+                DB::transaction(function () use ($paymentIntentId) {
+                    $stripeEvent = StripeEvent::where('payment_intent_id', $paymentIntentId)
+                        ->lockForUpdate()
+                        ->first();
+                    if ($stripeEvent && $stripeEvent->status !== 'succeeded') {
+                        $stripeEvent->update(['status' => 'failed']);
+                        $meta = $stripeEvent->metadata ?? [];
+                        if (($meta['type'] ?? null) === 'order_payment' && !empty($meta['order_id'])) {
+                            MartOrder::where('id', $meta['order_id'])->update(['payment_status' => 'failed']);
+                        }
+                    }
+                });
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('Stripe payment_failed handling error: ' . $e->getMessage());
+            }
+        } elseif ($eventType === 'charge.refunded' && $data) {
+            // Reconcile a refund issued from the Stripe side: flag the order refunded
+            // or reverse a wallet top-up. Idempotent on the Stripe event id.
+            $paymentIntentId = is_object($data)
+                ? ($data->payment_intent ?? '')
+                : ($data['payment_intent'] ?? '');
+            try {
+                DB::transaction(function () use ($paymentIntentId, $stripeEventId) {
+                    $stripeEvent = StripeEvent::where('payment_intent_id', $paymentIntentId)
+                        ->where('payment_intent_id', '!=', '')
+                        ->lockForUpdate()
+                        ->first();
+                    if (!$stripeEvent) {
+                        return;
+                    }
+                    $meta = $stripeEvent->metadata ?? [];
+                    if (($meta['type'] ?? null) === 'order_payment' && !empty($meta['order_id'])) {
+                        MartOrder::where('id', $meta['order_id'])->update(['payment_status' => 'refunded']);
+                    } elseif ($stripeEvent->status === 'succeeded' && $stripeEvent->user_id) {
+                        // Reverse the wallet credit (guard against negative balance).
+                        $user = \Modules\UserManagement\Entities\User::find($stripeEvent->user_id);
+                        if ($user && $user->userAccount) {
+                            $reverse = min((float) $stripeEvent->amount, (float) $user->userAccount->wallet_balance);
+                            if ($reverse > 0) {
+                                $user->userAccount->decrement('wallet_balance', $reverse);
+                            }
+                        }
+                    }
+                    StripeEvent::firstOrCreate(
+                        ['stripe_event_id' => $stripeEventId ?: ('refund_' . $paymentIntentId)],
+                        [
+                            'type'              => 'charge.refunded',
+                            'user_id'           => $stripeEvent->user_id,
+                            'amount'            => $stripeEvent->amount,
+                            'currency'          => $stripeEvent->currency ?? 'usd',
+                            'status'            => 'succeeded',
+                            'payment_intent_id' => $paymentIntentId,
+                            'metadata'          => ['type' => 'refund'],
+                        ]
+                    );
+                });
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('Stripe charge.refunded handling error: ' . $e->getMessage());
+            }
+        } else {
+            // Unknown / unhandled event type — acknowledge so Stripe stops retrying.
+            \Illuminate\Support\Facades\Log::debug('Unhandled Stripe event type: ' . $eventType);
         }
 
         return response()->json(responseFormatter(DEFAULT_200));

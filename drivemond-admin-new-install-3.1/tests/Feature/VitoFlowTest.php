@@ -344,6 +344,9 @@ class VitoFlowTest extends TestCase
                 $table->string('signature_image')->nullable();
                 $table->string('delivery_photo')->nullable();
                 $table->text('notes')->nullable();
+                $table->string('cancellation_reason', 255)->nullable();
+                $table->string('cancelled_by', 20)->nullable();
+                $table->timestamp('cancelled_at')->nullable();
                 $table->timestamps();
                 $table->softDeletes();
             });
@@ -2865,5 +2868,176 @@ class VitoFlowTest extends TestCase
         });
 
         $this->assertEquals('paid', MartOrder::find($order->id)->payment_status);
+    }
+
+    // ========================================================================
+    // New mart order is created with payment_method = cash
+    // ========================================================================
+
+    public function test_mart_order_defaults_payment_method_cash(): void
+    {
+        $customer = $this->createUser('customer');
+        Passport::actingAs($customer, ['AccessToCustomer']);
+
+        $product = MartProduct::create([
+            'name' => 'Default PM Item', 'price' => 8.00, 'stock' => 10, 'is_active' => true,
+        ]);
+
+        $r = $this->postJson('/api/customer/mart/order', [
+            'items' => [['product_id' => $product->id, 'quantity' => 1]],
+            'delivery_address' => 'PM St',
+        ]);
+        $r->assertOk();
+        $order = MartOrder::find($r->json('data.id'));
+        $this->assertEquals('cash', $order->payment_method);
+        $this->assertEquals('unpaid', $order->payment_status);
+    }
+
+    // ========================================================================
+    // Reject the null-island (0,0) delivery coordinate
+    // ========================================================================
+
+    public function test_mart_order_rejects_zero_coordinates(): void
+    {
+        $customer = $this->createUser('customer');
+        Passport::actingAs($customer, ['AccessToCustomer']);
+
+        $product = MartProduct::create([
+            'name' => 'Geo Item', 'price' => 5.00, 'stock' => 10, 'is_active' => true,
+        ]);
+
+        $r = $this->postJson('/api/customer/mart/order', [
+            'items' => [['product_id' => $product->id, 'quantity' => 1]],
+            'delivery_address' => 'Nowhere',
+            'delivery_lat' => 0,
+            'delivery_lng' => 0,
+        ]);
+        $r->assertStatus(422);
+    }
+
+    // ========================================================================
+    // Customer cancellation records reason + cancelled_by + cancelled_at
+    // ========================================================================
+
+    public function test_mart_cancel_records_reason(): void
+    {
+        $customer = $this->createUser('customer');
+        $product = MartProduct::create([
+            'name' => 'Reason Item', 'price' => 5.00, 'stock' => 9, 'is_active' => true,
+        ]);
+        $order = MartOrder::create([
+            'ref_id' => 'VM-REASON01', 'customer_id' => $customer->id,
+            'status' => 'pending', 'total_amount' => 5.00, 'delivery_address' => 'Reason St',
+        ]);
+        MartOrderItem::create([
+            'order_id' => $order->id, 'product_id' => $product->id,
+            'quantity' => 1, 'unit_price' => 5.00, 'total_price' => 5.00,
+        ]);
+
+        Passport::actingAs($customer, ['AccessToCustomer']);
+        $r = $this->putJson("/api/customer/mart/orders/{$order->id}/cancel", [
+            'reason' => 'Changed my mind',
+        ]);
+        $r->assertOk();
+
+        $fresh = MartOrder::find($order->id);
+        $this->assertEquals('cancelled', $fresh->status);
+        $this->assertEquals('Changed my mind', $fresh->cancellation_reason);
+        $this->assertEquals('customer', $fresh->cancelled_by);
+        $this->assertNotNull($fresh->cancelled_at);
+    }
+
+    // ========================================================================
+    // Cancelling a PAID order flags it for refund (no Stripe config in tests)
+    // ========================================================================
+
+    public function test_mart_cancel_paid_order_marks_refund_pending(): void
+    {
+        $customer = $this->createUser('customer');
+        $product = MartProduct::create([
+            'name' => 'Paid Item', 'price' => 12.00, 'stock' => 5, 'is_active' => true,
+        ]);
+        $order = MartOrder::create([
+            'ref_id' => 'VM-PAID0001', 'customer_id' => $customer->id,
+            'status' => 'accepted', 'total_amount' => 12.00,
+            'payment_status' => 'paid', 'payment_method' => 'stripe',
+            'delivery_address' => 'Paid St',
+        ]);
+        MartOrderItem::create([
+            'order_id' => $order->id, 'product_id' => $product->id,
+            'quantity' => 1, 'unit_price' => 12.00, 'total_price' => 12.00,
+        ]);
+
+        Passport::actingAs($customer, ['AccessToCustomer']);
+        $r = $this->putJson("/api/customer/mart/orders/{$order->id}/cancel");
+        $r->assertOk();
+
+        $fresh = MartOrder::find($order->id);
+        $this->assertEquals('cancelled', $fresh->status);
+        // No Stripe configured in the test env → refund deferred, not silently lost.
+        $this->assertEquals('refund_pending', $fresh->payment_status);
+    }
+
+    // ========================================================================
+    // Promo with a non-positive discount_value never inflates the total
+    // ========================================================================
+
+    public function test_promo_negative_discount_value_ignored(): void
+    {
+        $customer = $this->createUser('customer');
+        Passport::actingAs($customer, ['AccessToCustomer']);
+
+        MartPromoCode::create([
+            'code' => 'BADPROMO', 'discount_type' => 'fixed', 'discount_value' => -50.00,
+            'min_order_amount' => 0, 'is_active' => true,
+        ]);
+        $product = MartProduct::create([
+            'name' => 'Neg Item', 'price' => 10.00, 'stock' => 10, 'is_active' => true,
+        ]);
+
+        $r = $this->postJson('/api/customer/mart/order', [
+            'items' => [['product_id' => $product->id, 'quantity' => 1]],
+            'delivery_address' => 'Neg St',
+            'promo_code' => 'BADPROMO',
+        ]);
+        $r->assertOk();
+        $order = MartOrder::find($r->json('data.id'));
+        // Total stays at product price; no negative discount applied.
+        $this->assertEquals('10.00', $order->total_amount);
+        $this->assertEquals('0.00', $order->discount_amount);
+    }
+
+    // ========================================================================
+    // Driver cancellation records reason + cancelled_by = driver
+    // ========================================================================
+
+    public function test_driver_cancel_records_reason(): void
+    {
+        $driver = $this->createUser('driver');
+        $customer = $this->createUser('customer');
+        $product = MartProduct::create([
+            'name' => 'DrvCancel Item', 'price' => 6.00, 'stock' => 9, 'is_active' => true,
+        ]);
+        $order = MartOrder::create([
+            'ref_id' => 'VM-DRVCAN01', 'customer_id' => $customer->id,
+            'driver_id' => $driver->id, 'status' => 'accepted',
+            'total_amount' => 6.00, 'delivery_address' => 'Drv St',
+        ]);
+        MartOrderItem::create([
+            'order_id' => $order->id, 'product_id' => $product->id,
+            'quantity' => 1, 'unit_price' => 6.00, 'total_price' => 6.00,
+        ]);
+
+        Passport::actingAs($driver, ['AccessToDriver']);
+        $r = $this->putJson('/api/driver/mart/update-status', [
+            'order_id' => $order->id, 'status' => 'cancelled', 'reason' => 'Vehicle issue',
+        ]);
+        $r->assertOk();
+
+        $fresh = MartOrder::find($order->id);
+        $this->assertEquals('cancelled', $fresh->status);
+        $this->assertEquals('Vehicle issue', $fresh->cancellation_reason);
+        $this->assertEquals('driver', $fresh->cancelled_by);
+        $this->assertNotNull($fresh->cancelled_at);
     }
 }

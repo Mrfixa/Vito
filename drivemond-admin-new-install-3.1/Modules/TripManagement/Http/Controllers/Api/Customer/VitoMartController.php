@@ -12,6 +12,7 @@ use Modules\TripManagement\Entities\MartOrder;
 use Modules\TripManagement\Entities\MartOrderItem;
 use Modules\TripManagement\Entities\MartProduct;
 use Modules\TripManagement\Entities\MartPromoCode;
+use Modules\TripManagement\Entities\StripeEvent;
 use Modules\UserManagement\Entities\User;
 
 class VitoMartController extends Controller
@@ -104,6 +105,16 @@ class VitoMartController extends Controller
             return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 422);
         }
 
+        // Reject the "null island" (0,0) coordinate — almost always a client bug
+        // (uninitialised location) and would break delivery routing.
+        if ($request->filled('delivery_lat') && $request->filled('delivery_lng')
+            && (float) $request->delivery_lat === 0.0 && (float) $request->delivery_lng === 0.0) {
+            return response()->json(responseFormatter(
+                constant: DEFAULT_400,
+                errors: [['message' => 'Invalid delivery location.']]
+            ), 422);
+        }
+
         try {
             $order = DB::transaction(function () use ($request) {
                 $subtotal = 0;
@@ -188,6 +199,8 @@ class VitoMartController extends Controller
                     'tip_amount' => $tipAmount,
                     'discount_amount' => $discountAmount,
                     'promo_code' => $appliedPromoCode,
+                    'payment_status' => 'unpaid',
+                    'payment_method' => 'cash',
                     'delivery_address' => $request->delivery_address,
                     'delivery_lat' => $request->delivery_lat,
                     'delivery_lng' => $request->delivery_lng,
@@ -237,6 +250,13 @@ class VitoMartController extends Controller
 
     public function cancelOrder(Request $request, string $id): JsonResponse
     {
+        $validator = Validator::make($request->all(), [
+            'reason' => 'nullable|string|max:255',
+        ]);
+        if ($validator->fails()) {
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 422);
+        }
+
         $result = DB::transaction(function () use ($request, $id) {
             $order = MartOrder::where('id', $id)
                 ->where('customer_id', $request->user()->id)
@@ -249,6 +269,7 @@ class VitoMartController extends Controller
             }
 
             $previousDriverId = $order->driver_id;
+            $wasPaid = $order->payment_status === 'paid';
 
             foreach ($order->items as $item) {
                 $lockedProduct = $item->product()->withTrashed()->lockForUpdate()->first();
@@ -266,12 +287,31 @@ class VitoMartController extends Controller
                 }
             }
 
-            $order->update(['status' => 'cancelled', 'driver_id' => null]);
-            return ['order' => $order, 'driver_id' => $previousDriverId];
+            $order->update([
+                'status' => 'cancelled',
+                'driver_id' => null,
+                'cancellation_reason' => $request->input('reason'),
+                'cancelled_by' => 'customer',
+                'cancelled_at' => now(),
+            ]);
+            return ['order' => $order, 'driver_id' => $previousDriverId, 'was_paid' => $wasPaid];
         });
 
         if (!$result) {
             return response()->json(responseFormatter(DEFAULT_404), 404);
+        }
+
+        // Issue a refund for already-paid orders. The Stripe call happens after the
+        // transaction commits so we never hold DB locks during an external request.
+        // Failures never block cancellation — the order is flagged 'refund_pending'
+        // for an operator/cron to retry.
+        if (!empty($result['was_paid'])) {
+            $newPaymentStatus = $this->refundOrderPayment($result['order']);
+            try {
+                $result['order']->update(['payment_status' => $newPaymentStatus]);
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('Mart refund status update failed: ' . $e->getMessage());
+            }
         }
 
         try {
@@ -306,6 +346,65 @@ class VitoMartController extends Controller
         }
 
         return response()->json(responseFormatter(DEFAULT_200));
+    }
+
+    /**
+     * Attempt to refund a paid mart order through Stripe.
+     * Returns the new payment_status: 'refunded' on success, 'refund_pending'
+     * when Stripe is unconfigured/unreachable or no payment record is found.
+     * Never throws — cancellation must always succeed.
+     */
+    private function refundOrderPayment(MartOrder $order): string
+    {
+        try {
+            $stripeConfig = DB::table('settings')
+                ->where('key_name', 'stripe')
+                ->where('settings_type', PAYMENT_CONFIG)
+                ->first();
+            if (!$stripeConfig) {
+                return 'refund_pending';
+            }
+            $stripeValues = $stripeConfig->mode === 'live'
+                ? json_decode($stripeConfig->live_values, true)
+                : json_decode($stripeConfig->test_values, true);
+            $stripeSecret = $stripeValues['api_key'] ?? null;
+            if (!$stripeSecret) {
+                return 'refund_pending';
+            }
+
+            // Locate the succeeded PaymentIntent for this order.
+            $event = StripeEvent::where('payment_intent_id', '!=', '')
+                ->where('status', 'succeeded')
+                ->whereJsonContains('metadata->order_id', $order->id)
+                ->latest()
+                ->first();
+
+            if (!$event || !$event->payment_intent_id) {
+                return 'refund_pending';
+            }
+
+            \Stripe\Stripe::setApiKey($stripeSecret);
+            \Stripe\Refund::create(
+                ['payment_intent' => $event->payment_intent_id],
+                ['idempotency_key' => 'refund_order_' . $order->id]
+            );
+
+            StripeEvent::create([
+                'stripe_event_id'   => 'refund_' . $order->id,
+                'type'              => 'charge.refunded',
+                'user_id'           => $order->customer_id,
+                'amount'            => $order->total_amount,
+                'currency'          => 'usd',
+                'status'            => 'succeeded',
+                'payment_intent_id' => $event->payment_intent_id,
+                'metadata'          => ['type' => 'order_refund', 'order_id' => $order->id],
+            ]);
+
+            return 'refunded';
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Mart order refund failed: ' . $e->getMessage());
+            return 'refund_pending';
+        }
     }
 
     private function notifyDriversNewOrder(MartOrder $order): void

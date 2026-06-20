@@ -84,6 +84,7 @@ class VitoMartDriverController extends Controller
         $validator = Validator::make($request->all(), [
             'order_id' => 'required|string',
             'status' => 'required|in:picked_up,delivered,cancelled',
+            'reason' => 'nullable|string|max:255',
         ]);
 
         if ($validator->fails()) {
@@ -144,6 +145,9 @@ class VitoMartDriverController extends Controller
                 }
                 // Release driver so they can accept another order.
                 $updateData['driver_id'] = null;
+                $updateData['cancellation_reason'] = $request->input('reason');
+                $updateData['cancelled_by'] = 'driver';
+                $updateData['cancelled_at'] = now();
             }
 
             $order->update($updateData);

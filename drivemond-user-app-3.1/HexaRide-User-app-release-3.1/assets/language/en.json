@@ -1086,5 +1086,7 @@
   "order_chat_unavailable": "Chat unavailable until driver is assigned",
   "processing_payment": "Processing payment...",
   "order_payment": "Order Payment",
-  "loading": "Loading..."
+  "loading": "Loading...",
+  "max_capacity": "Max Capacity",
+  "kg": "Kg"
 }

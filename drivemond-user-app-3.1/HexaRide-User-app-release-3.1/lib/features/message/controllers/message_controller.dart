@@ -156,13 +156,18 @@ class MessageController extends GetxController implements GetxService{
 
   Future<void> createChannel(String userId, String? tripId) async{
     isLoading = true;
+    update();
     Response response = await messageServiceInterface.createChannel(userId,tripId!);
     if(response.statusCode == 200){
       isLoading = false;
-      Map map = response.body;
-      String channelId = map['data']['channel']['id'];
-      String tripId = map['data']['channel']['trip_id'];
-      Get.to(()=> MessageScreen(channelId : channelId, tripId: tripId,userName:  '${map['data']['user']['first_name']} ${map['data']['user']['last_name']}'));
+      final channel = (response.body is Map) ? response.body['data']?['channel'] : null;
+      if (channel == null || channel['id'] == null) {
+        update();
+        showCustomSnackBar('channel_creation_failed'.tr, isError: true);
+        return;
+      }
+      final user = response.body['data']?['user'] ?? {};
+      Get.to(()=> MessageScreen(channelId : channel['id'].toString(), tripId: (channel['trip_id'] ?? tripId).toString(), userName:  '${user['first_name'] ?? ''} ${user['last_name'] ?? ''}'.trim()));
     }else{
       isLoading = false;
       ApiChecker.checkApi(response);

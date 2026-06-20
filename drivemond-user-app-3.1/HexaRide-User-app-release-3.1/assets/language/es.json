@@ -1086,5 +1086,7 @@
   "order_chat_unavailable": "Chat no disponible hasta que se asigne un conductor",
   "processing_payment": "Procesando pago...",
   "order_payment": "Pago de pedido",
-  "loading": "Cargando..."
+  "loading": "Cargando...",
+  "max_capacity": "Capacidad Máxima",
+  "kg": "Kg"
 }

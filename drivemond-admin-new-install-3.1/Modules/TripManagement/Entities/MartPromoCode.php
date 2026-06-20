@@ -51,6 +51,12 @@ class MartPromoCode extends Model
             return 0.0;
         }
 
+        // Guard against misconfigured promos: a negative discount_value would
+        // otherwise inflate the order total (overcharging the customer).
+        if ((float) $this->discount_value <= 0) {
+            return 0.0;
+        }
+
         $discount = $this->discount_type === 'percent'
             ? $subtotal * ($this->discount_value / 100)
             : (float) $this->discount_value;

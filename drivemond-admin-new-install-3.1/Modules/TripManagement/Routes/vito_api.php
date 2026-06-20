@@ -18,7 +18,7 @@ Route::group(['prefix' => 'customer/mart', 'middleware' => ['auth:api', 'mainten
         Route::middleware(['throttle:10,1', 'idempotent'])->post('order', 'createOrder');
         Route::get('orders', 'orderList');
         Route::get('orders/{id}', 'orderDetails');
-        Route::put('orders/{id}/cancel', 'cancelOrder');
+        Route::middleware('throttle:20,1')->put('orders/{id}/cancel', 'cancelOrder');
     });
 });
 
@@ -30,8 +30,8 @@ Route::group(['prefix' => 'customer/mart', 'middleware' => ['auth:api', 'mainten
 Route::group(['prefix' => 'driver/mart', 'middleware' => ['auth:api', 'maintenance_mode', 'scope:AccessToDriver']], function () {
     Route::controller(VitoMartDriverController::class)->group(function () {
         Route::get('pending-orders', 'pendingOrders');
-        Route::post('accept-order', 'acceptOrder');
-        Route::put('update-status', 'updateStatus');
+        Route::middleware(['throttle:30,1', 'idempotent'])->post('accept-order', 'acceptOrder');
+        Route::middleware('throttle:60,1')->put('update-status', 'updateStatus');
         Route::middleware('throttle:10,1')->post('upload-proof', 'uploadDeliveryProof');
         Route::get('my-orders', 'myOrders');
         Route::get('orders/{id}', 'orderDetails');

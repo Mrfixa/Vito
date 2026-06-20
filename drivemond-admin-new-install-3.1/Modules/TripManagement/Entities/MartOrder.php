@@ -32,6 +32,9 @@ class MartOrder extends Model
         'signature_image',
         'delivery_photo',
         'notes',
+        'cancellation_reason',
+        'cancelled_by',
+        'cancelled_at',
     ];
 
     protected $casts = [
@@ -40,6 +43,7 @@ class MartOrder extends Model
         'discount_amount' => 'decimal:2',
         'delivery_lat' => 'decimal:7',
         'delivery_lng' => 'decimal:7',
+        'cancelled_at' => 'datetime',
     ];
 
     public function customer()

@@ -16,6 +16,7 @@ import 'package:ride_sharing_user_app/common_widgets/snackbar_widget.dart';
 import 'package:ride_sharing_user_app/features/mart/screens/mart_driver_message_screen.dart';
 import 'package:ride_sharing_user_app/features/splash/controllers/splash_controller.dart';
 import 'package:ride_sharing_user_app/helper/file_validation_helper.dart';
+import 'package:ride_sharing_user_app/helper/display_helper.dart';
 import 'package:ride_sharing_user_app/helper/pusher_helper.dart';
 import 'package:ride_sharing_user_app/util/app_constants.dart';
 
@@ -140,35 +141,53 @@ class ChatController extends GetxController implements GetxService{
 
   Future<void> createChannel(String userId, {required tripId}) async{
     isLoading = true;
-    Response response = await chatServiceInterface.createChannel(userId,tripId);
-    if(response.statusCode == 200){
-      isLoading = false;
-      Map map = response.body;
-      String channelId = map['data']['channel']['id'];
-      String tripId = map['data']['channel']['trip_id'];
-      Get.to(()=> MessageScreen(channelId : channelId, tripId: tripId,userName:  '${map['data']['user']['first_name']} ${map['data']['user']['last_name']}'));
-    }else{
-      isLoading = false;
-      ApiChecker.checkApi(response);
-    }
     update();
+    try {
+      Response response = await chatServiceInterface.createChannel(userId,tripId);
+      if(response.statusCode == 200){
+        final channel = (response.body is Map) ? response.body['data']?['channel'] : null;
+        final channelId = channel?['id']?.toString();
+        if (channelId == null) {
+          showCustomSnackBar('something_went_wrong'.tr);
+        } else {
+          final user = response.body['data']?['user'] ?? {};
+          final userName = '${user['first_name'] ?? ''} ${user['last_name'] ?? ''}'.trim();
+          Get.to(()=> MessageScreen(channelId : channelId, tripId: channel?['trip_id']?.toString() ?? tripId, userName: userName));
+        }
+      }else{
+        ApiChecker.checkApi(response);
+      }
+    } catch (e) {
+      showCustomSnackBar('something_went_wrong'.tr);
+    } finally {
+      isLoading = false;
+      update();
+    }
   }
 
   Future<void> createMartChannel(String customerId, String orderId, String customerName) async {
     isLoading = true;
     update();
-    Response response = await chatServiceInterface.createMartChannel(customerId, orderId);
-    if (response.statusCode == 200) {
+    try {
+      Response response = await chatServiceInterface.createMartChannel(customerId, orderId);
+      if (response.statusCode == 200) {
+        final channel = (response.body is Map) ? response.body['data']?['channel'] : null;
+        final channelId = channel?['id']?.toString();
+        if (channelId == null) {
+          showCustomSnackBar('something_went_wrong'.tr);
+        } else {
+          final oId = channel?['trip_id']?.toString() ?? orderId;
+          Get.to(() => MartDriverMessageScreen(channelId: channelId, orderId: oId, userName: customerName));
+        }
+      } else {
+        ApiChecker.checkApi(response);
+      }
+    } catch (e) {
+      showCustomSnackBar('something_went_wrong'.tr);
+    } finally {
       isLoading = false;
-      Map map = response.body;
-      String channelId = map['data']['channel']['id'];
-      String oId = map['data']['channel']['trip_id'] ?? orderId;
-      Get.to(() => MartDriverMessageScreen(channelId: channelId, orderId: oId, userName: customerName));
-    } else {
-      isLoading = false;
-      ApiChecker.checkApi(response);
+      update();
     }
-    update();
   }
 
 

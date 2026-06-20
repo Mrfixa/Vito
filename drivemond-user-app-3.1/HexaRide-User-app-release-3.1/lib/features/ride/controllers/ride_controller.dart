@@ -99,7 +99,8 @@ class RideController extends GetxController implements GetxService {
 
   Future<void> setBidingAmount(String balance) async{
     if(balance.isNotEmpty){
-      actualFare = double.parse(balance);
+      // Guard against malformed input so a stray character never crashes the bid flow.
+      actualFare = double.tryParse(balance) ?? actualFare;
       parcelFare = balance;
     }
     update();
