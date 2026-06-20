@@ -723,6 +723,50 @@ class VitoFlowTest extends TestCase
         $this->assertStringContainsString('too_many_attempt', $lockResponse->json('response_code'));
     }
 
+    public function test_change_pin(): void
+    {
+        $user = $this->createUser('customer', [
+            'username' => 'pinchanger',
+            'pin_hash' => Hash::make('111111'),
+        ]);
+
+        Passport::actingAs($user, ['AccessToCustomer']);
+
+        // Wrong current PIN -> 403
+        $this->postJson('/api/customer/auth/change-pin', [
+            'current_pin' => '000000',
+            'new_pin' => '222222',
+            'new_pin_confirmation' => '222222',
+        ])->assertStatus(403);
+
+        // New PIN not 6 digits -> 422
+        $this->postJson('/api/customer/auth/change-pin', [
+            'current_pin' => '111111',
+            'new_pin' => '123',
+            'new_pin_confirmation' => '123',
+        ])->assertStatus(422);
+
+        // Success
+        $this->postJson('/api/customer/auth/change-pin', [
+            'current_pin' => '111111',
+            'new_pin' => '222222',
+            'new_pin_confirmation' => '222222',
+        ])->assertOk();
+
+        $user->refresh();
+        $this->assertTrue(Hash::check('222222', $user->pin_hash));
+        $this->assertFalse(Hash::check('111111', $user->pin_hash));
+
+        // Old PIN no longer logs in; new PIN does
+        $this->postJson('/api/customer/auth/pin-login', [
+            'username' => 'pinchanger', 'pin' => '111111',
+        ])->assertStatus(403);
+
+        $this->postJson('/api/customer/auth/pin-login', [
+            'username' => 'pinchanger', 'pin' => '222222',
+        ])->assertOk();
+    }
+
     // ========================================================================
     // 5. Atomic Ride Acceptance (race condition protection)
     // ========================================================================

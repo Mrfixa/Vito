@@ -12,6 +12,11 @@ class AuthService implements AuthServiceInterface{
   }
 
   @override
+  Future changePin(String currentPin, String newPin) async{
+    return await authRepositoryInterface.changePin(currentPin, newPin);
+  }
+
+  @override
   Future checkEmail(String email) async{
    return await authRepositoryInterface.checkEmail(email);
   }

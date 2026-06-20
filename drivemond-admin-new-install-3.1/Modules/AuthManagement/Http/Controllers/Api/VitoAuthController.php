@@ -142,6 +142,38 @@ class VitoAuthController extends Controller
         return response()->json(responseFormatter(DEFAULT_200));
     }
 
+    /**
+     * Change the authenticated user's 6-digit PIN.
+     * Verifies the current PIN against pin_hash, then stores the new hash and
+     * clears any failed-attempt lockout state (mirrors pinLogin's reset).
+     */
+    public function changePin(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'current_pin' => 'required|string|digits:6',
+            'new_pin' => 'required|string|digits:6|confirmed|different:current_pin',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 422);
+        }
+
+        $user = auth('api')->user();
+
+        if (!$user || !$user->pin_hash || !Hash::check($request->current_pin, $user->pin_hash)) {
+            return response()->json(responseFormatter(AUTH_LOGIN_401), 403);
+        }
+
+        $this->authService->update(id: $user->id, data: [
+            'pin_hash' => Hash::make($request->new_pin),
+            'pin_attempts' => 0,
+            'is_temp_blocked' => 0,
+            'pin_blocked_at' => null,
+        ]);
+
+        return response()->json(responseFormatter(DEFAULT_200));
+    }
+
     public function pinRegister(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [

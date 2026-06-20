@@ -113,6 +113,7 @@ class AppConstants {
   static const String otpLoginAfterUpdateData = '/api/driver/auth/update-data';
   static const String pinLogin = '/api/driver/auth/pin-login';
   static const String pinRegister = '/api/driver/auth/pin-register';
+  static const String changePin = '/api/driver/auth/change-pin';
   static const String qrTokenGenerate = '/api/qr-token/generate';
   static const String qrTokenValidate = '/api/qr-token/validate';
   static const String qrTokenRevoke = '/api/qr-token/revoke';

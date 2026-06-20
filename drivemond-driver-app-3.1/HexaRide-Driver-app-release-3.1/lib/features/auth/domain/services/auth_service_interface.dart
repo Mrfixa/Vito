@@ -12,6 +12,7 @@ abstract class AuthServiceInterface {
   Future<dynamic> verifyFirebaseOtp({required String phone, required String otp, required String session});
   Future<dynamic> resetPassword(String phoneOrEmail, String password);
   Future<dynamic> changePassword(String oldPassword, String password);
+  Future<dynamic> changePin(String currentPin, String newPin);
   Future<dynamic> updateToken();
   Future<dynamic> forgetPassword(String? phone);
   Future<dynamic> verifyPhone(String phone, String otp);

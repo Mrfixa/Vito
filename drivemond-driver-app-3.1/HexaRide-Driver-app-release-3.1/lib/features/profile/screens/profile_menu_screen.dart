@@ -12,6 +12,7 @@ import 'package:ride_sharing_user_app/util/dimensions.dart';
 import 'package:ride_sharing_user_app/util/images.dart';
 import 'package:ride_sharing_user_app/util/styles.dart';
 import 'package:ride_sharing_user_app/features/auth/controllers/auth_controller.dart';
+import 'package:ride_sharing_user_app/features/auth/screens/change_pin_screen.dart';
 import 'package:ride_sharing_user_app/features/chat/screens/chat_screen.dart';
 import 'package:ride_sharing_user_app/features/help_and_support/screens/help_and_support_screen.dart';
 import 'package:ride_sharing_user_app/features/html/screens/policy_viewer_screen.dart';
@@ -79,6 +80,10 @@ class _ProfileMenuScreenState extends State<ProfileMenuScreen> {
 
           ProfileMenuItem(icon: Images.setting, title: 'setting',
             onTap: ()=> Get.to(()=> const SettingScreen()),
+          ),
+
+          ProfileMenuItem(icon: Images.changePasswordIcon, title: 'change_pin',
+            onTap: ()=> Get.to(()=> const ChangePinScreen()),
           ),
 
           ProfileMenuItem(icon: Images.privacyPolicy, title: 'privacy_policy',

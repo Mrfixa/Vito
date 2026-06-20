@@ -98,6 +98,16 @@ class AuthRepository implements AuthRepositoryInterface{
   }
 
   @override
+  Future<Response?> changePin(String currentPin, String newPin) async {
+    return await apiClient.postData(AppConstants.changePin,
+      { "current_pin": currentPin,
+        "new_pin": newPin,
+        "new_pin_confirmation": newPin,
+      },
+    );
+  }
+
+  @override
   Future<Response?> updateToken() async {
     String? deviceToken;
     if (GetPlatform.isIOS && !GetPlatform.isWeb) {

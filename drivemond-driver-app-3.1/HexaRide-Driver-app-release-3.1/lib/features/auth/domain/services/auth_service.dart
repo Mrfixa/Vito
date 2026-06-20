@@ -14,6 +14,11 @@ class AuthService implements AuthServiceInterface{
   }
 
   @override
+  Future changePin(String currentPin, String newPin) {
+    return authRepositoryInterface.changePin(currentPin, newPin);
+  }
+
+  @override
   bool clearSharedAddress() {
    return authRepositoryInterface.clearSharedAddress();
   }

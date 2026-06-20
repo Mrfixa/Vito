@@ -14,6 +14,7 @@ abstract class AuthRepositoryInterface implements RepositoryInterface{
   Future<dynamic> resetPassword(String phoneOrEmail, String password);
   Future<dynamic> verifyFirebaseOtp({required String phone, required String otp, required String session});
   Future<dynamic> changePassword(String oldPassword, String password);
+  Future<dynamic> changePin(String currentPin, String newPin);
   Future<dynamic> updateToken();
   Future<dynamic> forgetPassword(String? phone);
   Future<dynamic> verifyToken(String phone, String otp);

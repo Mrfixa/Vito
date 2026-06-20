@@ -526,6 +526,20 @@ class AuthController extends GetxController implements GetxService {
     update();
   }
 
+  Future<void> changePin(String currentPin, String newPin) async {
+    _isLoading = true;
+    update();
+    Response? response = await authServiceInterface.changePin(currentPin, newPin);
+    if (response!.statusCode == 200) {
+      snackBarWidget('pin_changed_successfully'.tr, isError: false);
+      Get.back();
+    }else{
+      ApiChecker.checkApi(response);
+    }
+    _isLoading = false;
+    update();
+  }
+
 
 
 

@@ -11,6 +11,7 @@ import 'package:ride_sharing_user_app/util/images.dart';
 import 'package:ride_sharing_user_app/util/styles.dart';
 import 'package:ride_sharing_user_app/features/setting/controllers/setting_controller.dart';
 import 'package:ride_sharing_user_app/common_widgets/app_bar_widget.dart';
+import 'package:ride_sharing_user_app/features/auth/screens/change_pin_screen.dart';
 
 class SettingScreen extends StatefulWidget {
   const SettingScreen({super.key});
@@ -115,6 +116,28 @@ class _SettingScreenState extends State<SettingScreen> {
                     );
                   })
                 ]),
+              ),
+              const SizedBox(height: Dimensions.paddingSize),
+
+              InkWell(
+                onTap: () => Get.to(() => const ChangePinScreen()),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: Dimensions.paddingSizeDefault, vertical: Dimensions.paddingSize),
+                  decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(Dimensions.paddingSize),
+                      border: Border.all(color: Theme.of(context).hintColor, width: .5)
+                  ),
+                  child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                    Row(children: [
+                      Icon(Icons.lock_outline, color: Theme.of(context).primaryColor, size: 22),
+                      const SizedBox(width: Dimensions.paddingSizeLarge),
+                      Text('change_pin'.tr, style: textRegular.copyWith(fontSize: Dimensions.fontSizeLarge,
+                        color: Theme.of(context).textTheme.bodyMedium!.color,
+                      )),
+                    ]),
+                    Icon(Icons.arrow_forward_ios_outlined, size: Dimensions.fontSizeLarge),
+                  ]),
+                ),
               ),
             ]),
           );

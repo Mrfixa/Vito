@@ -13,6 +13,7 @@ abstract class AuthServiceInterface{
   Future<dynamic> otpLogin({required String phone, required String otp});
   Future<dynamic> resetPassword(String phoneOrEmail, String password);
   Future<dynamic> changePassword(String oldPassword, String password);
+  Future<dynamic> changePin(String currentPin, String newPin);
   Future<dynamic> updateToken();
   Future<dynamic> forgetPassword(String? phone);
   Future<dynamic> verifyToken(String phone, String otp);

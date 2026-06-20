@@ -11,6 +11,7 @@ import 'package:ride_sharing_user_app/util/dimensions.dart';
 import 'package:ride_sharing_user_app/util/images.dart';
 import 'package:ride_sharing_user_app/util/styles.dart';
 import 'package:ride_sharing_user_app/features/auth/screens/reset_password_screen.dart';
+import 'package:ride_sharing_user_app/features/auth/screens/change_pin_screen.dart';
 import 'package:ride_sharing_user_app/common_widgets/app_bar_widget.dart';
 import 'package:ride_sharing_user_app/common_widgets/body_widget.dart';
 
@@ -116,6 +117,15 @@ class _SettingScreenState extends State<SettingScreen> {
                   );
                 })
               ]),
+            ),
+
+            ListTile(
+              onTap: () => Get.to(() => const ChangePinScreen()),
+              title: Text(
+                'change_pin'.tr,
+                style: textMedium.copyWith(color: Theme.of(context).textTheme.bodyLarge!.color),
+              ),
+              leading: CustomAssetImageWidget(Images.passwordSvg, width: 20, height: 20, color: Theme.of(context).primaryColor),
             ),
 
             ListTile(

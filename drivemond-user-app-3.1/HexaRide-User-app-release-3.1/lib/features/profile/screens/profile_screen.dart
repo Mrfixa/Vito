@@ -10,6 +10,7 @@ import 'package:ride_sharing_user_app/features/refer_and_earn/screens/refer_and_
 import 'package:ride_sharing_user_app/features/safety_setup/screens/safety_setup_screen.dart';
 import 'package:ride_sharing_user_app/features/settings/domain/html_enum_types.dart';
 import 'package:ride_sharing_user_app/features/settings/screens/setting_screen.dart';
+import 'package:ride_sharing_user_app/features/auth/screens/change_pin_screen.dart';
 import 'package:ride_sharing_user_app/features/support/screens/support_screen.dart';
 import 'package:ride_sharing_user_app/features/trip/screens/trip_screen.dart';
 import 'package:ride_sharing_user_app/util/app_constants.dart';
@@ -178,6 +179,10 @@ class ProfileScreen extends StatelessWidget {
 
                 ProfileMenuItem(title: 'settings', icon: Images.profileSetting,
                   onTap: () => Get.to(() => const SettingScreen()),
+                ),
+
+                ProfileMenuItem(title: 'change_pin', icon: Images.changePassword,
+                  onTap: () => Get.to(() => const ChangePinScreen()),
                 ),
 
                 ProfileMenuItem(title: 'privacy_policy', icon: Images.privacyPolicyIcon,

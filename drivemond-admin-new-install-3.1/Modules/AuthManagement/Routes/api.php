@@ -68,6 +68,8 @@ Route::controller(\Modules\AuthManagement\Http\Controllers\Api\VitoAuthControlle
 
     Route::group(['middleware' => ['auth:api', 'maintenance_mode']], function () {
         Route::post('auth/logout', 'logout');
+        Route::post('customer/auth/change-pin', 'changePin');
+        Route::post('driver/auth/change-pin', 'changePin');
     });
 });
 
