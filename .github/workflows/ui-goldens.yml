@@ -1,0 +1,44 @@
+name: UI Goldens
+
+# Renders the design-system catalog to PNG goldens and uploads them as an
+# artifact so we get *visual* feedback on the UI without a local emulator.
+# Isolated from the release pipeline (build-apk.yml / vito-ci.yml never run this
+# test), so iterating here can never break a release build.
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+    paths:
+      - 'drivemond-user-app-3.1/HexaRide-User-app-release-3.1/test/ui_catalog_golden_test.dart'
+      - '.github/workflows/ui-goldens.yml'
+
+jobs:
+  ui-goldens:
+    name: Generate UI catalog goldens
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: drivemond-user-app-3.1/HexaRide-User-app-release-3.1
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.0'
+          channel: stable
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Generate goldens (always regenerated — never fails on pixel diff)
+        run: flutter test --update-goldens test/ui_catalog_golden_test.dart
+
+      - name: Upload UI catalog PNGs
+        uses: actions/upload-artifact@v4
+        with:
+          name: vito-ui-catalog
+          path: drivemond-user-app-3.1/HexaRide-User-app-release-3.1/test/goldens/*.png
+          if-no-files-found: warn
