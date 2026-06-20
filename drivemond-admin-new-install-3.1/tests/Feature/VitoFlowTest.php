@@ -2906,7 +2906,7 @@ class VitoFlowTest extends TestCase
         $this->postJson('/api/driver/parcel/atomic-accept', ['trip_request_id' => $parcelId2])->assertOk();
     }
 
-    public function test_apply_promo_requires_items_array(): void
+    public function test_apply_promo_accepts_subtotal_or_items(): void
     {
         $this->seedUserLevel('customer');
         $customer = $this->createUser('customer');
@@ -2918,11 +2918,15 @@ class VitoFlowTest extends TestCase
             'discount_value' => 5, 'min_order_amount' => 0, 'is_active' => true,
         ]);
 
-        // Legacy subtotal-only payload must now be rejected
+        // Subtotal-only preview payload (the path the app uses) is accepted.
         $resp = $this->postJson('/api/customer/mart/apply-promo', [
             'code' => 'ITEMSTEST', 'subtotal' => 20,
         ]);
-        $resp->assertStatus(422);
+        $resp->assertOk();
+        $this->assertEquals(5.00, $resp->json('data.discount'));
+
+        // A payload with neither items nor subtotal is rejected.
+        $this->postJson('/api/customer/mart/apply-promo', ['code' => 'ITEMSTEST'])->assertStatus(422);
     }
 
     public function test_mart_order_payment_set_by_webhook_only(): void
@@ -3229,5 +3233,118 @@ class VitoFlowTest extends TestCase
         (new \Database\Seeders\DefaultUsersSeeder())->run();
         $this->assertEquals(1, User::where('username', 'customer')->count());
         $this->assertEquals(1, User::where('username', 'driver')->count());
+    }
+
+    // ========================================================================
+    // End-to-end VitoMart journey: browse → promo → order → accept → pickup →
+    // proof → deliver → review (simulates the full customer + driver flow)
+    // ========================================================================
+
+    public function test_mart_full_journey(): void
+    {
+        \Illuminate\Support\Facades\Storage::fake('public');
+
+        $customer = $this->createUser('customer');
+        $driver = $this->createUser('driver', ['username' => 'martjourneydrv']);
+        DB::table('driver_details')->insert([
+            'user_id' => $driver->id, 'is_online' => 1, 'availability_status' => 'available', 'is_verified' => 1,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        $product = MartProduct::create([
+            'name' => 'Journey Item', 'price' => 25.00, 'stock' => 10, 'is_active' => true, 'category' => 'food',
+        ]);
+        MartPromoCode::create([
+            'code' => 'JOURNEY5', 'discount_type' => 'fixed', 'discount_value' => 5.00,
+            'min_order_amount' => 0, 'is_active' => true,
+        ]);
+
+        // 1. Customer browses products.
+        Passport::actingAs($customer, ['AccessToCustomer']);
+        $this->getJson('/api/customer/mart/products')->assertOk();
+
+        // 2. Apply promo via the subtotal preview path the app actually uses.
+        $promo = $this->postJson('/api/customer/mart/apply-promo', ['code' => 'JOURNEY5', 'subtotal' => 50.00]);
+        $promo->assertOk();
+        $this->assertEquals(5.00, $promo->json('data.discount'));
+
+        // 3. Create the order with a chosen payment method (card) — must persist.
+        $orderResp = $this->postJson('/api/customer/mart/order', [
+            'items' => [['product_id' => $product->id, 'quantity' => 2]],
+            'delivery_address' => '1 Journey St',
+            'payment_method' => 'card',
+            'promo_code' => 'JOURNEY5',
+            'tip_amount' => 3.00,
+        ]);
+        $orderResp->assertOk();
+        $orderId = $orderResp->json('data.id');
+        $order = MartOrder::find($orderId);
+        $this->assertEquals('48.00', $order->total_amount); // 50 - 5 promo + 3 tip
+        $this->assertEquals('card', $order->payment_method);
+
+        // 4. Driver sees the order and accepts it.
+        Passport::actingAs($driver, ['AccessToDriver']);
+        $this->getJson('/api/driver/mart/pending-orders')->assertOk();
+        $this->postJson('/api/driver/mart/accept-order', ['order_id' => $orderId])->assertOk();
+        $this->assertEquals('accepted', MartOrder::find($orderId)->status);
+
+        // 5. Pick up.
+        $this->putJson('/api/driver/mart/update-status', ['order_id' => $orderId, 'status' => 'picked_up'])->assertOk();
+
+        // 6. Delivery is blocked until proof is captured.
+        $this->putJson('/api/driver/mart/update-status', ['order_id' => $orderId, 'status' => 'delivered'])->assertStatus(422);
+
+        // 7. Upload a signature, then deliver.
+        $png = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
+        $this->postJson('/api/driver/mart/upload-proof', ['order_id' => $orderId, 'signature_base64' => $png])->assertOk();
+        $this->putJson('/api/driver/mart/update-status', ['order_id' => $orderId, 'status' => 'delivered'])->assertOk();
+        $this->assertEquals('delivered', MartOrder::find($orderId)->status);
+
+        // 8. Customer reviews the completed delivery.
+        Passport::actingAs($customer, ['AccessToCustomer']);
+        $this->postJson("/api/customer/mart/orders/{$orderId}/review", ['rating' => 5, 'comment' => 'Sharp!'])->assertOk();
+        $this->assertDatabaseHas('mart_reviews', ['order_id' => $orderId, 'rating' => 5, 'driver_id' => $driver->id]);
+    }
+
+    // ========================================================================
+    // End-to-end VitoSend journey: parcel created → driver atomic-accept →
+    // out_for_pickup through the shared ride status endpoint
+    // ========================================================================
+
+    public function test_parcel_full_journey(): void
+    {
+        $customer = $this->createUser('customer');
+        $driver = $this->createUser('driver', ['username' => 'parceljourneydrv']);
+        DB::table('driver_details')->insert([
+            'user_id' => $driver->id, 'is_online' => 1, 'availability_status' => 'available', 'is_verified' => 1,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        DB::table('time_tracks')->insert([
+            'user_id' => $driver->id, 'date' => now()->toDateString(),
+            'last_ride_completed_at' => now(), 'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        $parcelId = Str::uuid()->toString();
+        DB::table('trip_requests')->insert([
+            'id' => $parcelId, 'customer_id' => $customer->id, 'driver_id' => null,
+            'current_status' => 'pending', 'type' => 'parcel',
+            'estimated_fare' => 50, 'actual_fare' => 0, 'estimated_distance' => 3, 'paid_fare' => 0,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        // Driver accepts the parcel atomically (verified driver only).
+        Passport::actingAs($driver, ['AccessToDriver']);
+        $this->postJson('/api/driver/parcel/atomic-accept', ['trip_request_id' => $parcelId])->assertOk();
+        $this->assertDatabaseHas('trip_requests', [
+            'id' => $parcelId, 'current_status' => 'accepted', 'driver_id' => $driver->id,
+        ]);
+
+        // Driver advances to out_for_pickup through the shared ride status endpoint.
+        $this->putJson('/api/driver/ride/update-status', [
+            'trip_request_id' => $parcelId, 'status' => 'out_for_pickup',
+        ])->assertOk();
+        $this->assertDatabaseHas('trip_requests', [
+            'id' => $parcelId, 'current_status' => 'out_for_pickup',
+        ]);
     }
 }

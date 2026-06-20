@@ -4427,4 +4427,6 @@
   'The token field is required.' => 'The token field is required.',
   'The items field is required.' => 'The items field is required.',
   'The rating may not be greater than 5.' => 'The rating may not be greater than 5.',
+  'The items field is required when subtotal is not present.' => 'The items field is required when subtotal is not present.',
+  'The subtotal field is required when items is not present.' => 'The subtotal field is required when items is not present.',
 );

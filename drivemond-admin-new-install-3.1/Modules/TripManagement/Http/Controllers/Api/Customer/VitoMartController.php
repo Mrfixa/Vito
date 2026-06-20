@@ -47,25 +47,34 @@ class VitoMartController extends Controller
 
     public function applyPromo(Request $request): JsonResponse
     {
+        // Accept EITHER a full items array (subtotal recomputed server-side) OR a
+        // client-provided subtotal for an in-cart preview. This is preview-only —
+        // createOrder always recomputes the authoritative total from real items,
+        // so trusting the preview subtotal here carries no pricing risk.
         $validator = Validator::make($request->all(), [
             'code'               => 'required|string|max:50',
-            'items'              => 'required|array|min:1',
-            'items.*.product_id' => 'required|string',
-            'items.*.quantity'   => 'required|integer|min:1|max:100',
+            'items'              => 'required_without:subtotal|array|min:1',
+            'items.*.product_id' => 'required_with:items|string',
+            'items.*.quantity'   => 'required_with:items|integer|min:1|max:100',
+            'subtotal'           => 'required_without:items|numeric|min:0|max:9999999.99',
         ]);
 
         if ($validator->fails()) {
             return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 422);
         }
 
-        // Compute subtotal server-side — never trust client-sent prices
-        $subtotal = 0;
-        foreach ($request->items as $item) {
-            $product = MartProduct::where('id', $item['product_id'])->where('is_active', true)->first();
-            if (!$product) {
-                return response()->json(responseFormatter(constant: DEFAULT_404, errors: [['message' => 'One or more products not found']]), 404);
+        if ($request->filled('items')) {
+            // Compute subtotal server-side — never trust client-sent prices.
+            $subtotal = 0;
+            foreach ($request->items as $item) {
+                $product = MartProduct::where('id', $item['product_id'])->where('is_active', true)->first();
+                if (!$product) {
+                    return response()->json(responseFormatter(constant: DEFAULT_404, errors: [['message' => 'One or more products not found']]), 404);
+                }
+                $subtotal += $product->price * (int) $item['quantity'];
             }
-            $subtotal += $product->price * (int) $item['quantity'];
+        } else {
+            $subtotal = (float) $request->subtotal;
         }
 
         $promo = MartPromoCode::where('code', strtoupper(trim($request->code)))->first();
@@ -100,6 +109,7 @@ class VitoMartController extends Controller
             'notes' => 'nullable|string|max:1000',
             'tip_amount' => 'nullable|numeric|min:0|max:9999.99',
             'promo_code' => 'nullable|string|max:50',
+            'payment_method' => 'nullable|in:cash,card,wallet',
         ]);
 
         if ($validator->fails()) {
@@ -201,7 +211,7 @@ class VitoMartController extends Controller
                     'discount_amount' => $discountAmount,
                     'promo_code' => $appliedPromoCode,
                     'payment_status' => 'unpaid',
-                    'payment_method' => 'cash',
+                    'payment_method' => $request->input('payment_method', 'cash'),
                     'delivery_address' => $request->delivery_address,
                     'delivery_lat' => $request->delivery_lat,
                     'delivery_lng' => $request->delivery_lng,
