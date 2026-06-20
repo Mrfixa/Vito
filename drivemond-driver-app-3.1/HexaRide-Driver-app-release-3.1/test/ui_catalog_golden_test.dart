@@ -112,17 +112,23 @@ void main() {
               Text('Shared components · trip patterns', style: textRegular.copyWith(fontSize: 13, color: _muted)),
 
               _sectionTitle('Buttons (ButtonWidget)'),
-              Row(children: [
-                ButtonWidget(buttonText: 'Accept', width: 150, onPressed: () {}),
-                const SizedBox(width: 10),
-                ButtonWidget(buttonText: 'Decline', width: 150, transparent: true, showBorder: true, textColor: _ink, onPressed: () {}),
-              ]),
+              SizedBox(
+                height: 48,
+                child: Row(children: [
+                  ButtonWidget(buttonText: 'Accept', width: 150, onPressed: () {}),
+                  const SizedBox(width: 10),
+                  ButtonWidget(buttonText: 'Decline', width: 150, transparent: true, showBorder: true, textColor: _ink, onPressed: () {}),
+                ]),
+              ),
               const SizedBox(height: 10),
-              Row(children: [
-                ButtonWidget(buttonText: 'Offline', width: 150, onPressed: null),
-                const SizedBox(width: 10),
-                ButtonWidget(buttonText: 'Navigate', width: 150, icon: Icons.navigation, onPressed: () {}),
-              ]),
+              SizedBox(
+                height: 48,
+                child: Row(children: [
+                  ButtonWidget(buttonText: 'Offline', width: 150, onPressed: null),
+                  const SizedBox(width: 10),
+                  ButtonWidget(buttonText: 'Navigate', width: 150, icon: Icons.navigation, onPressed: () {}),
+                ]),
+              ),
 
               _sectionTitle('Typography (SF Pro Text)'),
               Text('Regular — new ride request', style: textRegular.copyWith(fontSize: 16, color: _ink)),
