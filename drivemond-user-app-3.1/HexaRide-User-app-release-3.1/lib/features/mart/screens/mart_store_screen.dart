@@ -249,11 +249,11 @@ class _MartStoreScreenState extends State<MartStoreScreen> {
       ),
       itemCount: 6,
       itemBuilder: (ctx, index) => Shimmer.fromColors(
-        baseColor: isDark ? const Color(0xFF303030) : const Color(0xFFE0E0E0),
-        highlightColor: isDark ? const Color(0xFF404040) : const Color(0xFFF5F5F5),
+        baseColor: isDark ? AppColors.shimmerBaseDark : AppColors.shimmerBaseLight,
+        highlightColor: isDark ? AppColors.shimmerHighlightDark : AppColors.shimmerHighlightLight,
         child: Container(
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF303030) : const Color(0xFFE0E0E0),
+            color: isDark ? AppColors.shimmerBaseDark : AppColors.shimmerBaseLight,
             borderRadius: BorderRadius.circular(Dimensions.radiusDefault),
           ),
         ),
@@ -903,7 +903,7 @@ class _MartCartScreenState extends State<MartCartScreen> {
                     hintText: 'delivery_address'.tr,
                     prefixIcon: const Icon(Icons.location_on_outlined),
                     suffixIcon: _deliveryLat != null
-                        ? const Icon(Icons.gps_fixed, color: Colors.green, size: 18)
+                        ? const Icon(Icons.gps_fixed, color: AppColors.successGreen, size: 18)
                         : null,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(Dimensions.radiusDefault),

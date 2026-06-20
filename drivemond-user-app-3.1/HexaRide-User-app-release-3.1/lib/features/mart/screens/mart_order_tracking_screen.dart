@@ -195,8 +195,8 @@ class _MartOrderTrackingScreenState extends State<MartOrderTrackingScreen> {
 
   Widget _buildLoadingSkeleton(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final base = isDark ? const Color(0xFF303030) : const Color(0xFFE0E0E0);
-    final highlight = isDark ? const Color(0xFF404040) : const Color(0xFFF5F5F5);
+    final base = isDark ? AppColors.shimmerBaseDark : AppColors.shimmerBaseLight;
+    final highlight = isDark ? AppColors.shimmerHighlightDark : AppColors.shimmerHighlightLight;
     return Shimmer.fromColors(
       baseColor: base,
       highlightColor: highlight,
@@ -536,7 +536,7 @@ class _MartOrderTrackingScreenState extends State<MartOrderTrackingScreen> {
                         Row(
                           children: [
                             const Icon(Icons.star,
-                                color: Colors.amber, size: 16),
+                                color: AppColors.ratingAmber, size: 16),
                             const SizedBox(width: 4),
                             Text(driverRating,
                                 style: textMedium.copyWith(
@@ -846,7 +846,7 @@ class _MartOrderTrackingScreenState extends State<MartOrderTrackingScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: 4),
                         child: Icon(
                           star <= selectedRating ? Icons.star : Icons.star_border,
-                          color: Colors.amber,
+                          color: AppColors.ratingAmber,
                           size: 36,
                         ),
                       ),
