@@ -5,6 +5,7 @@ on:
     tags:
       - 'v*'
     branches:
+      - 'master'
       - 'claude/analyze-mart-qr-code-FySPn'
   workflow_dispatch:
     inputs:
