@@ -174,7 +174,7 @@ class _PointToWalletMoneyWidgetState extends State<PointToWalletMoneyWidget> {
                     String point = amountController.text;
                     if(point.isEmpty) {
                       showCustomSnackBar('please_input_point'.tr,);
-                    }else if(double.parse(point)< Get.find<ConfigController>().config!.conversionRate!) {
+                    }else if((double.tryParse(point) ?? 0)< Get.find<ConfigController>().config!.conversionRate!) {
                       showCustomSnackBar('${'minimum_conversion_point'.tr}: '
                           '${Get.find<ConfigController>().config!.conversionRate!}',
                       );

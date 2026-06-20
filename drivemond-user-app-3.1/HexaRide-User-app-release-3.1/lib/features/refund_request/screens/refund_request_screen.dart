@@ -435,7 +435,7 @@ class _RefundRequestScreenState extends State<RefundRequestScreen> {
         tripId: widget.tripId,
         refundReason:  refundReason,
         refundNote: refundNote,
-        productApproximatePrice: double.parse(productApproximatePriceController.text),
+        productApproximatePrice: double.tryParse(productApproximatePriceController.text) ?? 0,
       );
     }
   }

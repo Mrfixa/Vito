@@ -24,7 +24,7 @@ class _TipsWidgetState extends State<TipsWidget> {
   void initState() {
     if (Get.find<PaymentController>().tipAmount != '0') {
       amountController.text =
-          PriceConverter.convertPrice(double.parse(Get.find<PaymentController>().tipAmount));
+          PriceConverter.convertPrice(double.tryParse(Get.find<PaymentController>().tipAmount) ?? 0);
     }
     super.initState();
   }

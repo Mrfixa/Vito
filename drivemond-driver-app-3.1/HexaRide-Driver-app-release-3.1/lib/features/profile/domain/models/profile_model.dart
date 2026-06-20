@@ -379,7 +379,7 @@ class Wallet {
       try{
         receivedBalance = json['received_balance'].toDouble();
       }catch(e){
-        receivedBalance = double.parse(json['received_balance']);
+        receivedBalance = double.tryParse(json['received_balance'].toString()) ?? 0;
       }
 
     }else{
