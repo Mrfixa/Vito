@@ -16,6 +16,6 @@ class VehicleManagementDatabaseSeeder extends Seeder
     {
         Model::unguard();
 
-        // $this->call("OthersTableSeeder");
+        $this->call(VehicleBrandModelSeeder::class);
     }
 }

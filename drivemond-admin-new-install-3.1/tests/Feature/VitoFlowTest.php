@@ -41,6 +41,9 @@ class VitoFlowTest extends TestCase
         Schema::dropIfExists('mart_promo_codes');
         Schema::dropIfExists('mart_products');
         Schema::dropIfExists('vito_otps');
+        Schema::dropIfExists('vehicle_models');
+        Schema::dropIfExists('vehicle_brands');
+        Schema::dropIfExists('vehicle_categories');
         Schema::dropIfExists('qr_tokens');
         Schema::dropIfExists('user_accounts');
         Schema::dropIfExists('time_tracks');
@@ -803,6 +806,59 @@ class VitoFlowTest extends TestCase
             'username' => '  spaced  ',
             'pin' => '123456',
         ])->assertOk();
+    }
+
+    public function test_vehicle_brand_model_seeder_populates_dropdowns(): void
+    {
+        // The driver vehicle-registration dropdowns read from these tables; the
+        // brand/model API filters is_active = 1, so the seeder must seed active rows.
+        Schema::create('vehicle_categories', function ($table) {
+            $table->uuid('id')->primary();
+            $table->string('name');
+            $table->text('description')->nullable();
+            $table->string('image')->nullable();
+            $table->string('type')->nullable();
+            $table->boolean('is_active')->default(1);
+            $table->timestamps();
+        });
+        Schema::create('vehicle_brands', function ($table) {
+            $table->uuid('id')->primary();
+            $table->string('name');
+            $table->text('description')->nullable();
+            $table->string('image')->nullable();
+            $table->boolean('is_active')->default(1);
+            $table->timestamps();
+        });
+        Schema::create('vehicle_models', function ($table) {
+            $table->uuid('id')->primary();
+            $table->string('name');
+            $table->string('brand_id');
+            $table->integer('seat_capacity')->default(4);
+            $table->integer('maximum_weight')->default(500);
+            $table->integer('hatch_bag_capacity')->default(2);
+            $table->string('engine')->nullable();
+            $table->text('description')->nullable();
+            $table->string('image')->nullable();
+            $table->boolean('is_active')->default(1);
+            $table->timestamps();
+        });
+
+        $seeder = new \Modules\VehicleManagement\Database\Seeders\VehicleBrandModelSeeder();
+        $seeder->run();
+
+        $brandCount = \Illuminate\Support\Facades\DB::table('vehicle_brands')->where('is_active', 1)->count();
+        $modelCount = \Illuminate\Support\Facades\DB::table('vehicle_models')->where('is_active', 1)->count();
+        $categoryCount = \Illuminate\Support\Facades\DB::table('vehicle_categories')->where('is_active', 1)->count();
+
+        $this->assertGreaterThan(35, $brandCount, 'Seeder should populate a full brand catalogue.');
+        $this->assertGreaterThan(150, $modelCount, 'Seeder should populate a full model catalogue.');
+        $this->assertGreaterThan(0, $categoryCount, 'Seeder should populate vehicle categories.');
+
+        // Idempotent: a second run must not duplicate rows or change counts.
+        $seeder->run();
+        $this->assertSame($brandCount, \Illuminate\Support\Facades\DB::table('vehicle_brands')->count());
+        $this->assertSame($modelCount, \Illuminate\Support\Facades\DB::table('vehicle_models')->count());
+        $this->assertSame($categoryCount, \Illuminate\Support\Facades\DB::table('vehicle_categories')->count());
     }
 
     // ========================================================================
