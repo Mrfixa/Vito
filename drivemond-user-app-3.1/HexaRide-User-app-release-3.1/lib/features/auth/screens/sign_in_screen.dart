@@ -51,8 +51,11 @@ class _SignInScreenState extends State<SignInScreen> {
 
     if (Get.find<AuthController>().getLoginCountryCode(false).isNotEmpty) {
       Get.find<AuthController>().countryDialCode = Get.find<AuthController>().getLoginCountryCode(false);
-    } else if (Get.find<ConfigController>().config!.countryCode != null) {
-      Get.find<AuthController>().countryDialCode = CountryCode.fromCountryCode(Get.find<ConfigController>().config!.countryCode!).dialCode!;
+    } else if (Get.find<ConfigController>().config?.countryCode != null) {
+      final dialCode = CountryCode.fromCountryCode(Get.find<ConfigController>().config!.countryCode!).dialCode;
+      if (dialCode != null) {
+        Get.find<AuthController>().countryDialCode = dialCode;
+      }
     }
   }
 

@@ -210,8 +210,7 @@ class _SignInScreenState extends State<SignInScreen> {
 
                             const SizedBox(height: Dimensions.paddingSizeDefault),
 
-                            (Get.find<SplashController>().config!.selfRegistration != null &&
-                                Get.find<SplashController>().config!.selfRegistration!) ?
+                            (Get.find<SplashController>().config?.selfRegistration ?? false) ?
                             Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                               Text(
                                 '${'do_not_have_an_account'.tr} ',

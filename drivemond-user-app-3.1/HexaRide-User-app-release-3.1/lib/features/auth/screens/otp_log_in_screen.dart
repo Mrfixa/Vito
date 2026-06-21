@@ -32,7 +32,13 @@ class _OtpLoginScreenState extends State<OtpLoginScreen> {
   void initState() {
     super.initState();
 
-    Get.find<AuthController>().countryDialCode = CountryCode.fromCountryCode(Get.find<ConfigController>().config!.countryCode!).dialCode!;
+    final countryCode = Get.find<ConfigController>().config?.countryCode;
+    if (countryCode != null) {
+      final dialCode = CountryCode.fromCountryCode(countryCode).dialCode;
+      if (dialCode != null) {
+        Get.find<AuthController>().countryDialCode = dialCode;
+      }
+    }
   }
 
   @override

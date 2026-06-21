@@ -50,6 +50,7 @@ class _VehicleAddScreenState extends State<VehicleAddScreen> {
   @override
   void initState() {
     Get.find<ProfileController>().getVehicleBrandList(1);
+    Get.find<ProfileController>().getCategoryList(1);
     Get.find<ProfileController>().clearVehicleData();
     if(widget.vehicleInfo != null){
       licencePlateNumberController.text = widget.vehicleInfo!.licencePlateNumber!;

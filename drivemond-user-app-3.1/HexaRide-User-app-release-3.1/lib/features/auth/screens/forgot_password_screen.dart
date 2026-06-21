@@ -41,8 +41,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     if(widget.phoneNumber != null){
       phoneController.text = widget.phoneNumber!;
     }
-    Get.find<AuthController>().countryDialCode =
-    CountryCode.fromCountryCode(Get.find<ConfigController>().config!.countryCode!).dialCode!;
+    final countryCode = Get.find<ConfigController>().config?.countryCode;
+    if (countryCode != null) {
+      final dialCode = CountryCode.fromCountryCode(countryCode).dialCode;
+      if (dialCode != null) {
+        Get.find<AuthController>().countryDialCode = dialCode;
+      }
+    }
   }
 
   @override

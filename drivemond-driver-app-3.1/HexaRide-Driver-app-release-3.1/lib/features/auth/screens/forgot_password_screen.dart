@@ -144,7 +144,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         const SizedBox(height: Dimensions.paddingSizeSmall),
 
                         if(widget.from == VerificationForm.resetPassword)...[
-                          (Get.find<SplashController>().config!.selfRegistration != null && Get.find<SplashController>().config!.selfRegistration!) ?
+                          (Get.find<SplashController>().config?.selfRegistration ?? false) ?
                           Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                             Text(
                               '${'do_not_have_an_account'.tr} ',

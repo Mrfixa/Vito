@@ -41,9 +41,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
     authController.passwordController.clear();
     authController.confirmPasswordController.clear();
     authController.referralCodeController.clear();
-    authController.countryDialCode = CountryCode.fromCountryCode(
-      Get.find<ConfigController>().config!.countryCode!,
-    ).dialCode!;
+    final countryCode = Get.find<ConfigController>().config?.countryCode;
+    if (countryCode != null) {
+      final dialCode = CountryCode.fromCountryCode(countryCode).dialCode;
+      if (dialCode != null) {
+        authController.countryDialCode = dialCode;
+      }
+    }
     // Store the QR token so it is forwarded into SignUpBody after OTP verification.
     authController.pendingQrToken = widget.qrToken;
   }

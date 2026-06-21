@@ -1098,5 +1098,9 @@
     "max_capacity": "Capacidad Máxima",
     "kg": "Kg",
     "thanks_for_your_feedback": "¡Gracias por tus comentarios!",
-    "warning": "Advertencia"
+    "warning": "Advertencia",
+    "referral_code": "Código de referido",
+    "clear": "Borrar",
+    "successfully_sent_otp": "OTP enviado correctamente",
+    "invalid_number": "Número no válido"
 }
