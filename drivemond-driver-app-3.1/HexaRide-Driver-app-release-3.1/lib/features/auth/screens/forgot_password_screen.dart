@@ -1,7 +1,6 @@
 import 'package:country_code_picker/country_code_picker.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 import 'package:ride_sharing_user_app/features/auth/domain/enums/verification_from_enum.dart';
@@ -110,9 +109,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         ),
                         const SizedBox(height: Dimensions.paddingSizeExtraLarge),
 
-                        authController.isOtpSending ?
-                        Center(child: SpinKitCircle(color: Theme.of(context).primaryColor, size: 40.0)) :
                         ButtonWidget(
+                          isLoading: authController.isOtpSending,
                           buttonText: 'get_otp'.tr, radius: 50,
                           onPressed: () {
                             String phoneNumber = phoneController.text;

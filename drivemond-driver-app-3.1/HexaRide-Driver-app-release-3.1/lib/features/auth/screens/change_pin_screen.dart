@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:get/get.dart';
 import 'package:ride_sharing_user_app/common_widgets/app_bar_widget.dart';
 import 'package:ride_sharing_user_app/common_widgets/button_widget.dart';
@@ -75,9 +74,8 @@ class _ChangePinScreenState extends State<ChangePinScreen> {
 
             Padding(
               padding: const EdgeInsets.all(Dimensions.paddingSizeDefault),
-              child: authController.isLoading
-                  ? Center(child: SpinKitCircle(color: Theme.of(context).primaryColor, size: 40.0))
-                  : ButtonWidget(
+              child: ButtonWidget(
+                      isLoading: authController.isLoading,
                       radius: Dimensions.radiusExtraLarge,
                       buttonText: 'change_pin'.tr,
                       onPressed: () {

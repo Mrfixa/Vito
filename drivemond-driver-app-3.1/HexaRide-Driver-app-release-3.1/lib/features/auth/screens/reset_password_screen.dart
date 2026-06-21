@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 import 'package:ride_sharing_user_app/features/auth/domain/enums/verification_from_enum.dart';
@@ -133,9 +132,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
                   const SizedBox(height: Dimensions.paddingSizeDefault * 3),
 
-                authController.isLoading ? Center(child: SpinKitCircle(
-                  color: Theme.of(context).primaryColor, size: 40.0,
-                )): ButtonWidget(
+                ButtonWidget(
+                    isLoading: authController.isLoading,
                     buttonText: widget.fromChangePassword && Get.find<ProfileController>().profileInfo?.loggedInVia != 'otp'? 'update'.tr : 'save'.tr,
                     onPressed: (){
                       String oldPassword = oldPasswordController.text;
