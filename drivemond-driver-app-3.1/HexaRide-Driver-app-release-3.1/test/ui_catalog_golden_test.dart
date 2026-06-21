@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:ride_sharing_user_app/common_widgets/card_widget.dart';
 import 'package:ride_sharing_user_app/common_widgets/skeleton_widget.dart';
 import 'package:ride_sharing_user_app/theme/light_theme.dart';
 import 'package:ride_sharing_user_app/util/dimensions.dart';
@@ -156,6 +157,19 @@ void main() {
 
               _sectionTitle('Trip request'),
               _requestCard(),
+
+              _sectionTitle('Card surface (CardWidget)'),
+              CardWidget(
+                child: Row(children: [
+                  const Icon(Icons.account_balance_wallet, color: _primary),
+                  const SizedBox(width: 12),
+                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text("Today's earnings", style: textSemiBold.copyWith(fontSize: 15, color: _ink)),
+                    Text('Rounded surface · soft shadow', style: textRegular.copyWith(fontSize: 12, color: _muted)),
+                  ])),
+                  Text('\$84.20', style: textBold.copyWith(fontSize: 16, color: _ink)),
+                ]),
+              ),
 
               _sectionTitle('States'),
               Row(crossAxisAlignment: CrossAxisAlignment.start, children: [

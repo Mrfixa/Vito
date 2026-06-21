@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ride_sharing_user_app/common_widgets/button_widget.dart';
+import 'package:ride_sharing_user_app/common_widgets/card_widget.dart';
 import 'package:ride_sharing_user_app/common_widgets/skeleton_widget.dart';
 import 'package:ride_sharing_user_app/theme/light_theme.dart';
 import 'package:ride_sharing_user_app/util/app_colors.dart';
@@ -163,6 +164,19 @@ void main() {
               ]),
               const SizedBox(height: 10),
               ButtonWidget(buttonText: 'Loading…', width: 320, isLoading: true, onPressed: () {}),
+
+              _sectionTitle('Card surface (CardWidget)'),
+              CardWidget(
+                child: Row(children: [
+                  const Icon(Icons.receipt_long, color: Color(0xFFD4A000)),
+                  const SizedBox(width: 12),
+                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text('Trip receipt', style: textSemiBold.copyWith(fontSize: 15, color: const Color(0xFF1D2D2B))),
+                    Text('Rounded surface · soft shadow', style: textRegular.copyWith(fontSize: 12, color: const Color(0xFF6B7675))),
+                  ])),
+                  Text('\$12.50', style: textBold.copyWith(fontSize: 16, color: const Color(0xFF1D2D2B))),
+                ]),
+              ),
 
               _sectionTitle('Typography (SF Pro Text)'),
               Text('Regular — find your ride', style: textRegular.copyWith(fontSize: 16, color: const Color(0xFF1D2D2B))),
