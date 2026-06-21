@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:get/get.dart';
 import 'package:ride_sharing_user_app/features/dashboard/screens/dashboard_screen.dart';
 import 'package:ride_sharing_user_app/util/dimensions.dart';
@@ -90,7 +89,8 @@ class _ReviewScreenState extends State<ReviewScreen> {
               height: 80,
               color: Theme.of(context).cardColor,
               padding: const EdgeInsets.all(Dimensions.paddingSizeDefault),
-              child: reviewController.isLoading ? Center(child: SpinKitCircle(color: Theme.of(context).primaryColor, size: 40.0,)) : ButtonWidget(
+              child: ButtonWidget(
+                isLoading: reviewController.isLoading,
                 buttonText: 'submit'.tr, onPressed: () {
                   reviewController.submitReview(widget.tripId, reviewController.reviewTypeSelectedIndex + 1, reviewTextController.text);
                 },

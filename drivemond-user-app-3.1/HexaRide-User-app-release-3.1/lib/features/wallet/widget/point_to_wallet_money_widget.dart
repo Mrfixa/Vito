@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:get/get.dart';
 import 'package:ride_sharing_user_app/common_widgets/button_widget.dart';
 import 'package:ride_sharing_user_app/features/profile/controllers/profile_controller.dart';
@@ -161,9 +160,8 @@ class _PointToWalletMoneyWidgetState extends State<PointToWalletMoneyWidget> {
                   top: Dimensions.paddingSizeExtraLarge,
                 ),
                 margin: const EdgeInsets.symmetric(horizontal: Dimensions.paddingSizeSignUp),
-                child: walletController.isLoading ?
-                SpinKitCircle(color: Theme.of(context).primaryColor, size: 40.0) :
-                ButtonWidget(buttonText: 'convert_point'.tr, width: 145,
+                child: ButtonWidget(isLoading: walletController.isLoading,
+                buttonText: 'convert_point'.tr, width: 145,
                   backgroundColor:
                   (Get.find<ProfileController>().profileModel?.data?.loyaltyPoints ?? 0) >=
                       _convertDouble(amountController.text) ?

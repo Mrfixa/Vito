@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:get/get.dart';
 import 'package:ride_sharing_user_app/features/dashboard/screens/dashboard_screen.dart';
 import 'package:ride_sharing_user_app/features/parcel/widgets/route_widget.dart';
@@ -367,9 +366,8 @@ class _PaymentScreenState extends State<PaymentScreen> with WidgetsBindingObserv
                 vertical: Dimensions.paddingSizeDefault,
               ),
 
-              child: paymentController.isLoading ?
-              Center(child: SpinKitCircle(color: Theme.of(context).primaryColor, size: 40.0,)) :
-              ButtonWidget(buttonText: 'pay_now'.tr,
+              child: ButtonWidget(isLoading: paymentController.isLoading,
+              buttonText: 'pay_now'.tr,
                 onPressed: () {
                   if(paymentController.paymentTypeIndex == 1 && paymentController.paymentGatewayIndex != -1)
                   {

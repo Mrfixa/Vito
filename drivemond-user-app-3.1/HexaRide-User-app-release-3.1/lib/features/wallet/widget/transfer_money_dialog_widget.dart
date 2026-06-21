@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:get/get.dart';
 import 'package:ride_sharing_user_app/common_widgets/button_widget.dart';
 import 'package:ride_sharing_user_app/features/splash/controllers/config_controller.dart';
@@ -83,9 +82,8 @@ class _TransferMoneyDialogWidgetState extends State<TransferMoneyDialogWidget> {
               ),
               const SizedBox(height: Dimensions.paddingSizeSmall),
 
-              walletController.isLoading ?
-              SpinKitCircle(color: Theme.of(context).primaryColor, size: 40.0) :
               ButtonWidget(
+                  isLoading: walletController.isLoading,
                   buttonText: 'transfer'.tr,
                   onPressed: (){
                     String balance = _balanceController.text.trim().replaceAll(Get.find<ConfigController>().config?.currencySymbol ?? '\$', '').replaceAll(' ', '').replaceAll(',', '');
