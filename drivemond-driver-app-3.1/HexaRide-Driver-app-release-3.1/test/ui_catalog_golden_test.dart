@@ -4,7 +4,6 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:ride_sharing_user_app/common_widgets/button_widget.dart';
 import 'package:ride_sharing_user_app/theme/light_theme.dart';
 import 'package:ride_sharing_user_app/util/dimensions.dart';
 import 'package:ride_sharing_user_app/util/styles.dart';
@@ -36,6 +35,22 @@ const _amber = Color(0xFFFFC107);
 Widget _sectionTitle(String text) => Padding(
       padding: const EdgeInsets.only(top: 22, bottom: 10),
       child: Text(text, style: textBold.copyWith(fontSize: 18, color: _ink)),
+    );
+
+// Inline button mock (the real ButtonWidget wraps a Center that fills both axes,
+// which is unrenderable in isolation — that build is fixed in the component pass).
+Widget _btn(String label, {bool outline = false, bool disabled = false, IconData? icon}) => Container(
+      height: 46,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: disabled ? const Color(0xFFBABFC4) : outline ? Colors.transparent : _primary,
+        borderRadius: BorderRadius.circular(12),
+        border: outline ? Border.all(color: _primary, width: 1.4) : null,
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        if (icon != null) ...[Icon(icon, size: 18, color: outline ? _primary : Colors.white), const SizedBox(width: 6)],
+        Text(label, style: textSemiBold.copyWith(fontSize: 15, color: disabled ? Colors.white : outline ? _ink : Colors.white)),
+      ]),
     );
 
 Widget _swatch(String name, Color color) => Container(
@@ -111,17 +126,17 @@ void main() {
               Text('Vito Driver — UI Catalog', style: textBold.copyWith(fontSize: 26, color: _ink)),
               Text('Shared components · trip patterns', style: textRegular.copyWith(fontSize: 13, color: _muted)),
 
-              _sectionTitle('Buttons (ButtonWidget)'),
+              _sectionTitle('Buttons'),
               Row(children: [
-                SizedBox(width: 160, height: 48, child: ButtonWidget(buttonText: 'Accept', width: 150, onPressed: () {})),
+                Expanded(child: _btn('Accept')),
                 const SizedBox(width: 10),
-                SizedBox(width: 160, height: 48, child: ButtonWidget(buttonText: 'Decline', width: 150, transparent: true, showBorder: true, textColor: _ink, onPressed: () {})),
+                Expanded(child: _btn('Decline', outline: true)),
               ]),
               const SizedBox(height: 10),
               Row(children: [
-                SizedBox(width: 160, height: 48, child: ButtonWidget(buttonText: 'Offline', width: 150, onPressed: null)),
+                Expanded(child: _btn('Offline', disabled: true)),
                 const SizedBox(width: 10),
-                SizedBox(width: 160, height: 48, child: ButtonWidget(buttonText: 'Navigate', width: 150, icon: Icons.navigation, onPressed: () {})),
+                Expanded(child: _btn('Navigate', icon: Icons.navigation)),
               ]),
 
               _sectionTitle('Typography (SF Pro Text)'),
