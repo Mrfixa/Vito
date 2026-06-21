@@ -29,6 +29,16 @@ class AuthServiceProvider extends ServiceProvider
         $this->registerPolicies();
        // Passport::routes();
 
+        // Register the API token scopes. Vito's pin-login/registration mint
+        // tokens with these scopes; without registration Passport rejects them
+        // ("requested scope is invalid, unknown, or malformed").
+        Passport::tokensCan([
+            'AccessToCustomer'   => 'Access to the customer app',
+            'AccessToDriver'     => 'Access to the driver app',
+            'AccessToAdmin'      => 'Access to the admin API',
+            'AccessToSuperAdmin' => 'Super admin access',
+        ]);
+
         Gate::define('super-admin', fn () => auth()->user()->user_type == 'super-admin');
 
         Gate::define('dashboard', fn () => $this->checkAccess('dashboard', 'view'));
