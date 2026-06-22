@@ -211,7 +211,7 @@ class RideController extends GetxController implements GetxService{
       }else{
         if(type == 'parcel'){
           totalParcelCount ++;
-          totalParcelWeight += double.parse(parcelWeight);
+          totalParcelWeight += double.tryParse(parcelWeight) ?? 0;
         }
 
         if(showSuccess){
@@ -564,10 +564,11 @@ class RideController extends GetxController implements GetxService{
   void _calculateTotalParcelWeight(){
     totalParcelWeight = 0;
     totalParcelCount = 0;
-    if(parcelListModel != null){
-      totalParcelCount = parcelListModel!.data!.length;
-      for(int i = 0 ; i< parcelListModel!.data!.length ; i++){
-        totalParcelWeight += double.parse(parcelListModel?.data?[i].parcelInformation?.weight ?? '0');
+    final parcelData = parcelListModel?.data;
+    if(parcelData != null){
+      totalParcelCount = parcelData.length;
+      for(int i = 0 ; i< parcelData.length ; i++){
+        totalParcelWeight += double.tryParse(parcelData[i].parcelInformation?.weight ?? '0') ?? 0;
       }
     }
   }

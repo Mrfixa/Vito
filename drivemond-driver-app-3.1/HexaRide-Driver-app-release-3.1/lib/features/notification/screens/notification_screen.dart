@@ -76,8 +76,11 @@ class _NotificationScreenState extends State<NotificationScreen> {
             Expanded(child: GetBuilder<NotificationController>(builder: (notificationController) {
               return notificationController.notificationModel != null ?
               (notificationController.notificationModel!.data != null && notificationController.notificationModel!.data!.isNotEmpty) ?
-              SingleChildScrollView(
+              RefreshIndicator(
+                onRefresh: () async => await notificationController.getNotificationList(1),
+                child: SingleChildScrollView(
                 controller: scrollController,
+                physics: const AlwaysScrollableScrollPhysics(),
                 child: PaginatedListViewWidget(
                     scrollController: scrollController,
                     totalSize: notificationController.notificationModel!.totalSize,
@@ -102,7 +105,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                         )
                     )
                 ),
-              ) :
+              )) :
               const NoDataWidget(title: 'no_notification_found') :
               const NotificationShimmerWidget() ;
             })),

@@ -77,7 +77,7 @@ class CustomerDetailsWidget extends StatelessWidget {
                   ),
 
                   Text(
-                    double.parse(rideController.tripDetail?.customerAvgRating ?? '0').toStringAsFixed(1),
+                    (double.tryParse(rideController.tripDetail?.customerAvgRating ?? '0') ?? 0).toStringAsFixed(1),
                     style: textRegular,
                   ),
                 ]),

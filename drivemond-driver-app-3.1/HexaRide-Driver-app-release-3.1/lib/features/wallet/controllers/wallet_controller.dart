@@ -471,7 +471,7 @@ class WalletController extends GetxController implements GetxService {
 
   void manipulationIncomeStatement() {
 
-    if(incomeStatement!.data != null && incomeStatement!.data!.isNotEmpty){
+    if(incomeStatement?.data != null && incomeStatement!.data!.isNotEmpty){
       int count = 0;
       incomeStatementData = [[]];
       incomeStatementData![count].add(incomeStatement!.data![0]);

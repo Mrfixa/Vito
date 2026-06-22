@@ -53,7 +53,7 @@ class ImcomStatementBottomsheetWidget extends StatelessWidget {
                   icon: Images.farePrice,
                   title: 'fare_price'.tr,
                   amount: _calculateFarePrice(
-                    double.parse(tripDetail.paidFare ?? '0'),
+                    double.tryParse(tripDetail.paidFare ?? '0') ?? 0,
                     tripDetail.adminCommission ?? 0,
                     tripDetail.tips ?? 0,
                   ),
@@ -84,7 +84,7 @@ class ImcomStatementBottomsheetWidget extends StatelessWidget {
                 PaymentItemInfoWidget(
                   title: 'sub_total'.tr,
                   amount: _calculateSubTotal(
-                    double.parse(tripDetail.paidFare ?? '0'),
+                    double.tryParse(tripDetail.paidFare ?? '0') ?? 0,
                     tripDetail.adminCommission ?? 0,
                     tripDetail.couponAmount ?? 0,
                     tripDetail.discountAmount ?? 0,

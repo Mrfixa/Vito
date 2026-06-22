@@ -199,7 +199,7 @@ class TripCard extends StatelessWidget {
 
               Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                 Text(
-                  '${'total'.tr} ${PriceConverter.convertPrice(context, double.parse( tripModel.paidFare != '0' ? (tripModel.paidFare ?? '0') : (tripModel.estimatedFare ?? '0')))}',
+                  '${'total'.tr} ${PriceConverter.convertPrice(context, double.tryParse( tripModel.paidFare != '0' ? (tripModel.paidFare ?? '0') : (tripModel.estimatedFare ?? '0')) ?? 0)}',
                   style: textRobotoBold.copyWith(color: Theme.of(context).textTheme.bodyMedium?.color),
                 ),
 

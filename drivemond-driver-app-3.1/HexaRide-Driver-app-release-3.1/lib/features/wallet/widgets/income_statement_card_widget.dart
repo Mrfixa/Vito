@@ -83,7 +83,7 @@ class IncomeStatementCardWidget extends StatelessWidget {
                             ),
                             child: Text(PriceConverter.convertPrice(
                               context, _calculateDriverIncome(
-                              double.parse(tripDetails[index].paidFare ?? '0'),
+                              double.tryParse(tripDetails[index].paidFare ?? '0') ?? 0,
                               tripDetails[index].adminCommission ?? 0,
                               tripDetails[index].couponAmount ?? 0,
                               tripDetails[index].discountAmount ?? 0,

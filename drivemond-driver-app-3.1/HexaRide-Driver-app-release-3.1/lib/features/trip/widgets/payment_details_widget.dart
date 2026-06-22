@@ -101,7 +101,7 @@ class PaymentDetailsWidget extends StatelessWidget {
                 borderRadius: BorderRadius.circular(Dimensions.paddingSizeExtraSmall)
             ),
             child: Text(
-              PriceConverter.convertPrice(context, double.parse(tripDetail!.paidFare!) - (tripDetail?.dueAmount ?? 0)),
+              PriceConverter.convertPrice(context, (double.tryParse(tripDetail?.paidFare ?? '0') ?? 0) - (tripDetail?.dueAmount ?? 0)),
               style: textRobotoBold.copyWith(
                 color: Get.isDarkMode ? Colors.white : Theme.of(context).primaryColor,
               ),

@@ -77,7 +77,12 @@ class _PaymentReceivedScreenState extends State<PaymentReceivedScreen> with Widg
             List<dynamic> extraRoute = [];
             if(finalFareController.finalFare != null){
               if(finalFareController.finalFare!.intermediateAddresses != null && finalFareController.finalFare!.intermediateAddresses != '[[, ]]'){
-                extraRoute = jsonDecode(finalFareController.finalFare!.intermediateAddresses!);
+                try {
+                  final decoded = jsonDecode(finalFareController.finalFare!.intermediateAddresses!);
+                  if(decoded is List) extraRoute = decoded;
+                } catch (_) {
+                  extraRoute = [];
+                }
 
                 if(extraRoute.isNotEmpty){
                   firstRoute = extraRoute[0];

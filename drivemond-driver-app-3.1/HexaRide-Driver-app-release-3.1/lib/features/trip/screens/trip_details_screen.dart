@@ -60,7 +60,12 @@ class _TripDetailsState extends State<TripDetails> {
               List<dynamic> extraRoute = [];
               if(rideController.tripDetail!.intermediateAddresses != null &&
                   rideController.tripDetail!.intermediateAddresses != '[[, ]]'){
-                extraRoute = jsonDecode(rideController.tripDetail!.intermediateAddresses!);
+                try {
+                  final decoded = jsonDecode(rideController.tripDetail!.intermediateAddresses!);
+                  if(decoded is List) extraRoute = decoded;
+                } catch (_) {
+                  extraRoute = [];
+                }
 
                 if(extraRoute.isNotEmpty){
                   firstRoute = extraRoute[0];
