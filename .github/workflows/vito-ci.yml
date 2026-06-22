@@ -136,10 +136,13 @@ jobs:
           fi
 
       - name: Build debug APK
+        env:
+          MAPBOX_DOWNLOADS_TOKEN: ${{ secrets.MAPBOX_DOWNLOADS_TOKEN }}
         run: |
           flutter build apk --debug \
             --dart-define=MAPS_API_KEY=${{ secrets.MAPS_API_KEY }} \
-            --dart-define=STRIPE_KEY=${{ secrets.STRIPE_PUBLISHABLE_KEY }}
+            --dart-define=STRIPE_KEY=${{ secrets.STRIPE_PUBLISHABLE_KEY }} \
+            --dart-define=MAPBOX_ACCESS_TOKEN=${{ secrets.MAPBOX_ACCESS_TOKEN }}
         continue-on-error: true
 
       - name: Upload APK artifact
@@ -198,10 +201,13 @@ jobs:
           fi
 
       - name: Build debug APK
+        env:
+          MAPBOX_DOWNLOADS_TOKEN: ${{ secrets.MAPBOX_DOWNLOADS_TOKEN }}
         run: |
           flutter build apk --debug \
             --dart-define=MAPS_API_KEY=${{ secrets.MAPS_API_KEY }} \
-            --dart-define=STRIPE_KEY=${{ secrets.STRIPE_PUBLISHABLE_KEY }}
+            --dart-define=STRIPE_KEY=${{ secrets.STRIPE_PUBLISHABLE_KEY }} \
+            --dart-define=MAPBOX_ACCESS_TOKEN=${{ secrets.MAPBOX_ACCESS_TOKEN }}
         continue-on-error: true
 
       - name: Upload APK artifact

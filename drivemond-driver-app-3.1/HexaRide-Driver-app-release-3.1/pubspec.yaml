@@ -28,6 +28,7 @@ dependencies:
   percent_indicator: ^4.2.5
   syncfusion_flutter_datepicker: ^32.2.4
   google_maps_flutter: ^2.14.2
+  mapbox_maps_flutter: ^2.9.0
   geolocator: ^14.0.2
   flutter_animarker: ^3.2.0
   file_picker: ^10.3.10
