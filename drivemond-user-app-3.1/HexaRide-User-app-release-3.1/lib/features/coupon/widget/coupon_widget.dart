@@ -72,8 +72,8 @@ class _CouponWidgetState extends State<CouponWidget> {
                     children: [
                       Text(
                         ' ${widget.coupon.amountType == 'percentage' ?
-                        '${double.parse(widget.coupon.coupon!).toStringAsFixed(0)} %' :
-                        PriceConverter.convertPrice(double.parse(widget.coupon.coupon!))} OFF',
+                        '${(double.tryParse(widget.coupon.coupon ?? '0') ?? 0).toStringAsFixed(0)} %' :
+                        PriceConverter.convertPrice((double.tryParse(widget.coupon.coupon ?? '0') ?? 0))} OFF',
                         style: textRobotoBold.copyWith(
                           fontSize: Dimensions.fontSizeLarge,
                           color: Theme.of(context).textTheme.bodySmall!.color,

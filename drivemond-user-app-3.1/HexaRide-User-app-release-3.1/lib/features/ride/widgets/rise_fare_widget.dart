@@ -144,7 +144,7 @@ class _RiseFareWidgetState extends State<RiseFareWidget> {
                 if(widget.fromPage == RiseFare.ride) {
                   if(newFare.isEmpty){
                     showCustomSnackBar('fare_amount_is_required'.tr);
-                  }else if(double.parse(newFare) == 0.0){
+                  }else if((double.tryParse(newFare) ?? 0) == 0.0){
                     showCustomSnackBar('fare_amount_should_more_than_0'.tr);
                   }
                   else{

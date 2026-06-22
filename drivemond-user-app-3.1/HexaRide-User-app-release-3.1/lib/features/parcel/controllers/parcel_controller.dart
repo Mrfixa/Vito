@@ -163,9 +163,9 @@ class ParcelController extends GetxController with GetSingleTickerProviderStateM
     if(response.statusCode == 200 && response.body['data'] != null){
       parcelCategoryList = [];
       isLoading = false;
-      parcelCategoryList!.addAll(ParcelCategoryModel.fromJson(response.body).data!);
+      parcelCategoryList!.addAll(ParcelCategoryModel.fromJson(response.body).data ?? []);
       if(parcelCategoryList!.isNotEmpty) {
-        parcelTypeController.text = parcelCategoryList!.first.name!;
+        parcelTypeController.text = parcelCategoryList!.first.name ?? '';
       }
     }else{
       isLoading = false;

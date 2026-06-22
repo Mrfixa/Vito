@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ride_sharing_user_app/features/auth/domain/models/signup_body.dart';
+import 'package:ride_sharing_user_app/features/ride/domain/models/remaining_distance_model.dart';
 
 /// Unit tests for VITO-specific flows in the driver app.
 /// These validate localization, token logic, atomic acceptance,
@@ -248,6 +249,24 @@ void main() {
         password: '123456', confirmPassword: '123456',
       );
       expect(body.toJson().containsKey('service'), isFalse);
+    });
+  });
+
+  // Locks in the crash-sweep: malformed/missing numeric fields must NOT throw.
+  group('Model parse hardening', () {
+    test('RemainingDistanceModel.fromJson tolerates a null distance', () {
+      final model = RemainingDistanceModel.fromJson({'distance': null});
+      expect(model.distance, isNull);
+    });
+
+    test('RemainingDistanceModel.fromJson tolerates a non-numeric distance', () {
+      final model = RemainingDistanceModel.fromJson({'distance': 'not-a-number'});
+      expect(model.distance, 0);
+    });
+
+    test('RemainingDistanceModel.fromJson parses valid numeric distances', () {
+      expect(RemainingDistanceModel.fromJson({'distance': 12.5}).distance, 12.5);
+      expect(RemainingDistanceModel.fromJson({'distance': 5}).distance, 5.0);
     });
   });
 }

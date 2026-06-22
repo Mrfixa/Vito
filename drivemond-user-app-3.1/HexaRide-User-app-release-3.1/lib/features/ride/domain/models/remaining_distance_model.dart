@@ -22,7 +22,13 @@ class RemainingDistanceModel {
       });
 
   RemainingDistanceModel.fromJson(Map<String, dynamic> json) {
-    distance = json['distance'].toDouble();
+    if(json['distance'] != null){
+      try{
+        distance = json['distance'].toDouble();
+      }catch(e){
+        distance = double.tryParse(json['distance'].toString()) ?? 0;
+      }
+    }
     distanceText = json['distance_text'];
     duration = json['duration'];
     durationSec = json['duration_sec'];

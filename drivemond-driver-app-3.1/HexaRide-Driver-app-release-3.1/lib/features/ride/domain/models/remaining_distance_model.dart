@@ -30,7 +30,7 @@ class RemainingDistanceModel {
       try{
         distance = json['distance'].toDouble();
       }catch(e){
-        distance = double.parse(json['distance'].toString());
+        distance = double.tryParse(json['distance'].toString()) ?? 0;
       }
     }
 

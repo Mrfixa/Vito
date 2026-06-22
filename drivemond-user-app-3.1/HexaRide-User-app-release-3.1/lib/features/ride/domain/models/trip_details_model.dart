@@ -157,7 +157,7 @@ class TripDetails {
     driver = json['driver'] != null ? Driver.fromJson(json['driver']) : null;
     vehicle = json['vehicle'] != null ? Vehicle.fromJson(json['vehicle']) : null;
     vehicleCategory = json['vehicle_category'] != null ? VehicleCategory.fromJson(json['vehicle_category']) : null;
-    estimatedFare = json['estimated_fare'] != null ? double.parse(json['estimated_fare'].toString()) : 0;
+    estimatedFare = json['estimated_fare'] != null ? double.tryParse(json['estimated_fare'].toString()) ?? 0 : 0;
     orgEstFare = json['org_est_fare'].toString();
     estimatedTime = json['estimated_time'].toString();
     estimatedDistance = json['estimated_distance'].toDouble();
@@ -206,7 +206,7 @@ class TripDetails {
       try{
         couponAmount = json['coupon_amount'].toDouble();
       }catch(e){
-        couponAmount = double.parse(json['coupon_amount'].toString());
+        couponAmount = double.tryParse(json['coupon_amount'].toString()) ?? 0;
       }
     }
 
@@ -227,7 +227,7 @@ class TripDetails {
       try{
         paidFare = json['paid_fare'].toDouble();
       }catch(e){
-        paidFare = double.parse(json['paid_fare'].toString());
+        paidFare = double.tryParse(json['paid_fare'].toString()) ?? 0;
       }
     }
 

@@ -22,7 +22,7 @@ class TripDetailWidget extends StatelessWidget {
     String secondRoute = '';
     List<dynamic> extraRoute = [];
     if(tripDetails.intermediateAddresses != null && tripDetails.intermediateAddresses != '[[, ]]'){
-      extraRoute = jsonDecode(tripDetails.intermediateAddresses!);
+      try { extraRoute = jsonDecode(tripDetails.intermediateAddresses!); } catch (_) {}
       if(extraRoute.isNotEmpty){
         firstRoute = extraRoute[0];
       }

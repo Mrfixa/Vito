@@ -116,7 +116,7 @@ class OfferCouponCardWidget extends StatelessWidget {
                 Text(
                   '${coupon.amountType == 'percentage' ?
                   '${coupon.coupon}%' :
-                  PriceConverter.convertPrice(double.parse(coupon.coupon ?? '0'))} ${'off'.tr} ',
+                  PriceConverter.convertPrice((double.tryParse(coupon.coupon ?? '0') ?? 0))} ${'off'.tr} ',
                   style: textBold.copyWith(
                     color: Theme.of(context).primaryColor,
                     fontSize: Dimensions.fontSizeLarge ,
@@ -228,7 +228,7 @@ class CouponDetailsBottomSheet extends StatelessWidget {
         const SizedBox(height: Dimensions.paddingSizeExtraSmall),
 
         Text('${'get'.tr} ${coupon.amountType == 'percentage' ? '${coupon.coupon} %' :
-        PriceConverter.convertPrice(double.parse(coupon.coupon ?? '0'))} ${'discount'.tr}',
+        PriceConverter.convertPrice((double.tryParse(coupon.coupon ?? '0') ?? 0))} ${'discount'.tr}',
             style: textRobotoBold,
         ),
         const SizedBox(height: Dimensions.paddingSizeExtraSmall),
@@ -385,7 +385,7 @@ class CouponDetailsBottomSheet extends StatelessWidget {
             ]),
             const SizedBox(height: Dimensions.paddingSizeExtraSmall),
 
-            if(double.parse(coupon.maxCouponAmount ?? '0') > 0)
+            if((double.tryParse(coupon.maxCouponAmount ?? '0') ?? 0) > 0)
             Row(children:  [
               Container(
                 margin:const EdgeInsets.all(Dimensions.paddingSizeExtraSmall) ,

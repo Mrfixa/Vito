@@ -101,7 +101,7 @@ class _PaymentScreenState extends State<PaymentScreen> with WidgetsBindingObserv
                       List<dynamic> extraRoute = [];
                       if(rideController.tripDetails?.intermediateAddresses != null &&
                           rideController.tripDetails?.intermediateAddresses != '["",""]'){
-                        extraRoute = jsonDecode(rideController.tripDetails!.intermediateAddresses!);
+                        try { extraRoute = jsonDecode(rideController.tripDetails!.intermediateAddresses!); } catch (_) {}
 
                         if(extraRoute.isNotEmpty) {
                           firstRoute = extraRoute[0];

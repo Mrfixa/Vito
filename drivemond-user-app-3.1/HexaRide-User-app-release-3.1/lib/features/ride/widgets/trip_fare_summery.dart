@@ -27,7 +27,7 @@ class TripFareSummery extends StatelessWidget {
         return GetBuilder<PaymentController>(builder: (paymentController) {
           double total = 0;
           if (fromPayment) {
-            total = rideController.finalFare!.paidFare! + double.parse(paymentController.tipAmount);
+            total = rideController.finalFare!.paidFare! + (double.tryParse(paymentController.tipAmount) ?? 0);
           } else {
             total = rideController.tripDetails?.paidFare ?? 0;
           }
@@ -175,10 +175,10 @@ class TripFareSummery extends StatelessWidget {
                   amount: rideController.finalFare?.vatTax ?? 0,
                 ),
 
-              if(fromPayment && double.parse(paymentController.tipAmount) > 0)
+              if(fromPayment && (double.tryParse(paymentController.tipAmount) ?? 0) > 0)
                 PaymentItemInfoWidget(
                   icon: Images.farePrice, title: 'tips'.tr,
-                  amount: double.parse(paymentController.tipAmount),
+                  amount: (double.tryParse(paymentController.tipAmount) ?? 0),
                   toolTipText: 'tips_tooltip',
                 ),
 

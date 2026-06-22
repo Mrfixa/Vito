@@ -29,7 +29,7 @@ class OngoingRideCardWidget extends StatelessWidget {
       String tripDate = '0', suffix = 'st';
       List<dynamic> extraRoute =[];
       int onGoingHr = 0, count = 1;
-      if(rideController.lastRideDetails != null && rideController.lastRideDetails!.isNotEmpty){
+      if(rideController.lastRideDetails != null && rideController.lastRideDetails!.isNotEmpty && rideController.lastRideDetails![0].createdAt != null){
         tripDate = DateConverter.dateTimeStringToDateOnly(rideController.lastRideDetails![0].createdAt!);
         if(tripDate == "1"){
           suffix = "st";
@@ -41,7 +41,8 @@ class OngoingRideCardWidget extends StatelessWidget {
           suffix = "th";
         }
 
-        onGoingHr = DateTime.now().difference(DateTime.parse(rideController.lastRideDetails![0].createdAt!)).inMinutes;
+        final ongoingCreatedAt = DateTime.tryParse(rideController.lastRideDetails![0].createdAt!);
+        onGoingHr = ongoingCreatedAt != null ? DateTime.now().difference(ongoingCreatedAt).inMinutes : 0;
 
         for(int i =0; i< extraRoute.length; i++){
           if(extraRoute[i] != ''){

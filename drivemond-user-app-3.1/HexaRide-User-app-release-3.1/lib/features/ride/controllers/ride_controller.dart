@@ -413,7 +413,9 @@ class RideController extends GetxController implements GetxService {
     isLoading = true;
     Response response = await rideServiceInterface.remainDistance(requestID);
     if (response.statusCode == 200) {
-      Get.find<MapController>().getDriverToPickupOrDestinationPolyline(response.body[0]["encoded_polyline"],mapBound: mapBound);
+      if(response.body is List && response.body.isNotEmpty) {
+        Get.find<MapController>().getDriverToPickupOrDestinationPolyline(response.body[0]["encoded_polyline"],mapBound: mapBound);
+      }
       remainingDistanceModel = [];
       for(var distance in response.body) {
         remainingDistanceModel.add(RemainingDistanceModel.fromJson(distance));

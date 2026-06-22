@@ -346,7 +346,7 @@ class RideController extends GetxController implements GetxService{
      List<String> status = ['accepted','ongoing','outForPickup'];
     if (response.statusCode == 200) {
       isLoading = false;
-      if(status.contains(Get.find<RiderMapController>().currentRideState.name)){
+      if(status.contains(Get.find<RiderMapController>().currentRideState.name) && response.body is List && response.body.isNotEmpty){
         Get.find<RiderMapController>().getDriverToPickupOrDestinationPolyline(response.body[0]['encoded_polyline'],mapBound: mapBound);
       }
 
@@ -614,7 +614,9 @@ class RideController extends GetxController implements GetxService{
     if (response.statusCode == 200) {
       getRideDetails(tripId);
       isLoading = false;
-      Get.find<RiderMapController>().checkDriverReachedDestination(response.body[0]['encoded_polyline']);
+      if(response.body is List && response.body.isNotEmpty) {
+        Get.find<RiderMapController>().checkDriverReachedDestination(response.body[0]['encoded_polyline']);
+      }
 
       remainingDistanceItem = [];
       response.body.forEach((distance) {

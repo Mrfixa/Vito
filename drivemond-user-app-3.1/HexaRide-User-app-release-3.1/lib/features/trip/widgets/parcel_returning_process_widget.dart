@@ -8,6 +8,9 @@ import 'package:ride_sharing_user_app/util/dimensions.dart';
 import 'package:ride_sharing_user_app/util/images.dart';
 import 'package:ride_sharing_user_app/util/styles.dart';
 
+// Safe single-digit access: avoids RangeError / "null" text when the OTP is null or shorter than expected.
+String _otpDigit(String? otp, int index) =>
+    (otp != null && otp.length > index) ? otp[index] : '';
 
 class ParcelReturningProcessWidget extends StatelessWidget {
   const ParcelReturningProcessWidget({super.key});
@@ -41,7 +44,7 @@ class ParcelReturningProcessWidget extends StatelessWidget {
                   borderRadius: BorderRadius.circular(Dimensions.paddingSizeExtraSmall)
                 ),
                 padding: EdgeInsets.symmetric(horizontal: Dimensions.paddingSizeExtraSmall),
-                child: Text('${rideController.tripDetails?.otp?[0]}${rideController.tripDetails?.otp?[1]}${rideController.tripDetails?.otp?[2]}${rideController.tripDetails?.otp?[3]}',style: textBold.copyWith(fontSize: 20)),
+                child: Text('${_otpDigit(rideController.tripDetails?.otp, 0)}${_otpDigit(rideController.tripDetails?.otp, 1)}${_otpDigit(rideController.tripDetails?.otp, 2)}${_otpDigit(rideController.tripDetails?.otp, 3)}',style: textBold.copyWith(fontSize: 20)),
               ),
             ]),
           ),

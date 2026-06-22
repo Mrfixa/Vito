@@ -240,7 +240,10 @@ class MessageController extends GetxController implements GetxService{
       _file = null;
     } else if (response.statusCode == 400) {
       isSending = false;
-      String message = response.body['errors'][0]['message'];
+      final errors = response.body['errors'];
+      String message = (errors is List && errors.isNotEmpty && errors[0] is Map && errors[0]['message'] != null)
+          ? errors[0]['message'].toString()
+          : 'something_went_wrong';
       _pickedImageFiles = [];
       _selectedImageList = [];
       _otherFile = null;
@@ -317,7 +320,10 @@ class MessageController extends GetxController implements GetxService{
     }
     else if(response.statusCode == 400){
       isSending = false;
-      String message = response.body['errors'][0]['message'];
+      final errors = response.body['errors'];
+      String message = (errors is List && errors.isNotEmpty && errors[0] is Map && errors[0]['message'] != null)
+          ? errors[0]['message'].toString()
+          : 'something_went_wrong';
       if(message.contains("png  jpg  jpeg  csv  txt  xlx  xls  pdf")){
         message = "the_files_types_must_be";
       }

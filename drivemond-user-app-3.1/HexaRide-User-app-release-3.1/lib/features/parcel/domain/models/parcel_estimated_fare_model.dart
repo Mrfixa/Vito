@@ -84,7 +84,7 @@ class ParcelFare {
         estimatedDistance = json['estimated_distance'].toDouble();
 
       }catch(e){
-        estimatedDistance = double.parse(json['estimated_distance'].toString());
+        estimatedDistance = double.tryParse(json['estimated_distance'].toString()) ?? 0;
 
       }
     }
@@ -95,8 +95,8 @@ class ParcelFare {
     couponApplicable = json['coupon_applicable'];
     requestType = json['request type'];
     encodedPolyline = json['encoded_polyline'];
-    returnFee = double.parse(json['return_fee'].toString());
-    cancellationFee = double.parse(json['cancellation_fee'].toString());
+    returnFee = double.tryParse(json['return_fee'].toString()) ?? 0;
+    cancellationFee = double.tryParse(json['cancellation_fee'].toString()) ?? 0;
     extraEstimatedFare = double.tryParse('${json['extra_estimated_fare']}');
     extraDiscountFare = double.tryParse('${json['extra_discount_fare']}');
     extraDiscountAmount = double.tryParse('${json['extra_discount_amount']}');
@@ -135,7 +135,7 @@ class Fare {
     parcelFareId = json['parcel_fare_id'];
     parcelWeightId = json['parcel_weight_id'];
     parcelCategoryId = json['parcel_category_id'];
-    fare = double.parse(json['fare_per_km'].toString());
+    fare = double.tryParse(json['fare_per_km'].toString()) ?? 0;
     zoneId = json['zone_id'];
     createdAt = json['created_at'];
     updatedAt = json['updated_at'];

@@ -222,7 +222,7 @@ class _RideOngoingWidgetState extends State<RideOngoingWidget> {
                   }});
 
               }else{
-                DateTime pickedDateTime = DateTime.parse('${Get.find<TripController>().parcelReturnDate} ${Get.find<TripController>().parcelReturnTime}');
+                DateTime pickedDateTime = DateTime.tryParse('${Get.find<TripController>().parcelReturnDate} ${Get.find<TripController>().parcelReturnTime}') ?? DateTime.now();
                 Duration duration = pickedDateTime.difference(DateTime.now());
                 if(duration.isNegative){
                   showCustomSnackBar('selected_time_is_in_the_past'.tr);

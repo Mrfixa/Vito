@@ -27,8 +27,12 @@ class _ScheduleDateTimePickerWidgetState extends State<ScheduleDateTimePickerWid
   void initState() {
     if(widget.tripId != null){
      final RideController rideController = Get.find<RideController>();
-     rideController.setScheduleTripTime(DateTime.parse(rideController.tripDetails?.scheduledAt ?? ''));
-     rideController.setScheduleTripDate(rideController.tripDetails?.scheduledAt ?? '');
+     final scheduledAt = rideController.tripDetails?.scheduledAt;
+     final parsedSchedule = scheduledAt != null ? DateTime.tryParse(scheduledAt) : null;
+     if(parsedSchedule != null){
+       rideController.setScheduleTripTime(parsedSchedule);
+     }
+     rideController.setScheduleTripDate(scheduledAt ?? '');
     }
     super.initState();
   }

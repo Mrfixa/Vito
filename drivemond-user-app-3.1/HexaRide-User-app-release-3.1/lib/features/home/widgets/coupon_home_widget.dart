@@ -77,8 +77,8 @@ class HomeCouponWidget extends StatelessWidget {
                           const SizedBox(height: Dimensions.paddingSizeExtraSmall),
 
                           Text('${couponController.couponModel!.data![index].amountType! == 'percentage' ?
-                          '${double.parse(couponController.couponModel!.data![index].coupon!).toStringAsFixed(0)} %' :
-                          PriceConverter.convertPrice(double.parse(couponController.couponModel!.data![index].coupon!))} OFF',
+                          '${(double.tryParse(couponController.couponModel!.data![index].coupon ?? '0') ?? 0).toStringAsFixed(0)} %' :
+                          PriceConverter.convertPrice((double.tryParse(couponController.couponModel!.data![index].coupon ?? '0') ?? 0))} OFF',
                             style: textRobotoRegular.copyWith(
                               color: Theme.of(context).textTheme.bodyMedium!.color!.withValues(alpha:0.8),
                               overflow: TextOverflow.ellipsis,

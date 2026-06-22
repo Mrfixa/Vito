@@ -334,7 +334,7 @@ class WithdrawRequestWidgetState extends State<WithdrawRequestWidget> {
     note = noteController.text.trim();
 
     if(balance.isNotEmpty){
-      bal = double.parse(balance);
+      bal = double.tryParse(balance) ?? 0;
     }
     if (balance.isEmpty) {
       showCustomSnackBar('enter_balance'.tr);

@@ -177,7 +177,7 @@ class TripDetail {
       try{
         actualTime = json['actual_time'].toDouble();
       }catch(e){
-        actualTime = double.parse(json['actual_time'].toString());
+        actualTime = double.tryParse(json['actual_time'].toString()) ?? 0;
       }
     }else{
       actualTime = 0;
@@ -187,7 +187,7 @@ class TripDetail {
       try{
         actualDistance = json['actual_distance'].toDouble();
       }catch(e){
-        actualDistance = double.parse(json['actual_distance'].toString());
+        actualDistance = double.tryParse(json['actual_distance'].toString()) ?? 0;
       }
 
     }
@@ -236,7 +236,7 @@ class TripDetail {
       try{
         couponAmount = json['coupon_amount'].toDouble();
       }catch(e){
-        couponAmount = double.parse(json['coupon_amount'].toString());
+        couponAmount = double.tryParse(json['coupon_amount'].toString()) ?? 0;
       }
     }
 
@@ -244,7 +244,7 @@ class TripDetail {
       try{
         discountAmount = json['discount_amount'].toDouble();
       }catch(e){
-        discountAmount = double.parse(json['discount_amount'].toString());
+        discountAmount = double.tryParse(json['discount_amount'].toString()) ?? 0;
       }
     }
     note = json['note'];

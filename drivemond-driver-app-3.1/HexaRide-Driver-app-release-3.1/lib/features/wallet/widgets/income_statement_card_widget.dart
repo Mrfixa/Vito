@@ -18,7 +18,7 @@ class IncomeStatementCardWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(padding: const EdgeInsets.symmetric(horizontal: Dimensions.paddingSizeDefault),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(DateConverter.isoStringToLocalDateOnly(tripDetails[0].createdAt!),style: textRegular),
+        Text(tripDetails.isNotEmpty && tripDetails[0].createdAt != null ? DateConverter.isoStringToLocalDateOnly(tripDetails[0].createdAt!) : '',style: textRegular),
         const SizedBox(height: Dimensions.paddingSizeSmall),
 
         Container(

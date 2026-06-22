@@ -63,7 +63,7 @@ class Bidding {
     driverLastLocation = json['driver_last_location'] != null
         ? DriverLastLocation.fromJson(json['driver_last_location'])
         : null;
-    bidFare = json['bid_fare'] != null ? double.parse(json['bid_fare'].toString()) : 0;
+    bidFare = json['bid_fare'] != null ? double.tryParse(json['bid_fare'].toString()) ?? 0 : 0;
     driverAvgRating = json['driver_avg_rating'];
   }
 

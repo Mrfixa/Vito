@@ -46,7 +46,7 @@ class ReviewCardWidget extends StatelessWidget {
                     ),
 
                     Text(
-                      DateConverter.localToIsoString(DateTime.parse(review.createdAt!)),
+                      DateTime.tryParse(review.createdAt ?? '') != null ? DateConverter.localToIsoString(DateTime.parse(review.createdAt!)) : '',
                       style: textRegular.copyWith(
                         color: Theme.of(context).textTheme.bodyMedium!.color,
                         fontSize: Dimensions.fontSizeSmall,

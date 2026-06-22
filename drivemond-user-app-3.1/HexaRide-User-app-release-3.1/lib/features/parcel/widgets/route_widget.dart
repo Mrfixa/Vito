@@ -33,7 +33,7 @@ class _RouteWidgetState extends State<RouteWidget> {
       removeComma = widget.totalDistance.replaceAll("km", '');
       totalDistance = removeComma.replaceAll(",", '');
     }
-    estDistance = double.parse(totalDistance).toStringAsFixed(2);
+    estDistance = (double.tryParse(totalDistance) ?? 0).toStringAsFixed(2);
 
     return GetBuilder<ParcelController>(builder: (parcelController) {
       return GetBuilder<LocationController>(builder: (locationController) {
@@ -152,7 +152,7 @@ class _RouteWidgetState extends State<RouteWidget> {
                   Text(
                     widget.totalDistance.contains('km') ?
                     widget.totalDistance :
-                    '${double.parse(widget.totalDistance).toStringAsFixed(2)} km',
+                    '${(double.tryParse(widget.totalDistance) ?? 0).toStringAsFixed(2)} km',
                     style: textRegular.copyWith(color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha:0.7)),
                   ),
                 ]),

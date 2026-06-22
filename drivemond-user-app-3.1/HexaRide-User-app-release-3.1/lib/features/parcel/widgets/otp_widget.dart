@@ -5,6 +5,9 @@ import 'package:ride_sharing_user_app/util/dimensions.dart';
 import 'package:ride_sharing_user_app/util/styles.dart';
 import 'package:ride_sharing_user_app/features/ride/controllers/ride_controller.dart';
 
+// Safe single-digit access: avoids RangeError / "null" text when the OTP is null or shorter than expected.
+String _otpDigit(String? otp, int index) =>
+    (otp != null && otp.length > index) ? otp[index] : '';
 
 class OtpWidget extends StatefulWidget {
   final bool isParcel;
@@ -53,7 +56,7 @@ class _OtpWidgetState extends State<OtpWidget> {
                     borderRadius: BorderRadius.circular(Dimensions.paddingSizeSmall),
                   ),
                   child: Center(child: Text(
-                    '${rideController.tripDetails?.otp?[0]}',
+                    _otpDigit(rideController.tripDetails?.otp, 0),
                     style: textBold.copyWith(fontSize: 28, color: Theme.of(context).textTheme.bodyMedium?.color),
                   )),
                 ),
@@ -66,7 +69,7 @@ class _OtpWidgetState extends State<OtpWidget> {
                     borderRadius: BorderRadius.circular(Dimensions.paddingSizeSmall),
                   ),
                   child: Center(child: Text(
-                    '${rideController.tripDetails?.otp?[1]}',
+                    _otpDigit(rideController.tripDetails?.otp, 1),
                     style: textBold.copyWith(fontSize: 28, color: Theme.of(context).textTheme.bodyMedium?.color),
                   )),
                 ),
@@ -79,7 +82,7 @@ class _OtpWidgetState extends State<OtpWidget> {
                     borderRadius: BorderRadius.circular(Dimensions.paddingSizeSmall),
                   ),
                   child: Center(child: Text(
-                    '${rideController.tripDetails?.otp?[2]}',
+                    _otpDigit(rideController.tripDetails?.otp, 2),
                     style: textBold.copyWith(fontSize: 28, color: Theme.of(context).textTheme.bodyMedium?.color),
                   )),
                 ),
@@ -92,7 +95,7 @@ class _OtpWidgetState extends State<OtpWidget> {
                     borderRadius: BorderRadius.circular(Dimensions.paddingSizeSmall),
                   ),
                   child: Center(child: Text(
-                    '${rideController.tripDetails?.otp?[3]}',
+                    _otpDigit(rideController.tripDetails?.otp, 3),
                     style: textBold.copyWith(fontSize: 28, color: Theme.of(context).textTheme.bodyMedium?.color),
                   )),
                 )
