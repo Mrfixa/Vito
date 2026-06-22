@@ -110,10 +110,16 @@ class RideController extends GetxController implements GetxService {
   String selectedCategoryId = '';
   FareModel? selectedType;
   void setRideCategoryIndex(int newIndex){
-    rideCategoryIndex = newIndex;
-    categoryName = Get.find<CategoryController>().categoryList![rideCategoryIndex].id!;
+    // Guard against a stale/out-of-range index when the category list shrank or
+    // hasn't loaded yet — indexing it directly would crash the booking flow.
+    final categoryList = Get.find<CategoryController>().categoryList;
+    if(categoryList == null || categoryList.isEmpty){
+      return;
+    }
+    rideCategoryIndex = (newIndex >= 0 && newIndex < categoryList.length) ? newIndex : 0;
+    categoryName = categoryList[rideCategoryIndex].id ?? '';
 
-    Get.find<CategoryController>().setCouponFilterIndex(newIndex + 2);
+    Get.find<CategoryController>().setCouponFilterIndex(rideCategoryIndex + 2);
 
     if(fareList.isNotEmpty){
       for(int i = 0; i< fareList.length; i++){
@@ -123,17 +129,19 @@ class RideController extends GetxController implements GetxService {
         }
       }
 
-      estimatedDistance = selectedType!.estimatedDistance!;
-      estimatedDuration = selectedType!.estimatedDuration!;
-      selectedCategoryId = selectedType!.vehicleCategoryId!;
-      //
-      estimatedFare = (((selectedType?.extraFareFee ?? 0) > 0) || ((selectedType?.surgeMultiplier ?? 0) >0)) ? selectedType?.extraEstimatedFare ?? 0 : selectedType?.estimatedFare ?? 0;
-      currentFarePrice = estimatedFare;
-      actualFare = estimatedFare;
-      isCouponApplicable = selectedType!.couponApplicable!;
-      discountFare = (((selectedType?.extraFareFee ?? 0) > 0) || ((selectedType?.surgeMultiplier ?? 0) >0)) ? selectedType?.extraDiscountFare ?? 0 : selectedType?.discountFare ?? 0;
-      discountAmount = (((selectedType?.extraFareFee ?? 0) > 0) || ((selectedType?.surgeMultiplier ?? 0) >0)) ? selectedType?.extraDiscountAmount ?? 0 : selectedType?.discountAmount ?? 0;
-
+      // Only apply fare values when a matching category was actually found.
+      if(selectedType != null){
+        estimatedDistance = selectedType!.estimatedDistance ?? estimatedDistance;
+        estimatedDuration = selectedType!.estimatedDuration ?? estimatedDuration;
+        selectedCategoryId = selectedType!.vehicleCategoryId ?? selectedCategoryId;
+        //
+        estimatedFare = (((selectedType?.extraFareFee ?? 0) > 0) || ((selectedType?.surgeMultiplier ?? 0) >0)) ? selectedType?.extraEstimatedFare ?? 0 : selectedType?.estimatedFare ?? 0;
+        currentFarePrice = estimatedFare;
+        actualFare = estimatedFare;
+        isCouponApplicable = selectedType!.couponApplicable ?? false;
+        discountFare = (((selectedType?.extraFareFee ?? 0) > 0) || ((selectedType?.surgeMultiplier ?? 0) >0)) ? selectedType?.extraDiscountFare ?? 0 : selectedType?.discountFare ?? 0;
+        discountAmount = (((selectedType?.extraFareFee ?? 0) > 0) || ((selectedType?.surgeMultiplier ?? 0) >0)) ? selectedType?.extraDiscountAmount ?? 0 : selectedType?.discountAmount ?? 0;
+      }
     }
 
     update();
@@ -209,12 +217,17 @@ class RideController extends GetxController implements GetxService {
         parcelFare = ParcelEstimatedFare.fromJson(response.body).data!.estimatedFare!.toString();
       }else{
         fareList = [];
-        fareList.addAll(EstimatedFareModel.fromJson(response.body).data!);
+        fareList.addAll(EstimatedFareModel.fromJson(response.body).data ?? []);
         setRideCategoryIndex(rideCategoryIndex != 0 ?  rideCategoryIndex : 0);
-        if(fareList[rideCategoryIndex].polyline == null){
+        // fareList can hold fewer entries than the category list, so clamp the
+        // index before reading it and never force-unwrap a (possibly null) polyline.
+        final int safeIndex = (rideCategoryIndex >= 0 && rideCategoryIndex < fareList.length) ? rideCategoryIndex : 0;
+        if(fareList.isEmpty || fareList[safeIndex].polyline == null){
           showCustomSnackBar('road_not_found'.tr,isError: true);
+          encodedPolyLine = '';
+        } else {
+          encodedPolyLine = fareList[safeIndex].polyline!;
         }
-        encodedPolyLine = fareList[rideCategoryIndex].polyline!;
       }
     }else{
       loading = false;
@@ -250,13 +263,24 @@ class RideController extends GetxController implements GetxService {
     update();
 
     LocationController locController = Get.find<LocationController>();
-    Address pickUpPosition = parcel ? locController.parcelSenderAddress! : tripDetails == null ? locController.fromAddress! : Address();
-    Address destinationPosition = parcel ? locController.parcelReceiverAddress! : tripDetails == null ? locController.toAddress! : Address();
+    // Never force-unwrap a possibly-null address — fall back to an empty Address
+    // so submission fails gracefully on the backend instead of crashing the app.
+    Address pickUpPosition = parcel ? (locController.parcelSenderAddress ?? Address()) : tripDetails == null ? (locController.fromAddress ?? Address()) : Address();
+    Address destinationPosition = parcel ? (locController.parcelReceiverAddress ?? Address()) : tripDetails == null ? (locController.toAddress ?? Address()) : Address();
 
     DateTime scheduleDate = RideControllerHelper.dateFormatToShow(scheduleTripDate);
     DateTime scheduleTime = RideControllerHelper.timeFormatToShow(scheduleTripTime);
 
     DateTime scheduledTime = DateTime(scheduleDate.year,scheduleDate.month,scheduleDate.day,scheduleTime.hour,scheduleTime.minute,scheduleTime.second);
+
+    // Bounds-safe payment method + fare-list reads (indexes can be stale/-1).
+    final paymentController = Get.find<PaymentController>();
+    final String safePaymentMethod = (paymentController.paymentTypeIndex >= 0 && paymentController.paymentTypeIndex < paymentController.paymentTypeList.length)
+        ? paymentController.paymentTypeList[paymentController.paymentTypeIndex]
+        : (paymentController.paymentTypeList.isNotEmpty ? paymentController.paymentTypeList.first : 'cash');
+    final int safeFareIndex = (rideCategoryIndex >= 0 && rideCategoryIndex < fareList.length) ? rideCategoryIndex : 0;
+    final String safePolyline = fareList.isNotEmpty ? (fareList[safeFareIndex].polyline ?? '') : '';
+    final String safeAreaId = fareList.isNotEmpty ? (fareList[safeFareIndex].areaId ?? '') : '';
 
     Response response = await rideServiceInterface.submitRideRequest(
       pickupLat: pickUpPosition.latitude.toString(),
@@ -267,9 +291,9 @@ class RideController extends GetxController implements GetxService {
       customerCurrentLng: locController.initialPosition.longitude.toString(), type: parcel ? 'parcel' : 'ride_request',
         rideRequestType: parcel ? null : _rideType == RideType.regularRide ? 'regular' : 'scheduled',
       pickupAddress: parcel ? Get.find<ParcelController>().senderAddressController.text
-          : tripDetails == null ? locController.fromAddress!.address.toString() : tripDetails!.pickupAddress!,
+          : tripDetails == null ? (locController.fromAddress?.address?.toString() ?? '') : (tripDetails!.pickupAddress ?? ''),
       destinationAddress: parcel ? Get.find<ParcelController>().receiverAddressController.text
-          : locController.toAddress?.address ?? tripDetails!.destinationAddress! ,
+          : (locController.toAddress?.address ?? tripDetails?.destinationAddress ?? '') ,
       vehicleCategoryId: parcel ? categoryId : selectedCategoryId,
       estimatedDistance: parcel ? parcelEstimatedFare!.data!.estimatedDistance!.toString() : estimatedDistance,
       estimatedTime: parcel ? parcelEstimatedFare!.data!.estimatedDuration!.replaceFirst('min', '') : estimatedDuration,
@@ -277,8 +301,8 @@ class RideController extends GetxController implements GetxService {
       actualFare: parcel ? parcelFare : estimatedFare != actualFare ? actualFare.toString() : estimatedFare.toString(),
       bid:parcel ? false : estimatedFare != actualFare,
       note: note,
-      paymentMethod: Get.find<PaymentController>().paymentTypeList[Get.find<PaymentController>().paymentTypeIndex],
-      encodedPolyline: parcel ? encodedPolyLine : fareList.isNotEmpty ? fareList[rideCategoryIndex].polyline! : '',
+      paymentMethod: safePaymentMethod,
+      encodedPolyline: parcel ? encodedPolyLine : safePolyline,
       middleAddress: [locController.extraRouteAddress?.address ?? '', locController.extraRouteTwoAddress?.address ?? ''],
       entrance: locController.entranceController.text.toString(),
       extraOne: locController.extraOneRoute,
@@ -287,14 +311,21 @@ class RideController extends GetxController implements GetxService {
       extraLngOne: locController.extraRouteAddress != null ? locController.extraRouteAddress!.longitude.toString() : '',
       extraLatTwo: locController.extraRouteTwoAddress != null ? locController.extraRouteTwoAddress!.latitude.toString() : '',
       extraLngTwo: locController.extraRouteTwoAddress != null ? locController.extraRouteTwoAddress!.longitude.toString() : '',
-      areaId: parcel ? '' : fareList.isNotEmpty ? fareList[rideCategoryIndex].areaId ?? '' : '',
+      areaId: parcel ? '' : safeAreaId,
       senderName: Get.find<ParcelController>().senderNameController.text,
       senderPhone: Get.find<ParcelController>().getSenderContactNumber,
       senderAddress: Get.find<ParcelController>().senderAddressController.text,
       receiverName: Get.find<ParcelController>().receiverNameController.text,
       receiverPhone: Get.find<ParcelController>().getReceiverContactNumber,
       receiverAddress: Get.find<ParcelController>().receiverAddressController.text,
-      parcelCategoryId: parcel ? Get.find<ParcelController>().parcelCategoryList![Get.find<ParcelController>().selectedParcelCategory].id : '',
+      parcelCategoryId: parcel
+          ? (() {
+              final pc = Get.find<ParcelController>();
+              final list = pc.parcelCategoryList;
+              final i = pc.selectedParcelCategory;
+              return (list != null && i >= 0 && i < list.length) ? list[i].id : '';
+            })()
+          : '',
       payer: Get.find<ParcelController>().payReceiver?'receiver':"sender",
       weight: Get.find<ParcelController>().parcelWeightController.text,
       tripRequestId: parcel ? null : tripDetails?.id,

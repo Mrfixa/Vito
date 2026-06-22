@@ -59,8 +59,8 @@ class ParcelController extends GetxController with GetSingleTickerProviderStateM
   String? get getSenderCountryCode => _senderCountryDialCode;
   String? get getReceiverCountryDialCode => _receiverCountryDialCode;
 
-  String? get getSenderContactNumber => '$_senderCountryDialCode${senderContactController.text}';
-  String? get getReceiverContactNumber => '$_receiverCountryDialCode${receiverContactController.text}';
+  String? get getSenderContactNumber => '${_senderCountryDialCode ?? ''}${senderContactController.text}';
+  String? get getReceiverContactNumber => '${_receiverCountryDialCode ?? ''}${receiverContactController.text}';
 
   void onChangeSenderCountryCode(String? code, {bool isUpdate = true}) {
     _senderCountryDialCode = code;
@@ -249,12 +249,18 @@ class ParcelController extends GetxController with GetSingleTickerProviderStateM
   }
 
   void setParcelLoadingActive (int index){
-    parcelListModel!.data![index].isLoading = true;
-    update();
+    final data = parcelListModel?.data;
+    if(data != null && index >= 0 && index < data.length){
+      data[index].isLoading = true;
+      update();
+    }
   }
   void setParcelLoadingDeactive (int index){
-    parcelListModel!.data![index].isLoading = false;
-    update();
+    final data = parcelListModel?.data;
+    if(data != null && index >= 0 && index < data.length){
+      data[index].isLoading = false;
+      update();
+    }
   }
 
 }
