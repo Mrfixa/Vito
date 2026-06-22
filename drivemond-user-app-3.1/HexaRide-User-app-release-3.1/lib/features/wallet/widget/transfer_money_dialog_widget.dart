@@ -87,8 +87,11 @@ class _TransferMoneyDialogWidgetState extends State<TransferMoneyDialogWidget> {
                   buttonText: 'transfer'.tr,
                   onPressed: (){
                     String balance = _balanceController.text.trim().replaceAll(Get.find<ConfigController>().config?.currencySymbol ?? '\$', '').replaceAll(' ', '').replaceAll(',', '');
+                    double amount = double.tryParse(balance) ?? -1;
                     if(balance.isEmpty){
                       showCustomSnackBar('this_field_is_required'.tr);
+                    }else if(amount <= 0){
+                      showCustomSnackBar('enter_amount'.tr);
                     }else{
                       Get.find<WalletController>().transferWalletMoney(balance);
                     }
