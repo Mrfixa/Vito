@@ -1094,5 +1094,12 @@
     "loading": "Cargando...",
     "successfully_sent_otp": "OTP enviado correctamente",
     "invalid_number": "Número no válido",
-    "camera_permission_required": "Se necesita permiso de cámara para escanear el código QR"
+    "camera_permission_required": "Se necesita permiso de cámara para escanear el código QR",
+    "mart_order_history": "Historial de pedidos",
+    "no_orders_yet": "Aún no hay pedidos",
+    "order_status_pending": "Pendiente",
+    "order_status_accepted": "Aceptado",
+    "order_status_picked_up": "Recogido",
+    "order_status_delivered": "Entregado",
+    "order_status_cancelled": "Cancelado"
 }

@@ -93,6 +93,11 @@ import 'package:ride_sharing_user_app/theme/theme_controller.dart';
 import 'package:ride_sharing_user_app/util/app_constants.dart';
 import 'package:ride_sharing_user_app/features/trip/controllers/trip_controller.dart';
 import 'package:ride_sharing_user_app/features/trip/domain/repositories/trip_repository.dart';
+import 'package:ride_sharing_user_app/features/mart/controllers/mart_controller.dart';
+import 'package:ride_sharing_user_app/features/mart/domain/repositories/mart_repository.dart';
+import 'package:ride_sharing_user_app/features/mart/domain/repositories/mart_repository_interface.dart';
+import 'package:ride_sharing_user_app/features/mart/domain/services/mart_service.dart';
+import 'package:ride_sharing_user_app/features/mart/domain/services/mart_service_interface.dart';
 import 'package:ride_sharing_user_app/features/wallet/controllers/wallet_controller.dart';
 import 'package:ride_sharing_user_app/features/wallet/domain/repositories/wallet_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -178,6 +183,11 @@ Future<Map<String, Map<String, String>>> init() async {
   TripServiceInterface tripServiceInterface = TripService(tripRepositoryInterface: Get.find());
   Get.lazyPut(() => tripServiceInterface);
 
+  MartRepositoryInterface martRepositoryInterface = MartRepository(apiClient: Get.find());
+  Get.lazyPut(() => martRepositoryInterface);
+  MartServiceInterface martServiceInterface = MartService(martRepositoryInterface: Get.find());
+  Get.lazyPut(() => martServiceInterface);
+
   LocationRepositoryInterface locationRepositoryInterface = LocationRepository(apiClient: Get.find(), sharedPreferences: Get.find());
   Get.lazyPut(() => locationRepositoryInterface);
   LocationServiceInterface locationServiceInterface = LocationService(locationRepositoryInterface: Get.find());
@@ -221,6 +231,7 @@ Future<Map<String, Map<String, String>>> init() async {
   Get.lazyPut(() => WalletService(walletRepositoryInterface: Get.find()));
   Get.lazyPut(() => NotificationService(notificationRepositoryInterface: Get.find()));
   Get.lazyPut(() => TripService(tripRepositoryInterface: Get.find()));
+  Get.lazyPut(() => MartService(martRepositoryInterface: Get.find()));
   Get.lazyPut(() => LocationService(locationRepositoryInterface: Get.find()));
   Get.lazyPut(() => ReferEarnService(referEarnRepositoryInterface: Get.find()));
   Get.lazyPut(() => OutOfZoneService(outOfZoneRepositoryInterface: Get.find()));
@@ -245,6 +256,7 @@ Future<Map<String, Map<String, String>>> init() async {
   Get.lazyPut(() => WalletRepository(apiClient: Get.find()));
   Get.lazyPut(() => NotificationRepository(apiClient: Get.find()));
   Get.lazyPut(() => TripRepository(apiClient: Get.find()));
+  Get.lazyPut(() => MartRepository(apiClient: Get.find()));
   Get.lazyPut(() => LocationRepository(sharedPreferences: Get.find(),apiClient: Get.find()));
   Get.lazyPut(() => ReferEarnRepository(apiClient: Get.find()));
   Get.lazyPut(() => OutOfZoneRepository(apiClient: Get.find()));
@@ -268,6 +280,7 @@ Future<Map<String, Map<String, String>>> init() async {
   Get.lazyPut(() => WalletController(walletServiceInterface: Get.find()));
   Get.lazyPut(() => NotificationController(notificationServiceInterface: Get.find()));
   Get.lazyPut(() => TripController(tripServiceInterface: Get.find()));
+  Get.lazyPut(() => MartController(martServiceInterface: Get.find()));
   Get.lazyPut(() => RiderMapController());
   Get.lazyPut(() => BottomMenuController());
   Get.lazyPut(() => SettingController());

@@ -1094,5 +1094,12 @@
     "loading": "جارٍ التحميل...",
     "successfully_sent_otp": "تم إرسال رمز التحقق بنجاح",
     "invalid_number": "رقم غير صالح",
-    "camera_permission_required": "إذن الكاميرا مطلوب لمسح رمز QR"
+    "camera_permission_required": "إذن الكاميرا مطلوب لمسح رمز QR",
+    "mart_order_history": "سجل الطلبات",
+    "no_orders_yet": "لا توجد طلبات بعد",
+    "order_status_pending": "قيد الانتظار",
+    "order_status_accepted": "مقبول",
+    "order_status_picked_up": "تم الاستلام",
+    "order_status_delivered": "تم التوصيل",
+    "order_status_cancelled": "ملغى"
 }

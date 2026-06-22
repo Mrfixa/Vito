@@ -1103,5 +1103,16 @@
     "clear": "Clear",
     "successfully_sent_otp": "OTP sent successfully",
     "invalid_number": "Invalid number",
-    "camera_permission_required": "Camera permission is required to scan the QR code"
+    "camera_permission_required": "Camera permission is required to scan the QR code",
+    "mart_order_history": "Order History",
+    "no_orders_yet": "No orders yet",
+    "items": "items",
+    "order_status_pending": "Pending",
+    "order_status_accepted": "Accepted",
+    "order_status_picked_up": "Picked Up",
+    "order_status_delivered": "Delivered",
+    "order_status_cancelled": "Cancelled",
+    "in_stock": "In stock",
+    "add_to_cart": "Add to cart",
+    "description": "Description"
 }

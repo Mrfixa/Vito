@@ -9,7 +9,10 @@ import 'package:ride_sharing_user_app/util/app_constants.dart';
 import 'package:ride_sharing_user_app/util/dimensions.dart';
 import 'package:ride_sharing_user_app/util/styles.dart';
 import 'package:ride_sharing_user_app/common_widgets/app_bar_widget.dart';
+import 'package:ride_sharing_user_app/features/mart/domain/models/mart_product_model.dart';
 import 'package:ride_sharing_user_app/features/mart/screens/mart_order_tracking_screen.dart';
+import 'package:ride_sharing_user_app/features/mart/screens/mart_order_history_screen.dart';
+import 'package:ride_sharing_user_app/features/mart/screens/mart_product_details_screen.dart';
 import 'package:ride_sharing_user_app/features/mart/screens/mart_payment_screen.dart';
 import 'package:ride_sharing_user_app/util/app_colors.dart';
 
@@ -156,31 +159,44 @@ class _MartStoreScreenState extends State<MartStoreScreen> {
   Widget _buildSearchBar(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(Dimensions.paddingSizeDefault),
-      child: TextField(
-        controller: _searchController,
-        onChanged: (_) => setState(() {}),
-        decoration: InputDecoration(
-          hintText: 'search_products'.tr,
-          prefixIcon: const Icon(Icons.search),
-          suffixIcon: AnimatedOpacity(
-            opacity: _searchController.text.isEmpty ? 0.0 : 1.0,
-            duration: const Duration(milliseconds: 200),
-            child: IconButton(
-              icon: const Icon(Icons.close),
-              onPressed: _searchController.text.isEmpty ? null : () {
-                _searchController.clear();
-                setState(() {});
-              },
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: _searchController,
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                hintText: 'search_products'.tr,
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: AnimatedOpacity(
+                  opacity: _searchController.text.isEmpty ? 0.0 : 1.0,
+                  duration: const Duration(milliseconds: 200),
+                  child: IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: _searchController.text.isEmpty ? null : () {
+                      _searchController.clear();
+                      setState(() {});
+                    },
+                  ),
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(Dimensions.radiusDefault),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: Dimensions.paddingSizeDefault,
+                  vertical: Dimensions.paddingSizeSmall,
+                ),
+              ),
             ),
           ),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(Dimensions.radiusDefault),
+          const SizedBox(width: Dimensions.paddingSizeSmall),
+          // Entry point to the customer's mart order history.
+          IconButton(
+            tooltip: 'mart_order_history'.tr,
+            onPressed: () => Get.to(() => const MartOrderHistoryScreen()),
+            icon: Icon(Icons.receipt_long, color: Theme.of(context).primaryColor),
           ),
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: Dimensions.paddingSizeDefault,
-            vertical: Dimensions.paddingSizeSmall,
-          ),
-        ),
+        ],
       ),
     );
   }
@@ -395,6 +411,16 @@ class _ProductCardState extends State<_ProductCard> {
     });
   }
 
+  void _openDetails() {
+    final id = widget.product['id']?.toString();
+    if (id == null || id.isEmpty) return;
+    Get.to(() => MartProductDetailsScreen(
+          productId: id,
+          initialProduct: MartProductModel.fromJson(Map<String, dynamic>.from(widget.product)),
+          onAddToCart: widget.isOffline ? null : (_) => widget.onAdd(widget.product),
+        ));
+  }
+
   @override
   Widget build(BuildContext context) {
     final imageUrl = widget.product['image'] as String?;
@@ -408,10 +434,12 @@ class _ProductCardState extends State<_ProductCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // B13: product image
+          // B13: product image (tap to view details)
           Expanded(
             flex: 3,
-            child: ClipRRect(
+            child: InkWell(
+              onTap: _openDetails,
+              child: ClipRRect(
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(Dimensions.radiusDefault),
                 topRight: Radius.circular(Dimensions.radiusDefault),
@@ -443,6 +471,7 @@ class _ProductCardState extends State<_ProductCard> {
                         ),
                       ),
                     ),
+            ),
             ),
           ),
           Expanded(

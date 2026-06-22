@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:ride_sharing_user_app/data/api_client.dart';
 import 'package:ride_sharing_user_app/features/mart/screens/mart_delivery_screen.dart';
+import 'package:ride_sharing_user_app/features/mart/screens/mart_order_history_screen.dart';
 import 'package:ride_sharing_user_app/util/app_constants.dart';
 import 'package:ride_sharing_user_app/util/dimensions.dart';
 import 'package:ride_sharing_user_app/util/styles.dart';
@@ -87,6 +88,12 @@ class _MartPendingOrdersScreenState extends State<MartPendingOrdersScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBarWidget(title: 'pending_mart_orders'.tr, regularAppbar: true, showLogo: true),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => Get.to(() => const MartOrderHistoryScreen()),
+        backgroundColor: Theme.of(context).primaryColor,
+        icon: const Icon(Icons.receipt_long, color: Colors.white),
+        label: Text('mart_order_history'.tr, style: TextStyle(color: Colors.white)),
+      ),
       body: _isLoading
           ? Center(child: CircularProgressIndicator(color: Theme.of(context).primaryColor))
           : _hasError
