@@ -78,6 +78,19 @@ class MartOrderAdminController extends Controller
         return view('tripmanagement::admin.mart.orders.details', compact('order'));
     }
 
+    public function invoice(string $id): View|RedirectResponse
+    {
+        $this->authorize('vito_mart_view');
+
+        $order = MartOrder::with(['items.product', 'customer', 'driver'])->find($id);
+        if (!$order) {
+            Toastr::error(translate('order_not_found'));
+            return back();
+        }
+
+        return view('tripmanagement::admin.mart.orders.invoice', compact('order'));
+    }
+
     public function updateStatus(Request $request, string $id): RedirectResponse
     {
         $this->authorize('vito_mart_status');

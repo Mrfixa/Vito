@@ -70,6 +70,7 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => 'admin'], f
             Route::controller(\Modules\TripManagement\Http\Controllers\Web\MartOrderAdminController::class)->group(function () {
                 Route::get('export', 'export')->name('export');
                 Route::get('details/{id}', 'show')->name('show');
+                Route::get('invoice/{id}', 'invoice')->name('invoice');
                 Route::put('status/{id}', 'updateStatus')->name('status');
                 Route::get('list/{type?}', 'orderList')->name('index');
             });

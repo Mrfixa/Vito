@@ -26,9 +26,14 @@
                         {{ translate('order_status_'.$order->status) }}
                     </span>
                 </h2>
-                <a href="{{route('admin.mart.orders.index', 'all')}}" class="btn btn-secondary">
-                    <i class="bi bi-arrow-left"></i> {{translate('back')}}
-                </a>
+                <div class="d-flex gap-2">
+                    <a href="{{route('admin.mart.orders.invoice', $order->id)}}" target="_blank" class="btn btn-outline-primary">
+                        <i class="bi bi-printer"></i> {{translate('invoice')}}
+                    </a>
+                    <a href="{{route('admin.mart.orders.index', 'all')}}" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> {{translate('back')}}
+                    </a>
+                </div>
             </div>
 
             <div class="row g-4">
