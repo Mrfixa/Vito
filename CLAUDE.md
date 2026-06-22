@@ -43,6 +43,11 @@ php artisan test --filter=VitoFlowTest
   Modules/Gateways/Http/Controllers/Api/VitoStripeController.php
 ```
 
+> PHPStan only covers the **API** controllers above. The mart admin **Web** controllers
+> (`Http/Controllers/Web/Mart*AdminController.php`) are intentionally excluded — they use the
+> `Toastr::` facade, which PHPStan level 0 flags as "static call to instance method" false positives.
+> Verify Blade/admin changes with `php artisan view:cache` (compiles every view) instead.
+
 ### Module Architecture
 
 Uses [`nwidart/laravel-modules`](https://nwidart.com/laravel-modules). Each module under `Modules/` is self-contained:
@@ -66,7 +71,8 @@ Modules/{Module}/
 
 **Key modules:**
 - `AuthManagement` — QR token gate, PIN-based auth, username registration
-- `TripManagement` — Rides (VitoRide), parcels (VitoSend), mart orders (VitoMart)
+- `TripManagement` — Rides (VitoRide), parcels (VitoSend), mart orders (VitoMart). Mart entities:
+  `MartProduct`, `MartCategory`, `MartOrder`, `MartOrderItem`, `MartPromoCode`, `MartReview`.
 - `ChattingManagement` — Real-time messaging (polymorphic: TripRequest or MartOrder)
 - `Gateways` — Stripe PaymentIntent with idempotent webhooks
 - `UserManagement` — Profiles, driver details
@@ -92,12 +98,39 @@ Modules/{Module}/
 - **Broadcast events:** `CustomerRideChatEvent`/`DriverRideChatEvent` for rides; `CustomerMartOrderChatEvent`/`DriverMartOrderChatEvent` for mart. Always wrap `::broadcast()` calls in `try/catch` and check `checkReverbConnection()` first.
 - **Push notifications:** Use `sendDeviceNotification()` helper, wrapped in try/catch so failures never break the main flow.
 
+### VitoMart Admin Section
+
+VitoMart has a dedicated, permission-gated admin panel section (sidebar `nav-category` "VitoMart"),
+not just product CRUD. Pieces live under `Modules/TripManagement/`:
+
+- **Web controllers** (`Http/Controllers/Web/`): `VitoMartAdminController` (products),
+  `MartOrderAdminController` (orders list/details/status/export), `MartPromoCodeAdminController`,
+  `MartReviewAdminController` (read-only), `MartCategoryAdminController`, `MartDashboardController`.
+  Routes are the `admin/mart/*` group in `Routes/web.php` (names `admin.mart.*`; product names kept
+  as `admin.mart.products.*` for back-compat). Views under `Resources/views/admin/mart/`.
+- **Permissions:** a `vito_mart` module entry in `app/Lib/Constant.php` `MODULES` (drives the
+  role-permission UI) + gates in `app/Providers/AuthServiceProvider.php`
+  (`vito_mart_view/add/edit/delete/log/export` and `vito_mart_status`). Every web controller method
+  calls `$this->authorize('vito_mart_*')`.
+- **Sidebar order-count badges:** injected once via a view composer in
+  `app/Providers/GlobalDataServiceProvider.php` (`$martOrderCounts`, single grouped query).
+- **Categories** are a lookup table (`mart_categories`); products keep `category` as a string (no FK).
+  Active categories feed the product dropdown and `GET /api/customer/mart/categories`.
+- **Audit:** status changes and product CRUD write to `vito_audit_log` via the shared
+  `Http/Controllers/Concerns/LogsVitoAudit` trait.
+
+**Order status state machine:** the single source of truth is `MartOrder::STATUS_TRANSITIONS`
+(target → allowed-from statuses), consumed by **both** `VitoMartDriverController::updateStatus` (API)
+and `MartOrderAdminController::updateStatus` (admin). `pending → accepted → picked_up → delivered`;
+`cancelled` from `pending` or `accepted`. Change transitions here, not in the controllers.
+
 ### Adding a New API Endpoint
 
-1. Add route in the module's `Routes/api.php` (under appropriate `auth:api` + `maintenance_mode` middleware group).
+1. Add route in the module's `Routes/api.php` / `Routes/vito_api.php` (under appropriate `auth:api`
+   + `maintenance_mode` middleware group).
 2. Add controller method in `Modules/{Module}/Http/Controllers/Api/{Role}/`.
-3. If it's a new mart order status transition, add it to `VitoMartDriverController::$validTransitions`.
-4. Add a test case to `VitoFlowTest.php`.
+3. If it's a new mart order status transition, update `MartOrder::STATUS_TRANSITIONS` (shared by API + admin).
+4. Add a test case to `VitoFlowTest.php` (and update `tearDown` `dropIfExists` if you add a table).
 
 ---
 
@@ -171,6 +204,17 @@ Both apps use `dart_pusher_channels`. Channel naming convention:
 
 Subscribe in the controller method, bind the event, and check `id == eventData['channel_conversation']['channel']['trip_id']` (for rides) or `order_id` (for mart) before inserting into the message list.
 
+### Mart Feature (both apps)
+
+The mart feature follows the standard GetX layering: `lib/features/mart/{controllers,domain/{models,
+repositories,services}}` with a `MartController` registered (all four layers) in `di_container.dart`.
+Customer endpoints (products, categories, orders, cancel, review) live in the user app's
+`MartController`; driver endpoints (pending/my-orders, accept, status) in the driver app's. Older
+mart screens (`mart_store_screen`, `mart_order_tracking_screen`, `mart_delivery_screen`) still carry
+significant inline state — migrate them onto the controller incrementally (method-by-method behind
+`GetBuilder`), keeping each step `flutter analyze`-clean. New screens (`mart_order_history_screen`,
+`mart_product_details_screen`) already consume the controller.
+
 ### Mart Order Chat (User App)
 
 - `MessageController.createMartChannel(driverId, orderId, driverName)` → navigates to `MartMessageScreen`
@@ -203,6 +247,6 @@ Required GitHub secrets: `MAPS_API_KEY`, `STRIPE_PUBLISHABLE_KEY`.
 
 - **UUIDs everywhere:** All primary keys use `HasUuids` trait (Laravel) / UUID strings (Flutter models).
 - **Soft deletes:** Most entities use `SoftDeletes`. Use `->withTrashed()` when needed.
-- **Mart order statuses:** `pending` → `accepted` → `picked_up` → `delivered` (or `cancelled` from `pending` only).
+- **Mart order statuses:** `pending` → `accepted` → `picked_up` → `delivered` (or `cancelled` from `pending`/`accepted`). Canonical map: `MartOrder::STATUS_TRANSITIONS`.
 - **No client-sent totals:** Strip `total` / `amount` from any order creation request body; always recompute server-side.
 - **Branch:** All work goes to `claude/analyze-mart-qr-code-FySPn`.
